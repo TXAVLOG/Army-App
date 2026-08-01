@@ -44,6 +44,15 @@ class _TXAProfileScreenState extends State<TXAProfileScreen>
   bool _isPopping = false;
   bool _copiedUsername = false;
   bool _isLoading = false;
+  bool _isBuildingTimeline = false;
+
+  static void resetLoadState() {
+    _hasLoadedOnce = false;
+    _lastPostCount = 0;
+    _lastLatestPostId = '';
+    _lastLatestPostTime = '';
+    _lastFriendsCount = 0;
+  }
 
   @override
   void initState() {
@@ -76,24 +85,29 @@ class _TXAProfileScreenState extends State<TXAProfileScreen>
         _isLoading = true;
       });
 
-      // 1. Sync user data
+      // Phase 1: Sync user data
       await txaAuth.syncUserFromFirestore();
-
-      // 2. Precache images
+      
       if (mounted) {
-        final recentPosts = visiblePosts.take(10).toList();
+        setState(() {
+          _isLoading = false;
+          _isBuildingTimeline = true;
+        });
+      }
+
+      // Phase 2: Precache images in background
+      final freshPosts = txaFeed.getVisiblePostsForUser(currentUsername);
+      if (mounted) {
+        final recentPosts = freshPosts.take(10).toList();
         final futures = <Future<void>>[];
         for (var post in recentPosts) {
-          if (post.photoPath.isNotEmpty) {
-            final imageProvider = post.photoPath.startsWith('http')
-                ? NetworkImage(post.photoPath)
-                : FileImage(File(post.photoPath)) as ImageProvider;
-            futures.add(precacheImage(imageProvider, context).catchError((_) {}));
+          if (post.photoPath.isNotEmpty && post.photoPath.startsWith('http')) {
+            futures.add(precacheImage(NetworkImage(post.photoPath), context).catchError((_) {}));
           }
         }
         await Future.wait([
           Future.wait(futures),
-          Future.delayed(const Duration(milliseconds: 1000)),
+          Future.delayed(const Duration(milliseconds: 950)),
         ]);
       }
 
@@ -105,7 +119,7 @@ class _TXAProfileScreenState extends State<TXAProfileScreen>
 
       if (mounted) {
         setState(() {
-          _isLoading = false;
+          _isBuildingTimeline = false;
         });
       }
     } else {
@@ -751,12 +765,14 @@ class _TXAProfileScreenState extends State<TXAProfileScreen>
                       ],
                     ),
                   )
-                : NotificationListener<ScrollNotification>(
-                    onNotification: (ScrollNotification notification) {
-                      // Disabling drag down to pop completely
-                      return false;
-                    },
-                    child: SingleChildScrollView(
+                : Stack(
+                    children: [
+                      NotificationListener<ScrollNotification>(
+                        onNotification: (ScrollNotification notification) {
+                          // Disabling drag down to pop completely
+                          return false;
+                        },
+                        child: SingleChildScrollView(
                       child: Column(
                         children: [
                           const SizedBox(height: 16),
@@ -808,7 +824,7 @@ class _TXAProfileScreenState extends State<TXAProfileScreen>
 
                 // 2. Display Name (Bold, Uppercase)
                 Text(
-                  (currentUser?.displayName ?? currentUser?.username ?? 'LOCKET USER').replaceAll('@', '').toUpperCase(),
+                  (currentUser?.displayName ?? currentUser?.username ?? '').replaceAll('@', '').toUpperCase(),
                   style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w900, color: Colors.white, letterSpacing: 0.8),
                 ),
                 const SizedBox(height: 8),
@@ -1136,16 +1152,69 @@ class _TXAProfileScreenState extends State<TXAProfileScreen>
                 // 4. Lịch Vạn Niên (Calendar Photo Grid)
                 _buildCalendarSection(visiblePosts, currentUsername),
 
-                const SizedBox(height: 32),
-              ],
-            ),
-          ),
-        ),
-      );
-    },
-  ),
-);
-}
+                 const SizedBox(height: 32),
+               ],
+             ),
+           ),
+         ),
+       if (_isBuildingTimeline)
+         Positioned(
+           bottom: 24,
+           left: 24,
+           right: 24,
+           child: IgnorePointer(
+             child: AnimatedOpacity(
+               opacity: _isBuildingTimeline ? 1.0 : 0.0,
+               duration: const Duration(milliseconds: 300),
+               child: Container(
+                 padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 12),
+                 decoration: BoxDecoration(
+                   color: const Color(0xFF1E1E24),
+                   borderRadius: BorderRadius.circular(16),
+                   border: Border.all(color: const Color(0xFF42A5F5).withAlpha(100), width: 1.5),
+                   boxShadow: [
+                     BoxShadow(
+                       color: const Color(0xFF42A5F5).withAlpha(50),
+                       blurRadius: 12,
+                       spreadRadius: 1,
+                     ),
+                   ],
+                 ),
+                 child: Row(
+                   mainAxisSize: MainAxisSize.min,
+                   children: [
+                     const SizedBox(
+                       width: 14,
+                       height: 14,
+                       child: CircularProgressIndicator(
+                         strokeWidth: 2,
+                         valueColor: AlwaysStoppedAnimation<Color>(Color(0xFF42A5F5)),
+                       ),
+                     ),
+                     const SizedBox(width: 12),
+                     Expanded(
+                       child: Text(
+                         txaLang.getText('army_building_timeline'),
+                         style: const TextStyle(
+                           color: Colors.white,
+                           fontSize: 13,
+                           fontWeight: FontWeight.bold,
+                         ),
+                       ),
+                     ),
+                   ],
+                 ),
+               ),
+             ),
+           ),
+         ),
+     ],
+   ),
+ );
+       },
+     ),
+   );
+ }
 
 
 
@@ -2076,6 +2145,9 @@ class _TXAProfileScreenState extends State<TXAProfileScreen>
 
                             if (confirmed != true) return;
                             if (!context.mounted) return;
+
+                            // Reset static state của Profile
+                            _TXAProfileScreenState.resetLoadState();
 
                             // Đóng settings sheet
                             Navigator.pop(context);

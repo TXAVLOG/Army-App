@@ -447,7 +447,7 @@ class _LocketMainScreenState extends State<LocketMainScreen> with WidgetsBinding
 
   Future<bool> _checkAndShowChangelog() async {
     final prefs = await SharedPreferences.getInstance();
-    const currentVer = '1.1.9+0';
+    final currentVer = TXAVersion.currentVersion;
     final shown = prefs.getBool('txa_changelog_shown_$currentVer') ?? false;
     if (!shown) {
       if (mounted) {

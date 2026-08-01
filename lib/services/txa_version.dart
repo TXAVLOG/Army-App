@@ -5,12 +5,36 @@ class TXAVersion extends ChangeNotifier {
   TXAVersion._internal();
 
   static const String appName = 'Army';
-  static const String currentVersion = '1.0.0';
-  static const int buildNumber = 1;
-  static const String releaseDate = '31/07/2026';
-  static const String fullVersionString = 'Bản 1.0.0+1';
+  static const String currentVersion = '1.0.1';
+  static const int buildNumber = 2;
+  static const String releaseDate = '01/08/2026';
+  static const String fullVersionString = 'Bản 1.0.1+2';
 
   static const List<Map<String, dynamic>> changelogData = [
+    {
+      'version': '1.0.1+2',
+      'date': '01/08/2026',
+      'title': 'Cải tiến Profile & Sửa lỗi Đăng xuất 🛠️',
+      'subtitle': 'Tối ưu hóa trải nghiệm tải dữ liệu cá nhân, sửa lỗi kẹt session khi logout và cập nhật tài khoản.',
+      'badge': 'BẢN CẬP NHẬT',
+      'features': [
+        {
+          'icon': '🚪',
+          'title': 'Sửa lỗi Đăng xuất triệt để',
+          'description': 'Reset hoàn toàn trạng thái cache profile khi bấm đăng xuất, ngăn ngừa tình trạng kẹt session hoặc hiển thị thông tin ảo của tài khoản cũ.',
+        },
+        {
+          'icon': '⏳',
+          'title': 'Cơ chế Tải Profile 2 giai đoạn',
+          'description': 'Tải thông tin bạn bè và streak lập tức để mở giao diện nhanh chóng, sau đó dựng timeline và precache ảnh ngầm cùng banner hiển thị trạng thái.',
+        },
+        {
+          'icon': '👤',
+          'title': 'Đồng bộ & tạo lại tài khoản @txavltj1',
+          'description': 'Tạo và đồng bộ hóa thành công tài khoản chính chủ @txavltj1 lên Cloud Firestore với mật khẩu mới.',
+        },
+      ],
+    },
     {
       'version': '1.0.0+1',
       'date': '26/07/2026',
