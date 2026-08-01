@@ -1,7 +1,7 @@
 # Army 🐜 — Locket Dark Social & Instant Widget Moments
 
 <p align="center">
-  <img src="assets/icons/app_icon.png" width="120" alt="Army Logo" style="border-radius: 24px; box-shadow: 0 10px 25px rgba(0,0,0,0.5);" />
+  <img src="assets/icons/armi_classic_gold.png" width="120" alt="Army Logo" style="border-radius: 24px; box-shadow: 0 10px 25px rgba(0,0,0,0.5);" />
 </p>
 
 <p align="center">
