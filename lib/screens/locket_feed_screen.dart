@@ -224,6 +224,7 @@ class _LocketFeedScreenState extends State<LocketFeedScreen> {
 
     TXAFeedService.instance.init();
 
+    final username = TXAAuthService.instance.currentUser?.username ?? '';
     final visiblePosts = TXAFeedService.instance.getVisiblePostsForUser(username);
     final bool isVip = TXAIAPService.instance.isVipActive;
     final List<dynamic> feedItems = [];

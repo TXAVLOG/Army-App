@@ -5,7 +5,6 @@ import 'package:google_mobile_ads/google_mobile_ads.dart';
 import '../services/txa_admob_service.dart';
 import '../services/txa_network_monitor.dart';
 import '../services/txa_language.dart';
-import '../theme/txa_theme.dart';
 import '../services/txa_logger.dart';
 
 class TXANativeAdFeedCard extends StatefulWidget {
@@ -166,7 +165,7 @@ class _TXANativeAdFeedCardState extends State<TXANativeAdFeedCard> {
             child: Text(
               'Loading sponsored content...',
               style: TextStyle(color: Colors.white38, fontSize: 11),
-              textAlign: Center,
+              textAlign: TextAlign.center,
             ),
           ),
         ],

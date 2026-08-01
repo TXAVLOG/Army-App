@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'dart:io';
 import 'package:flutter/foundation.dart';
+import 'package:flutter/material.dart';
 import 'package:in_app_purchase/in_app_purchase.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'txa_auth_service.dart';
@@ -63,7 +64,7 @@ class TXAIAPService extends ChangeNotifier {
     const Set<String> ids = {monthlyProductId, yearlyProductId};
     final ProductDetailsResponse response = await _iap.queryProductDetails(ids);
     if (response.notFoundIDs.isNotEmpty) {
-      TXALogger.logWarning('Products not found: ${response.notFoundIDs}', extraInfo: {'service': 'TXAIAPService', 'action': '_loadProducts'});
+      TXALogger.logError('Products not found: ${response.notFoundIDs}', extraInfo: {'service': 'TXAIAPService', 'action': '_loadProducts'});
     }
     _products = response.productDetails;
     notifyListeners();
@@ -76,7 +77,7 @@ class TXAIAPService extends ChangeNotifier {
       if (context != null) {
         TXAToast.show(
           context,
-          TXALanguage.instance.getText('ios_iap_unsupported') ?? '⚠️ Tính năng đăng ký gói Army Gold Pass 🌟 hiện chưa hỗ trợ trên thiết bị iOS. Vui lòng quay lại sau!',
+          TXALanguage.instance.getText('ios_iap_unsupported'),
           icon: Icons.warning_amber_rounded,
         );
       }
@@ -100,15 +101,15 @@ class TXAIAPService extends ChangeNotifier {
     }
   }
 
-  void _listenToPurchaseUpdated(List<PurchaseDetails> purchaseDetailsList) {
-    purchaseDetailsList.forEach((PurchaseDetails purchaseDetails) async {
-      if (purchaseDetails.status == PurchaseState.pending) {
+  void _listenToPurchaseUpdated(List<PurchaseDetails> purchaseDetailsList) async {
+    for (final purchaseDetails in purchaseDetailsList) {
+      if (purchaseDetails.status == PurchaseStatus.pending) {
         // Handle pending state
       } else {
-        if (purchaseDetails.status == PurchaseState.error) {
+        if (purchaseDetails.status == PurchaseStatus.error) {
           debugPrint('Purchase error: ${purchaseDetails.error}');
-        } else if (purchaseDetails.status == PurchaseState.purchased ||
-            purchaseDetails.status == PurchaseState.restored) {
+        } else if (purchaseDetails.status == PurchaseStatus.purchased ||
+            purchaseDetails.status == PurchaseStatus.restored) {
           // Verify purchase and update user VIP status in Firestore
           await _verifyAndActivateVIP(purchaseDetails);
         }
@@ -116,7 +117,7 @@ class TXAIAPService extends ChangeNotifier {
           await _iap.completePurchase(purchaseDetails);
         }
       }
-    });
+    }
   }
 
   Future<void> _verifyAndActivateVIP(PurchaseDetails purchase) async {

@@ -736,7 +736,7 @@ class _TXAAdminPanelScreenState extends State<TXAAdminPanelScreen> with SingleTi
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          Text(label, style: const TextStyle(color: Colors.white90, fontSize: 13, fontWeight: FontWeight.bold)),
+          Text(label, style: const TextStyle(color: Colors.white70, fontSize: 13, fontWeight: FontWeight.bold)),
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
             decoration: BoxDecoration(

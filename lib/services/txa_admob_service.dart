@@ -1,9 +1,8 @@
 import 'dart:io';
 import 'package:flutter/foundation.dart';
 import 'package:google_mobile_ads/google_mobile_ads.dart';
-import 'txa_auth_service.dart';
-import 'txa_network_monitor.dart';
 import 'txa_config.dart';
+import 'txa_logger.dart';
 
 class TXAAdMobService extends ChangeNotifier {
   static final TXAAdMobService instance = TXAAdMobService._internal();
@@ -107,6 +106,6 @@ class TXAAdMobService extends ChangeNotifier {
       },
     );
 
-    _rewardedAd!.show(onUserEarnedReward: onUserEarnedReward);
+    _rewardedAd!.show(onUserEarnedReward: (ad, reward) => onUserEarnedReward(reward));
   }
 }

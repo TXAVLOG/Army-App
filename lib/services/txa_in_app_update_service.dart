@@ -28,10 +28,10 @@ class TXAInAppUpdateService {
           await InAppUpdate.startFlexibleUpdate();
           
           final context = navigatorKey.currentContext;
-          if (context != null) {
+          if (context != null && context.mounted) {
             TXAToast.show(
               context,
-              TXALanguage.instance.getText('update_downloading') ?? '📥 Đang tải bản cập nhật mới trong nền...',
+              TXALanguage.instance.getText('update_downloading'),
               icon: Icons.cloud_download_rounded,
             );
           }

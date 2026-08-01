@@ -52,7 +52,7 @@ class _TXAGoldPassPaywallScreenState extends State<TXAGoldPassPaywallScreen> {
               if (context.mounted) {
                 TXAToast.show(
                   context,
-                  txaLang.getText('purchase_restored_toast') ?? '🔄 Đang khôi phục giao dịch mua...',
+                  txaLang.getText('purchase_restored_toast'),
                   icon: Icons.restore_rounded,
                 );
               }
@@ -76,7 +76,7 @@ class _TXAGoldPassPaywallScreenState extends State<TXAGoldPassPaywallScreen> {
                   colors: [Color(0xFFFFD700), Color(0xFFFFA500)],
                 ).createShader(bounds),
                 child: const Icon(
-                  Icons.crown_rounded,
+                  Icons.workspace_premium_rounded,
                   size: 72,
                   color: Colors.white,
                 ),
@@ -267,7 +267,7 @@ class _TXAGoldPassPaywallScreenState extends State<TXAGoldPassPaywallScreen> {
             child: Text(
               text,
               style: const TextStyle(
-                color: Colors.white90,
+                color: Colors.white70,
                 fontSize: 14,
                 fontWeight: FontWeight.w500,
               ),

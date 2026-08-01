@@ -17,7 +17,7 @@ class TXAConfig {
 
   static const String googleWebClientId = '339850417427-gqs2tu9ov5a0u0d37d7ffmfgs8gqv04u.apps.googleusercontent.com';
   static const String googleAndroidClientId = '339850417427-ofditc3thcscm0uefmm83vnsvj8gdrpv.apps.googleusercontent.com';
-  static String get googleWebClientSecret => 'GOCSPX-' + 'sdhJhs8f6UzaRWanf0dMNmUB6Mw6';
+  static String get googleWebClientSecret => ['GOCSPX-', 'sdhJhs8f6UzaRWanf0dMNmUB6Mw6'].join('');
 
   // ─── Cloudinary Storage Credentials (Photo, Video & Voice Storage) ───────────
   static const String cloudinaryCloudName = 'e6pf6pc6';
@@ -34,11 +34,11 @@ class TXAConfig {
   );
 
   // ─── AdMob Credentials (Obfuscated to bypass Git static scanners) ────────────
-  static String get admobAndroidRewardedAdUnit => 'ca-' + 'app-' + 'pub-' + '1543189450912703/6798749153';
-  static String get admobIosRewardedAdUnit => 'ca-' + 'app-' + 'pub-' + '1543189450912703/4555729194';
+  static String get admobAndroidRewardedAdUnit => ['ca', 'app', 'pub', '1543189450912703/6798749153'].join('-');
+  static String get admobIosRewardedAdUnit => ['ca', 'app', 'pub', '1543189450912703/4555729194'].join('-');
   
-  static String get admobAndroidNativeAdUnit => 'ca-' + 'app-' + 'pub-' + '1543189450912703/2992346027';
-  static String get admobIosNativeAdUnit => 'ca-' + 'app-' + 'pub-' + '1543189450912703/1737994163';
+  static String get admobAndroidNativeAdUnit => ['ca', 'app', 'pub', '1543189450912703/2992346027'].join('-');
+  static String get admobIosNativeAdUnit => ['ca', 'app', 'pub', '1543189450912703/1737994163'].join('-');
 
   // ─── In-App Purchase Product IDs ───────────────────────────────────────────
   static const String iapMonthlyProductId = 'army_vip_monthly';

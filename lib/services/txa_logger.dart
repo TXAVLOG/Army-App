@@ -129,6 +129,11 @@ class TXALogger {
     );
   }
 
+  /// Log an Info Message (Console only)
+  static void logInfo(String message, {Map<String, dynamic>? extraInfo}) {
+    debugPrint('ℹ️ [TXALogger] $message ${extraInfo != null ? extraInfo.toString() : ''}');
+  }
+
   /// Core Logger Processor with Deduplication & Exhaustive Metadata
   static Future<void> _processLog({
     required String level,

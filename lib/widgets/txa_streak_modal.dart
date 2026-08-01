@@ -7,7 +7,6 @@ import '../services/txa_auth_service.dart';
 import '../services/txa_format.dart';
 import '../services/txa_admob_service.dart';
 import '../services/txa_iap_service.dart';
-import 'package:google_mobile_ads/google_mobile_ads.dart';
 import 'txa_toast.dart';
 import 'txa_avatar_frame.dart';
 
@@ -411,7 +410,7 @@ class TXAStreakModal {
                               child: Row(
                                 children: [
                                   Icon(
-                                    hasUnlimited ? Icons.crown_rounded : Icons.bolt_rounded,
+                                    hasUnlimited ? Icons.workspace_premium_rounded : Icons.bolt_rounded,
                                     color: hasUnlimited ? const Color(0xFFFFD700) : const Color(0xFF42A5F5),
                                     size: 20,
                                   ),
@@ -421,7 +420,7 @@ class TXAStreakModal {
                                       hasUnlimited
                                           ? txaLang.getText('restore_vip_unlimited')
                                           : (!freeMonthlyUsed
-                                              ? '${txaLang.getText('restore_credits_label').replaceAll('%count%', '0')} (${txaLang.getText('free') ?? '1 Free Month'})'
+                                              ? '${txaLang.getText('restore_credits_label').replaceAll('%count%', '0')} (${txaLang.getText('free')})'
                                               : txaLang.getText('restore_credits_label').replaceAll('%count%', '$adCredits')),
                                       style: TextStyle(
                                         color: hasUnlimited ? const Color(0xFFFFD700) : const Color(0xFF42A5F5),
@@ -456,11 +455,13 @@ class TXAStreakModal {
                               final success = await TXAStreakService.instance.restoreStreak(username);
                               if (success) {
                                 final saved = TXAStreakService.instance.getLastSavedStreak(username);
-                                TXAToast.show(
-                                  context,
-                                  txaLang.getText('restore_success_toast').replaceAll('%count%', '$saved'),
-                                  icon: Icons.local_fire_department_rounded,
-                                );
+                                if (context.mounted) {
+                                  TXAToast.show(
+                                    context,
+                                    txaLang.getText('restore_success_toast').replaceAll('%count%', '$saved'),
+                                    icon: Icons.local_fire_department_rounded,
+                                  );
+                                }
                               }
                             } else {
                               // Show dialog to watch rewarded ad

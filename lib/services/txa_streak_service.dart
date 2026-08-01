@@ -469,8 +469,8 @@ class TXAStreakService extends ChangeNotifier {
     _restorationCredits.forEach((user, credits) {
       prefs.setInt('txa_restoration_credits_$user', credits);
     });
-    _dailyStreakAdCounts.forEach((user, count) {
-      prefs.setInt('txa_daily_ad_count_$user', count);
+    _dailyStreakAdCounts.forEach((user, adCount) {
+      prefs.setInt('txa_daily_ad_count_$user', adCount);
     });
     _lastAdResetDates.forEach((user, dateStr) {
       prefs.setString('txa_last_ad_reset_$user', dateStr);
