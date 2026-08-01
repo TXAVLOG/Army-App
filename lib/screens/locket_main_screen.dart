@@ -23,6 +23,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import '../widgets/txa_avatar_frame.dart';
 import '../widgets/txa_coach_mark.dart';
 import 'photo_preview_screen.dart';
+import '../services/txa_version.dart';
 import 'locket_feed_screen.dart';
 import '../services/txa_deep_link_service.dart';
 import '../services/txa_notification_service.dart';
