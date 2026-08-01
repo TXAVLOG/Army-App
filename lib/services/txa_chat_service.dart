@@ -3,6 +3,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'txa_notification_service.dart';
 import 'txa_language.dart';
 import 'package:firebase_analytics/firebase_analytics.dart';
+import 'txa_analytics.dart';
 
 class TXAChatMessageModel {
   final String id;
@@ -234,6 +235,7 @@ class TXAChatService extends ChangeNotifier {
           'is_reply': postId != null ? 'true' : 'false',
         },
       );
+      TXAAnalytics.logEvent('send_message');
     } catch (_) {}
   }
 

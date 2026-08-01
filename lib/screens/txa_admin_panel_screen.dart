@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import '../theme/txa_theme.dart';
 import '../services/txa_auth_service.dart';
 import '../services/txa_feed_service.dart';
@@ -23,7 +24,7 @@ class _TXAAdminPanelScreenState extends State<TXAAdminPanelScreen> with SingleTi
   @override
   void initState() {
     super.initState();
-    _tabController = TabController(length: 4, vsync: this);
+    _tabController = TabController(length: 5, vsync: this);
     _loadData();
   }
 
@@ -107,9 +108,10 @@ class _TXAAdminPanelScreenState extends State<TXAAdminPanelScreen> with SingleTi
           isScrollable: true,
           tabs: [
             Tab(icon: const Icon(Icons.bar_chart_rounded), text: txaLang.getText('admin_stats_tab')),
-            Tab(icon: const Icon(Icons.people_rounded), text: 'Users (${TXAFormat.formatNumber(_users.length)})'),
-            const Tab(icon: Icon(Icons.photo_library_rounded), text: 'Posts'),
-            const Tab(icon: Icon(Icons.flag_rounded), text: 'Reports'),
+            Tab(icon: const Icon(Icons.stars_rounded), text: txaLang.getText('admin_quota_tab')),
+            Tab(icon: const Icon(Icons.people_rounded), text: txaLang.getText('admin_users_tab_count').replaceAll('%count%', TXAFormat.formatNumber(_users.length))),
+            Tab(icon: const Icon(Icons.photo_library_rounded), text: txaLang.getText('admin_posts_tab')),
+            Tab(icon: const Icon(Icons.flag_rounded), text: txaLang.getText('admin_reports_tab')),
           ],
         ),
       ),
@@ -119,6 +121,7 @@ class _TXAAdminPanelScreenState extends State<TXAAdminPanelScreen> with SingleTi
               controller: _tabController,
               children: [
                 _buildAnalyticsTab(),
+                _buildSubscriptionQuotaTab(),
                 _buildUsersTab(),
                 _buildPostsTab(),
                 _buildReportsTab(),
@@ -142,8 +145,8 @@ class _TXAAdminPanelScreenState extends State<TXAAdminPanelScreen> with SingleTi
         final isFriend = TXAAuthService.instance.friendsList.any((f) => f['username'] == user.username);
 
         final roleLocalized = user.role == 'admin'
-            ? (txaLang.currentLanguage == 'vi' ? 'Quản trị viên' : 'Admin')
-            : (txaLang.currentLanguage == 'vi' ? 'Người dùng' : 'User');
+            ? txaLang.getText('admin_role_admin')
+            : txaLang.getText('admin_role_user');
 
         final dt = DateTime.tryParse(user.createdTime);
         final dateLocalized = dt != null
@@ -677,7 +680,77 @@ class _TXAAdminPanelScreenState extends State<TXAAdminPanelScreen> with SingleTi
                 ),
         ),
         const SizedBox(height: 24),
+
+        Row(
+          children: [
+            const Icon(Icons.analytics_rounded, color: Colors.blueAccent, size: 20),
+            const SizedBox(width: 8),
+            Text(
+              txaLang.getText('admin_live_events'),
+              style: const TextStyle(color: Colors.white, fontSize: 13, fontWeight: FontWeight.w900, letterSpacing: 0.5),
+            ),
+          ],
+        ),
+        const SizedBox(height: 10),
+        StreamBuilder<DocumentSnapshot>(
+          stream: FirebaseFirestore.instance.collection('statistics').doc('global').snapshots(),
+          builder: (context, snap) {
+            final data = snap.data?.data() as Map<String, dynamic>? ?? {};
+            final appOpen = data['app_open'] ?? 0;
+            final login = data['login'] ?? 0;
+            final createPost = data['create_post'] ?? 0;
+            final sendMessage = data['send_message'] ?? 0;
+            final addReaction = data['add_reaction'] ?? 0;
+
+            return Container(
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                color: TXATheme.cardBg,
+                borderRadius: BorderRadius.circular(20),
+                border: Border.all(color: TXATheme.cardBorder),
+              ),
+              child: Column(
+                children: [
+                  _buildEventRow(txaLang.getText('admin_event_app_open'), appOpen, Colors.greenAccent),
+                  const Divider(color: Colors.white10),
+                  _buildEventRow(txaLang.getText('admin_event_login'), login, Colors.amberAccent),
+                  const Divider(color: Colors.white10),
+                  _buildEventRow(txaLang.getText('admin_event_create_post'), createPost, Colors.blueAccent),
+                  const Divider(color: Colors.white10),
+                  _buildEventRow(txaLang.getText('admin_event_send_message'), sendMessage, Colors.pinkAccent),
+                  const Divider(color: Colors.white10),
+                  _buildEventRow(txaLang.getText('admin_event_add_reaction'), addReaction, Colors.purpleAccent),
+                ],
+              ),
+            );
+          },
+        ),
+        const SizedBox(height: 24),
       ],
+    );
+  }
+
+  Widget _buildEventRow(String label, int value, Color color) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 8),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          Text(label, style: const TextStyle(color: Colors.white90, fontSize: 13, fontWeight: FontWeight.bold)),
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+            decoration: BoxDecoration(
+              color: color.withAlpha(30),
+              borderRadius: BorderRadius.circular(10),
+              border: Border.all(color: color.withAlpha(80)),
+            ),
+            child: Text(
+              '$value',
+              style: TextStyle(color: color, fontWeight: FontWeight.bold, fontSize: 13),
+            ),
+          ),
+        ],
+      ),
     );
   }
 
@@ -723,6 +796,129 @@ class _TXAAdminPanelScreenState extends State<TXAAdminPanelScreen> with SingleTi
           ),
         ],
       ),
+    );
+  }
+
+  Widget _buildSubscriptionQuotaTab() {
+    final txaLang = TXALanguage.instance;
+    return StreamBuilder<QuerySnapshot>(
+      stream: FirebaseFirestore.instance.collection('users').snapshots(),
+      builder: (context, snapshot) {
+        if (snapshot.connectionState == ConnectionState.waiting) {
+          return const Center(child: CircularProgressIndicator(color: TXATheme.primaryYellow));
+        }
+        if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
+          return Center(child: Text(txaLang.getText('admin_no_users'), style: const TextStyle(color: TXATheme.textMuted)));
+        }
+        final docs = snapshot.data!.docs;
+        return ListView.separated(
+          padding: const EdgeInsets.all(16),
+          itemCount: docs.length,
+          separatorBuilder: (context, index) => Divider(color: TXATheme.cardBorder, height: 16),
+          itemBuilder: (context, index) {
+            final doc = docs[index];
+            final data = doc.data() as Map<String, dynamic>;
+            final username = data['username'] ?? '@user';
+            final isVip = data['isVipActive'] == true;
+            final credits = data['restorationCredits'] ?? 0;
+            final monthlyUsed = data['isFreeMonthlyRestoreUsed'] == true;
+            final avatar = data['avatar'] ?? '👤';
+            final avatarBg = Color(int.tryParse(data['avatarBgColor'] ?? '0xFF607D8B') ?? 0xFF607D8B);
+
+            final goldPassStatus = txaLang.getText('admin_gold_pass').replaceAll('%status%', isVip ? "Active 👑" : "Free 🟢");
+            final restoreCreditsStatus = txaLang.getText('admin_restore_credits').replaceAll('%count%', TXAFormat.formatNumber(credits));
+            final monthlyRestoreStatus = txaLang.getText('admin_monthly_restore').replaceAll('%status%', monthlyUsed ? txaLang.getText('admin_status_used') : txaLang.getText('admin_status_ready'));
+
+            return ListTile(
+              contentPadding: EdgeInsets.zero,
+              leading: CircleAvatar(
+                backgroundColor: avatarBg,
+                child: Text(avatar, style: const TextStyle(fontSize: 20)),
+              ),
+              title: Row(
+                children: [
+                  Text(username, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+                  const SizedBox(width: 6),
+                  if (isVip)
+                    const Icon(Icons.stars_rounded, color: TXATheme.primaryYellow, size: 16)
+                  else
+                    const Icon(Icons.star_border_rounded, color: Colors.white38, size: 16),
+                ],
+              ),
+              subtitle: Text(
+                '$goldPassStatus | $restoreCreditsStatus | $monthlyRestoreStatus',
+                style: const TextStyle(color: TXATheme.textMuted, fontSize: 12),
+              ),
+              trailing: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  IconButton(
+                    icon: const Icon(Icons.add_moderator_rounded, color: Colors.orange),
+                    tooltip: txaLang.getText('admin_edit_streak'),
+                    onPressed: () async {
+                      final textController = TextEditingController(text: '$credits');
+                      final confirm = await showDialog<bool>(
+                        context: context,
+                        builder: (ctx) => AlertDialog(
+                          backgroundColor: TXATheme.cardBg,
+                          title: Text(txaLang.getText('admin_edit_streak_title'), style: const TextStyle(color: Colors.white)),
+                          content: TextField(
+                            controller: textController,
+                            keyboardType: TextInputType.number,
+                            style: const TextStyle(color: Colors.white),
+                            decoration: InputDecoration(
+                              labelText: txaLang.getText('admin_enter_credits'),
+                              labelStyle: const TextStyle(color: Colors.white70),
+                            ),
+                          ),
+                          actions: [
+                            TextButton(onPressed: () => Navigator.pop(ctx, false), child: Text(txaLang.getText('admin_cancel_btn'), style: const TextStyle(color: Colors.white70))),
+                            ElevatedButton(
+                              onPressed: () => Navigator.pop(ctx, true),
+                              style: ElevatedButton.styleFrom(backgroundColor: TXATheme.primaryYellow, foregroundColor: Colors.black),
+                              child: Text(txaLang.getText('admin_save_btn')),
+                            ),
+                          ],
+                        ),
+                      );
+                      if (confirm == true) {
+                        final val = int.tryParse(textController.text) ?? credits;
+                        await doc.reference.update({'restorationCredits': val});
+                        if (context.mounted) {
+                          TXAToast.show(context, txaLang.getText('admin_credits_updated').replaceAll('%user%', username).replaceAll('%val%', TXAFormat.formatNumber(val)));
+                        }
+                      }
+                    },
+                  ),
+                  IconButton(
+                    icon: Icon(Icons.stars_rounded, color: isVip ? TXATheme.primaryYellow : Colors.white38),
+                    tooltip: isVip ? txaLang.getText('admin_cancel_gold_pass') : txaLang.getText('admin_grant_gold_pass'),
+                    onPressed: () async {
+                      await doc.reference.update({'isVipActive': !isVip});
+                      if (context.mounted) {
+                        TXAToast.show(context, txaLang.getText('admin_gold_pass_updated').replaceAll('%user%', username));
+                      }
+                    },
+                  ),
+                  IconButton(
+                    icon: const Icon(Icons.refresh_rounded, color: Color(0xFF42A5F5)),
+                    tooltip: txaLang.getText('admin_reset_monthly_free_tooltip'),
+                    onPressed: () async {
+                      await doc.reference.update({
+                        'isFreeMonthlyRestoreUsed': false,
+                        'isFreeMonthlyStampUsed': false,
+                      });
+                      if (context.mounted) {
+                        TXAToast.show(context, txaLang.getText('admin_monthly_reset').replaceAll('%user%', username));
+                      }
+                    },
+                  ),
+                ],
+              ),
+            );
+          },
+        );
+      },
     );
   }
 }

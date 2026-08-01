@@ -73,7 +73,7 @@
         <!-- Sử dụng Test App ID của Google cho giai đoạn phát triển -->
         <meta-data
             android:name="com.google.android.gms.ads.APPLICATION_ID"
-            android:value="ca-app-pub-3940256099942544~3347511713" />
+            android:value="ca-app-pub-1543189450912703~2536070514" />
 
         <!-- Disable default WorkManagerInitializer to fix native WorkDatabase crash -->
         <provider

@@ -28,6 +28,8 @@ import 'package:flutter/services.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:emoji_picker_flutter/emoji_picker_flutter.dart';
 import '../services/txa_share_service.dart';
+import '../widgets/txa_native_ad_feed_card.dart';
+import '../services/txa_iap_service.dart';
 class AppMouseScrollBehavior extends MaterialScrollBehavior {
   @override
   Set<PointerDeviceKind> get dragDevices => {
@@ -222,7 +224,25 @@ class _LocketFeedScreenState extends State<LocketFeedScreen> {
 
     TXAFeedService.instance.init();
 
-    _markCurrentAsRead();
+    final visiblePosts = TXAFeedService.instance.getVisiblePostsForUser(username);
+    final bool isVip = TXAIAPService.instance.isVipActive;
+    final List<dynamic> feedItems = [];
+    if (isVip) {
+      feedItems.addAll(visiblePosts);
+    } else {
+      int nextAdOffset = 3;
+      int postCounter = 0;
+      for (var post in visiblePosts) {
+        feedItems.add(post);
+        postCounter++;
+        if (postCounter == nextAdOffset) {
+          feedItems.add('ad_slot');
+          postCounter = 0;
+          nextAdOffset = nextAdOffset == 3 ? 5 : 3;
+        }
+      }
+    }
+    _markCurrentAsRead(feedItems);
   }
 
   @override
@@ -395,17 +415,18 @@ class _LocketFeedScreenState extends State<LocketFeedScreen> {
     );
   }
 
-  void _markCurrentAsRead() {
+  void _markCurrentAsRead(List<dynamic> feedItems) {
     final currentUser = TXAAuthService.instance.currentUser;
     final username = currentUser?.username ?? '@user';
-    final visiblePosts = TXAFeedService.instance.getVisiblePostsForUser(username);
 
-    if (_currentIndex >= 0 && _currentIndex < visiblePosts.length) {
-      final post = visiblePosts[_currentIndex];
-      if (!post.readBy.contains(username) && post.senderUsername != username) {
-        TXAFeedService.instance.markAllPostsAsRead(username);
-      } else {
-        TXAFeedService.instance.markPostAsRead(post.id, username);
+    if (_currentIndex >= 0 && _currentIndex < feedItems.length) {
+      final item = feedItems[_currentIndex];
+      if (item is LocketPostModel) {
+        if (!item.readBy.contains(username) && item.senderUsername != username) {
+          TXAFeedService.instance.markAllPostsAsRead(username);
+        } else {
+          TXAFeedService.instance.markPostAsRead(item.id, username);
+        }
       }
     }
   }
@@ -785,9 +806,26 @@ class _LocketFeedScreenState extends State<LocketFeedScreen> {
           visiblePosts = visiblePosts.where((p) => bestFriendsUsernames.contains(p.senderUsername)).toList();
         } else if (_filterType == 'friends') {
           visiblePosts = visiblePosts.where((p) => p.senderUsername == username).toList();
-        } else if (_filterType != 'all') {
-          visiblePosts = visiblePosts.where((p) => p.senderUsername == _filterType).toList();
         }
+
+        final bool isVip = TXAIAPService.instance.isVipActive;
+        final List<dynamic> feedItems = [];
+        if (isVip) {
+          feedItems.addAll(visiblePosts);
+        } else {
+          int nextAdOffset = 3;
+          int postCounter = 0;
+          for (var post in visiblePosts) {
+            feedItems.add(post);
+            postCounter++;
+            if (postCounter == nextAdOffset) {
+              feedItems.add('ad_slot');
+              postCounter = 0;
+              nextAdOffset = nextAdOffset == 3 ? 5 : 3;
+            }
+          }
+        }
+
 
         // Widget tiêu đề bộ lọc dropdown
         Widget buildFilterDropdownPill() {
@@ -1075,7 +1113,8 @@ class _LocketFeedScreenState extends State<LocketFeedScreen> {
         }
 
         // RENDER CHẾ ĐỘ VUỐT (Swipe View)
-        final post = visiblePosts[_currentIndex];
+        final safeIndex = _currentIndex.clamp(0, visiblePosts.length - 1);
+        final post = visiblePosts[safeIndex];
         final avatarColorVal = int.tryParse(post.senderAvatarColor) ?? 0xFFF57C00;
 
         return Scaffold(
@@ -1176,11 +1215,15 @@ class _LocketFeedScreenState extends State<LocketFeedScreen> {
                           _currentIndex = index;
                           _revealedPostIds.clear();
                         });
-                        _markCurrentAsRead();
+                        _markCurrentAsRead(feedItems);
                       },
-                      itemCount: visiblePosts.length,
+                      itemCount: feedItems.length,
                       itemBuilder: (context, index) {
-                        final currentPost = visiblePosts[index];
+                        final item = feedItems[index];
+                        if (item == 'ad_slot') {
+                          return const TXANativeAdFeedCard();
+                        }
+                        final currentPost = item as LocketPostModel;
                         final currentIsSquare = currentPost.aspectRatio == '1:1';
                         final isSnow = currentPost.caption.toLowerCase().contains('snow') ||
                             currentPost.moodEmoji.toLowerCase().contains('snow') ||

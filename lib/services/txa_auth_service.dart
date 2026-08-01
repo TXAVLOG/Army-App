@@ -17,6 +17,7 @@ import 'txa_streak_service.dart';
 import 'txa_config.dart';
 import 'txa_logger.dart';
 import 'txa_notification_service.dart';
+import 'txa_analytics.dart';
 
 class UserModel {
   final String id;
@@ -787,6 +788,7 @@ class TXAAuthService extends ChangeNotifier {
     _currentUser = user;
     final prefs = await SharedPreferences.getInstance();
     await prefs.setString(_keyActiveUser, jsonEncode(user.toJson()));
+    TXAAnalytics.logEvent('login');
     TXAChatService.instance.init(user.username);
     try {
       final token = await FirebaseMessaging.instance.getToken();

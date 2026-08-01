@@ -20,6 +20,9 @@ import 'screens/txa_crash_screen.dart';
 import 'services/txa_deep_link_service.dart';
 import 'services/txa_screen_security.dart';
 import 'widgets/txa_network_observer.dart';
+import 'services/txa_admob_service.dart';
+import 'services/txa_in_app_update_service.dart';
+import 'services/txa_analytics.dart';
 
 class MyHttpOverrides extends HttpOverrides {
   @override
@@ -127,13 +130,17 @@ void main(List<String> args) {
     await safeInit('TXAFeedService', () => TXAFeedService.instance.init());
     await safeInit('TXADeepLinkService', () => TXADeepLinkService.instance.init(args: args));
     await safeInit('TXAScreenSecurity', () => TXAScreenSecurity.instance.init());
+    await safeInit('TXAAdMobService', () => TXAAdMobService.instance.init());
+    await safeInit('TXAInAppUpdateService', () => TXAInAppUpdateService.instance.checkForUpdates());
 
-    // 5.5. Log app open event to Google Analytics
+
+    // 5.5. Log app open event to Google Analytics and Firestore
     try {
       FirebaseAnalytics.instance.logAppOpen();
-      debugPrint('📊 Firebase Analytics app_open event logged successfully.');
+      TXAAnalytics.logEvent('app_open');
+      debugPrint('📊 Analytics app_open event logged successfully.');
     } catch (e) {
-      debugPrint('Firebase Analytics event log error: $e');
+      debugPrint('Analytics event log error: $e');
     }
 
     // 6. Launch main app UI

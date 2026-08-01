@@ -4,6 +4,9 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'txa_feed_service.dart';
 import 'txa_language.dart';
 import 'txa_format.dart';
+import 'txa_auth_service.dart';
+import 'txa_iap_service.dart';
+import 'txa_logger.dart';
 
 /// Tier màu sắc cho khung Avatar tương ứng với 8 mốc Streak (3, 7, 14, 30, 45, 60, 75, 90 ngày)
 class TXAStreakTheme {
@@ -87,6 +90,27 @@ class TXAStreakService extends ChangeNotifier {
 
   /// Map lưu trữ mốc thời gian bài đăng cuối cùng (DateTime)
   final Map<String, DateTime> _lastPostDates = {};
+
+  /// Lưu trữ streak trước đó khi bị đứt để hỗ trợ khôi phục
+  final Map<String, int> _lastSavedStreaks = {};
+
+  /// Lưu trạng thái lượt khôi phục miễn phí hàng tháng (user -> bool)
+  final Map<String, bool> _isFreeMonthlyRestoreUsed = {};
+
+  /// Lưu số lượt khôi phục tích lũy được từ quảng cáo (user -> int)
+  final Map<String, int> _restorationCredits = {};
+
+  /// Số ads đã xem hôm nay cho streak restoration (user -> int)
+  final Map<String, int> _dailyStreakAdCounts = {};
+
+  /// Ngày reset số ad hàng ngày (user -> String 'YYYY-MM-DD')
+  final Map<String, String> _lastAdResetDates = {};
+
+  /// Tháng kiểm tra reset miễn phí (user -> String 'YYYY-MM')
+  final Map<String, String> _lastFreeRestoreMonths = {};
+
+  /// Tuần cuối cùng sử dụng lá chắn tự động (user -> String 'YYYY-MM-DD' ngày thứ 2 trong tuần)
+  final Map<String, String> _lastShieldUsedWeeks = {};
 
   /// Ngưỡng tối thiểu để hiển thị Badge Chuỗi (chỉ hiện khi streak >= 3)
   static const int minStreakToShow = 3;
@@ -276,8 +300,9 @@ class TXAStreakService extends ChangeNotifier {
       final lastLogic = _getLogicDay(lastDate);
       final differenceInDays = todayLogic.difference(lastLogic).inDays;
 
-      // Nếu đã hơn 1 ngày logic chưa đăng bài -> Reset streak về 0
+      // Nếu đã hơn 1 ngày logic chưa đăng bài -> Lưu streak cũ lại làm backup rồi reset
       if (differenceInDays > 1 && (_userStreaks[username] ?? 0) > 0) {
+        _lastSavedStreaks[username] = _userStreaks[username] ?? 0;
         _userStreaks[username] = 0;
         changed = true;
       }
@@ -300,6 +325,132 @@ class TXAStreakService extends ChangeNotifier {
     notifyListeners();
   }
 
+  // --- STREAK RESTORATION LOGIC ---
+
+  bool canRestoreStreak(String username) {
+    final lastSaved = _lastSavedStreaks[username] ?? 0;
+    final current = getStreak(username);
+    final postedToday = hasPostedToday(username);
+
+    return lastSaved >= 3 && current == 0 && !postedToday;
+  }
+
+  int getLastSavedStreak(String username) {
+    return _lastSavedStreaks[username] ?? 0;
+  }
+
+  bool isShieldUsedThisWeek(String username) {
+    final now = DateTime.now();
+    final monday = now.subtract(Duration(days: now.weekday - 1));
+    final weekKey = '${monday.year}-${monday.month}-${monday.day}';
+    return _lastShieldUsedWeeks[username] == weekKey;
+  }
+
+  void useShield(String username) {
+    final now = DateTime.now();
+    final monday = now.subtract(Duration(days: now.weekday - 1));
+    final weekKey = '${monday.year}-${monday.month}-${monday.day}';
+    _lastShieldUsedWeeks[username] = weekKey;
+    _saveStreaks();
+    notifyListeners();
+  }
+
+  bool isFreeMonthlyRestoreUsed(String username) {
+    _checkMonthlyRestoreReset(username);
+    return _isFreeMonthlyRestoreUsed[username] ?? false;
+  }
+
+  int getRestorationCredits(String username) {
+    return _restorationCredits[username] ?? 0;
+  }
+
+  int getDailyStreakAdCount(String username) {
+    _checkDailyAdCountReset(username);
+    return _dailyStreakAdCounts[username] ?? 0;
+  }
+
+  void _checkDailyAdCountReset(String username) {
+    final now = DateTime.now();
+    final todayStr = '${now.year}-${now.month}-${now.day}';
+    if (_lastAdResetDates[username] != todayStr) {
+      _dailyStreakAdCounts[username] = 0;
+      _lastAdResetDates[username] = todayStr;
+    }
+  }
+
+  void _checkMonthlyRestoreReset(String username) {
+    final now = DateTime.now();
+    final currentMonth = '${now.year}-${now.month}';
+    if (_lastFreeRestoreMonths[username] != currentMonth) {
+      _isFreeMonthlyRestoreUsed[username] = false;
+      _lastFreeRestoreMonths[username] = currentMonth;
+    }
+  }
+
+  void incrementDailyStreakAdCount(String username) {
+    _checkDailyAdCountReset(username);
+    _dailyStreakAdCounts[username] = (_dailyStreakAdCounts[username] ?? 0) + 1;
+    _saveStreaks();
+    notifyListeners();
+  }
+
+  void incrementRestorationCredits(String username) {
+    _restorationCredits[username] = (_restorationCredits[username] ?? 0) + 1;
+    _saveStreaks();
+    notifyListeners();
+  }
+
+  Future<bool> restoreStreak(String username) async {
+    if (!canRestoreStreak(username)) return false;
+
+    final isVip = TXAIAPService.instance.isVipActive;
+    final isAdmin = TXAAuthService.instance.currentUser?.role == 'admin';
+    final hasUnlimited = isVip || isAdmin;
+
+    if (!hasUnlimited) {
+      final freeUsed = isFreeMonthlyRestoreUsed(username);
+      if (!freeUsed) {
+        _isFreeMonthlyRestoreUsed[username] = true;
+      } else {
+        final credits = getRestorationCredits(username);
+        if (credits > 0) {
+          _restorationCredits[username] = credits - 1;
+        } else {
+          return false;
+        }
+      }
+    }
+
+    final saved = _lastSavedStreaks[username] ?? 0;
+    _userStreaks[username] = saved;
+
+    // Đặt ngày đăng cuối cùng là 12:00 trưa hôm qua logic
+    final now = DateTime.now();
+    final yesterdayLogic = _getLogicDay(now).subtract(const Duration(days: 1));
+    _lastPostDates[username] = yesterdayLogic.add(const Duration(hours: 12));
+
+    await _saveStreaks();
+    notifyListeners();
+
+    // Sync to Firestore
+    try {
+      final user = TXAAuthService.instance.currentUser;
+      if (user != null && user.username == username) {
+        await FirebaseFirestore.instance.collection('users').doc(user.id).update({
+          'streak': saved,
+          'lastPostTime': _lastPostDates[username]!.toIso8601String(),
+          'isFreeMonthlyRestoreUsed': _isFreeMonthlyRestoreUsed[username] ?? false,
+          'restorationCredits': _restorationCredits[username] ?? 0,
+        });
+        await TXAAuthService.instance.syncUserFromFirestore();
+      }
+    } catch (e, stack) {
+      TXALogger.logError(e, stackTrace: stack, extraInfo: {'service': 'TXAStreakService', 'action': 'restoreStreak'});
+    }
+
+    return true;
+  }
+
   /// Lưu dữ liệu vào SharedPreferences
   Future<void> _saveStreaks() async {
     final prefs = await SharedPreferences.getInstance();
@@ -308,6 +459,27 @@ class TXAStreakService extends ChangeNotifier {
     });
     _lastPostDates.forEach((user, date) {
       prefs.setString('txa_streak_date_$user', date.toIso8601String());
+    });
+    _lastSavedStreaks.forEach((user, streak) {
+      prefs.setInt('txa_last_saved_streak_$user', streak);
+    });
+    _isFreeMonthlyRestoreUsed.forEach((user, used) {
+      prefs.setBool('txa_free_restore_used_$user', used);
+    });
+    _restorationCredits.forEach((user, credits) {
+      prefs.setInt('txa_restoration_credits_$user', credits);
+    });
+    _dailyStreakAdCounts.forEach((user, count) {
+      prefs.setInt('txa_daily_ad_count_$user', count);
+    });
+    _lastAdResetDates.forEach((user, dateStr) {
+      prefs.setString('txa_last_ad_reset_$user', dateStr);
+    });
+    _lastFreeRestoreMonths.forEach((user, monthStr) {
+      prefs.setString('txa_last_free_restore_month_$user', monthStr);
+    });
+    _lastShieldUsedWeeks.forEach((user, weekStr) {
+      prefs.setString('txa_last_shield_used_week_$user', weekStr);
     });
   }
 
@@ -325,6 +497,27 @@ class TXAStreakService extends ChangeNotifier {
         if (dateStr != null) {
           _lastPostDates[username] = DateTime.tryParse(dateStr) ?? DateTime.now();
         }
+      } else if (key.startsWith('txa_last_saved_streak_')) {
+        final username = key.replaceFirst('txa_last_saved_streak_', '');
+        _lastSavedStreaks[username] = prefs.getInt(key) ?? 0;
+      } else if (key.startsWith('txa_free_restore_used_')) {
+        final username = key.replaceFirst('txa_free_restore_used_', '');
+        _isFreeMonthlyRestoreUsed[username] = prefs.getBool(key) ?? false;
+      } else if (key.startsWith('txa_restoration_credits_')) {
+        final username = key.replaceFirst('txa_restoration_credits_', '');
+        _restorationCredits[username] = prefs.getInt(key) ?? 0;
+      } else if (key.startsWith('txa_daily_ad_count_')) {
+        final username = key.replaceFirst('txa_daily_ad_count_', '');
+        _dailyStreakAdCounts[username] = prefs.getInt(key) ?? 0;
+      } else if (key.startsWith('txa_last_ad_reset_')) {
+        final username = key.replaceFirst('txa_last_ad_reset_', '');
+        _lastAdResetDates[username] = prefs.getString(key) ?? '';
+      } else if (key.startsWith('txa_last_free_restore_month_')) {
+        final username = key.replaceFirst('txa_last_free_restore_month_', '');
+        _lastFreeRestoreMonths[username] = prefs.getString(key) ?? '';
+      } else if (key.startsWith('txa_last_shield_used_week_')) {
+        final username = key.replaceFirst('txa_last_shield_used_week_', '');
+        _lastShieldUsedWeeks[username] = prefs.getString(key) ?? '';
       }
     }
     checkAndCleanExpiredStreaks();
@@ -352,13 +545,23 @@ class TXAStreakService extends ChangeNotifier {
 
         _userStreaks[username] = streak;
 
-        // Đọc lastPostTime từ user doc (nếu có), không dùng lastActive để tránh nhầm hoạt động ứng dụng với bài đăng ảnh
         final lastPostStr = data['lastPostTime'] ?? data['lastPostDate'];
         if (lastPostStr is String) {
           final parsed = DateTime.tryParse(lastPostStr);
           if (parsed != null) _lastPostDates[username] = parsed;
         } else {
           _lastPostDates.remove(username);
+        }
+
+        // Đồng bộ thêm các trường khôi phục streak
+        if (data.containsKey('lastSavedStreak')) {
+          _lastSavedStreaks[username] = (data['lastSavedStreak'] as num).toInt();
+        }
+        if (data.containsKey('isFreeMonthlyRestoreUsed')) {
+          _isFreeMonthlyRestoreUsed[username] = data['isFreeMonthlyRestoreUsed'] == true;
+        }
+        if (data.containsKey('restorationCredits')) {
+          _restorationCredits[username] = (data['restorationCredits'] as num).toInt();
         }
 
         notifyListeners();
@@ -369,9 +572,14 @@ class TXAStreakService extends ChangeNotifier {
         if (_lastPostDates[username] != null) {
           await prefs.setString('txa_streak_date_$username', _lastPostDates[username]!.toIso8601String());
         }
+        if (_lastSavedStreaks[username] != null) {
+          await prefs.setInt('txa_last_saved_streak_$username', _lastSavedStreaks[username]!);
+        }
+        await prefs.setBool('txa_free_restore_used_$username', _isFreeMonthlyRestoreUsed[username] ?? false);
+        await prefs.setInt('txa_restoration_credits_$username', _restorationCredits[username] ?? 0);
       }
-    } catch (e) {
-      debugPrint('syncStreakFromFirestore error: $e');
+    } catch (e, stack) {
+      TXALogger.logError(e, stackTrace: stack, extraInfo: {'service': 'TXAStreakService', 'action': 'syncStreakFromFirestore'});
     }
   }
 }

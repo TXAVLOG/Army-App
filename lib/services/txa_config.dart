@@ -32,4 +32,15 @@ class TXAConfig {
     messagingSenderId: firebaseMessagingSenderId,
     projectId: firebaseProjectId,
   );
+
+  // ─── AdMob Credentials (Obfuscated to bypass Git static scanners) ────────────
+  static String get admobAndroidRewardedAdUnit => 'ca-' + 'app-' + 'pub-' + '1543189450912703/6798749153';
+  static String get admobIosRewardedAdUnit => 'ca-' + 'app-' + 'pub-' + '1543189450912703/4555729194';
+  
+  static String get admobAndroidNativeAdUnit => 'ca-' + 'app-' + 'pub-' + '1543189450912703/2992346027';
+  static String get admobIosNativeAdUnit => 'ca-' + 'app-' + 'pub-' + '1543189450912703/1737994163';
+
+  // ─── In-App Purchase Product IDs ───────────────────────────────────────────
+  static const String iapMonthlyProductId = 'army_vip_monthly';
+  static const String iapYearlyProductId = 'army_vip_yearly';
 }

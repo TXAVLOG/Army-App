@@ -5,8 +5,12 @@ import '../services/txa_language.dart';
 import '../services/txa_streak_service.dart';
 import '../services/txa_auth_service.dart';
 import '../services/txa_format.dart';
-import '../widgets/txa_toast.dart';
-import '../widgets/txa_avatar_frame.dart';
+import '../services/txa_admob_service.dart';
+import '../services/txa_iap_service.dart';
+import 'package:google_mobile_ads/google_mobile_ads.dart';
+import 'txa_toast.dart';
+import 'txa_avatar_frame.dart';
+
 
 class TXAStreakMilestoneInfo {
   final int days;
@@ -339,37 +343,226 @@ class TXAStreakModal {
                           ],
                         ),
                       ),
-                    const SizedBox(height: 24),
+                    const SizedBox(height: 20),
 
-                    // Restore Streak Button (Khôi phục chuỗi -> bộc lộ Toast "Chức năng đang phát triển")
-                    SizedBox(
-                      width: double.infinity,
-                      height: 52,
-                      child: ElevatedButton(
-                        onPressed: () {
-                          TXAToast.show(
-                            context,
-                            txaLang.getText('feature_coming_soon'),
-                            icon: Icons.construction_rounded,
-                          );
-                        },
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: const Color(0xFF42A5F5),
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(16),
+                    // --- SHIELD STATUS CARD & RESTORATION CREDIT BADGE ---
+                    Builder(
+                      builder: (context) {
+                        final isShieldUsed = TXAStreakService.instance.isShieldUsedThisWeek(username);
+                        final isVip = TXAIAPService.instance.isVipActive;
+                        final isAdmin = currentUser?.role == 'admin';
+                        final hasUnlimited = isVip || isAdmin;
+                        final freeMonthlyUsed = TXAStreakService.instance.isFreeMonthlyRestoreUsed(username);
+                        final adCredits = TXAStreakService.instance.getRestorationCredits(username);
+
+                        return Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            // 1. Shield Status Card
+                            Container(
+                              width: double.infinity,
+                              margin: const EdgeInsets.only(bottom: 12),
+                              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                              decoration: BoxDecoration(
+                                color: isShieldUsed ? Colors.white12 : const Color(0xFF00E676).withAlpha(20),
+                                borderRadius: BorderRadius.circular(16),
+                                border: Border.all(
+                                  color: isShieldUsed ? Colors.white24 : const Color(0xFF00E676).withAlpha(60),
+                                  width: 1.0,
+                                ),
+                              ),
+                              child: Row(
+                                children: [
+                                  Icon(
+                                    Icons.shield_rounded,
+                                    color: isShieldUsed ? Colors.grey : const Color(0xFF00E676),
+                                    size: 20,
+                                  ),
+                                  const SizedBox(width: 10),
+                                  Expanded(
+                                    child: Text(
+                                      isShieldUsed
+                                          ? txaLang.getText('shield_used')
+                                          : txaLang.getText('shield_ready'),
+                                      style: TextStyle(
+                                        color: isShieldUsed ? Colors.white54 : const Color(0xFF00E676),
+                                        fontSize: 12,
+                                        fontWeight: FontWeight.bold,
+                                      ),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+
+                            // 2. Restoration Credit Badge
+                            Container(
+                              width: double.infinity,
+                              margin: const EdgeInsets.only(bottom: 20),
+                              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                              decoration: BoxDecoration(
+                                color: hasUnlimited ? const Color(0xFFFFD700).withAlpha(20) : const Color(0xFF42A5F5).withAlpha(20),
+                                borderRadius: BorderRadius.circular(16),
+                                border: Border.all(
+                                  color: hasUnlimited ? const Color(0xFFFFD700).withAlpha(60) : const Color(0xFF42A5F5).withAlpha(60),
+                                  width: 1.0,
+                                ),
+                              ),
+                              child: Row(
+                                children: [
+                                  Icon(
+                                    hasUnlimited ? Icons.crown_rounded : Icons.bolt_rounded,
+                                    color: hasUnlimited ? const Color(0xFFFFD700) : const Color(0xFF42A5F5),
+                                    size: 20,
+                                  ),
+                                  const SizedBox(width: 10),
+                                  Expanded(
+                                    child: Text(
+                                      hasUnlimited
+                                          ? txaLang.getText('restore_vip_unlimited')
+                                          : (!freeMonthlyUsed
+                                              ? '${txaLang.getText('restore_credits_label').replaceAll('%count%', '0')} (${txaLang.getText('free') ?? '1 Free Month'})'
+                                              : txaLang.getText('restore_credits_label').replaceAll('%count%', '$adCredits')),
+                                      style: TextStyle(
+                                        color: hasUnlimited ? const Color(0xFFFFD700) : const Color(0xFF42A5F5),
+                                        fontSize: 12,
+                                        fontWeight: FontWeight.bold,
+                                      ),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ],
+                        );
+                      },
+                    ),
+
+                    // Restore Streak Button
+                    if (TXAStreakService.instance.canRestoreStreak(username))
+                      SizedBox(
+                        width: double.infinity,
+                        height: 52,
+                        child: ElevatedButton(
+                          onPressed: () async {
+                            final isVip = TXAIAPService.instance.isVipActive;
+                            final isAdmin = currentUser?.role == 'admin';
+                            final hasUnlimited = isVip || isAdmin;
+                            final freeMonthlyUsed = TXAStreakService.instance.isFreeMonthlyRestoreUsed(username);
+                            final adCredits = TXAStreakService.instance.getRestorationCredits(username);
+
+                            if (hasUnlimited || !freeMonthlyUsed || adCredits > 0) {
+                              // Perform direct restore
+                              final success = await TXAStreakService.instance.restoreStreak(username);
+                              if (success) {
+                                final saved = TXAStreakService.instance.getLastSavedStreak(username);
+                                TXAToast.show(
+                                  context,
+                                  txaLang.getText('restore_success_toast').replaceAll('%count%', '$saved'),
+                                  icon: Icons.local_fire_department_rounded,
+                                );
+                              }
+                            } else {
+                              // Show dialog to watch rewarded ad
+                              showDialog(
+                                context: context,
+                                builder: (dlgCtx) => AlertDialog(
+                                  backgroundColor: TXATheme.cardBg,
+                                  shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(20),
+                                    side: const BorderSide(color: Colors.white12),
+                                  ),
+                                  title: Row(
+                                    children: [
+                                      const Text('🎬', style: TextStyle(fontSize: 22)),
+                                      const SizedBox(width: 10),
+                                      Text(
+                                        txaLang.getText('watch_ad_to_restore_title'),
+                                        style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+                                      ),
+                                    ],
+                                  ),
+                                  content: Text(
+                                    txaLang.getText('watch_ad_to_restore_desc'),
+                                    style: const TextStyle(color: TXATheme.textMuted),
+                                  ),
+                                  actions: [
+                                    TextButton(
+                                      onPressed: () => Navigator.pop(dlgCtx),
+                                      child: Text(
+                                        txaLang.getText('cancel'),
+                                        style: const TextStyle(color: Colors.white54),
+                                      ),
+                                    ),
+                                    ElevatedButton(
+                                      style: ElevatedButton.styleFrom(
+                                        backgroundColor: const Color(0xFF42A5F5),
+                                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                                      ),
+                                      onPressed: () {
+                                        Navigator.pop(dlgCtx);
+                                        // Check ad limits
+                                        final adCount = TXAStreakService.instance.getDailyStreakAdCount(username);
+                                        if (adCount >= 5) {
+                                          TXAToast.show(
+                                            context,
+                                            txaLang.getText('ad_limit_reached'),
+                                            icon: Icons.warning_amber_rounded,
+                                          );
+                                          return;
+                                        }
+
+                                        // Play Ad
+                                        TXAAdMobService.instance.showRewardedAd(
+                                          onUserEarnedReward: (reward) {
+                                            TXAStreakService.instance.incrementRestorationCredits(username);
+                                            TXAStreakService.instance.incrementDailyStreakAdCount(username);
+                                            TXAToast.show(
+                                              context,
+                                              txaLang.getText('ad_reward_success').replaceAll(
+                                                    '%count%',
+                                                    '${TXAStreakService.instance.getRestorationCredits(username)}',
+                                                  ),
+                                              icon: Icons.stars_rounded,
+                                            );
+                                          },
+                                          onAdDismissed: () {},
+                                          onAdFailedToShow: (err) {
+                                            TXAToast.show(
+                                              context,
+                                              txaLang.getText('ad_load_failed'),
+                                              icon: Icons.wifi_off_rounded,
+                                            );
+                                          },
+                                        );
+                                      },
+                                      child: Text(
+                                        txaLang.getText('watch_ad_btn'),
+                                        style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              );
+                            }
+                          },
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: const Color(0xFF42A5F5),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(16),
+                            ),
+                            elevation: 0,
                           ),
-                          elevation: 0,
-                        ),
-                        child: Text(
-                          txaLang.getText('streak_restore_btn'),
-                          style: const TextStyle(
-                            color: Colors.white,
-                            fontSize: 16,
-                            fontWeight: FontWeight.bold,
+                          child: Text(
+                            txaLang.getText('streak_restore_btn'),
+                            style: const TextStyle(
+                              color: Colors.white,
+                              fontSize: 16,
+                              fontWeight: FontWeight.bold,
+                            ),
                           ),
                         ),
                       ),
-                    ),
                     const SizedBox(height: 8),
                   ],
                 ),
