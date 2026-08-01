@@ -1,0 +1,21 @@
+flutter_launcher_icons:
+  # Android
+  android: true
+  image_path_android: "assets/armi_mascot.png"
+  adaptive_icon_background: "#1a1a2e"   # dark background matching TXATheme
+  adaptive_icon_foreground: "assets/armi_mascot.png"
+  min_sdk_android: 21
+
+  # iOS
+  ios: true
+  image_path_ios: "assets/armi_mascot.png"
+
+  # Windows
+  windows:
+    generate: true
+    image_path: "assets/armi_mascot.png"
+    icon_size: 48  # min 48 required by Windows
+
+  # Web (future)
+  web:
+    generate: false
