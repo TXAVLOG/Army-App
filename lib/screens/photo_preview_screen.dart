@@ -59,12 +59,6 @@ class _PhotoPreviewScreenState extends State<PhotoPreviewScreen> {
   Color? _selectedStickerTextColor;
   bool _isUploading = false;
 
-  @override
-  void initState() {
-    super.initState();
-    TXAAnalytics.logScreenView(screenName: TXAAnalytics.screenPhotoPreview);
-  }
-
   List<Map<String, dynamic>> get _customizationSections {
     final isVi = TXALanguage.instance.currentLanguage == 'vi';
     final langCode = TXALanguage.instance.currentLanguage;
@@ -591,6 +585,7 @@ class _PhotoPreviewScreenState extends State<PhotoPreviewScreen> {
   @override
   void initState() {
     super.initState();
+    TXAAnalytics.logScreenView(screenName: TXAAnalytics.screenPhotoPreview);
     _audioRecorder = AudioRecorder();
     _audioPlayer = AudioPlayer();
     _audioPlayer?.onPlayerComplete.listen((_) {

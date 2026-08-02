@@ -18,6 +18,7 @@ import '../services/txa_auth_service.dart';
 import '../services/txa_feed_service.dart';
 import '../services/txa_chat_service.dart';
 import '../services/txa_streak_service.dart';
+import '../services/txa_analytics.dart';
 import '../widgets/txa_toast.dart';
 import '../widgets/txa_network_image.dart';
 import 'txa_profile_screen.dart';
