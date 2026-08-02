@@ -6,7 +6,6 @@ import 'txa_auth_service.dart';
 import 'txa_language.dart';
 import 'txa_streak_service.dart';
 import 'txa_notification_service.dart';
-import 'package:firebase_analytics/firebase_analytics.dart';
 import 'txa_analytics.dart';
 
 class LocketPostModel {
@@ -382,10 +381,10 @@ class TXAFeedService extends ChangeNotifier {
     // Ghi nhận tính toán Streak cho tác giả
     await TXAStreakService.instance.recordNewPost(senderUsername);
 
-    // Log event to Analytics
+    // Log event to Analytics safely
     try {
-      FirebaseAnalytics.instance.logEvent(
-        name: 'create_post',
+      await TXAAnalytics.logEvent(
+        'create_post',
         parameters: {
           'sender': senderUsername,
           'has_voice': finalVoiceUrl != null ? 'true' : 'false',
@@ -393,7 +392,6 @@ class TXAFeedService extends ChangeNotifier {
           'is_rollcall': isRollcall ? 'true' : 'false',
         },
       );
-      TXAAnalytics.logEvent('create_post');
     } catch (_) {}
   }
 
@@ -421,17 +419,16 @@ class TXAFeedService extends ChangeNotifier {
 
         await docRef.update({'reactions': reactions});
 
-        // Log event to Analytics
+        // Log event to Analytics safely
         try {
-          FirebaseAnalytics.instance.logEvent(
-            name: 'add_reaction',
+          await TXAAnalytics.logEvent(
+            'add_reaction',
             parameters: {
               'sender': senderUsername,
               'emoji': emoji,
               'postId': postId,
             },
           );
-          TXAAnalytics.logEvent('add_reaction');
         } catch (_) {}
 
         // Gửi thông báo đến tác giả bài đăng nếu người thả cảm xúc không phải là tác giả

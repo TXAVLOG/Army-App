@@ -4,7 +4,6 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:firebase_core/firebase_core.dart';
-import 'package:firebase_analytics/firebase_analytics.dart';
 import 'theme/txa_theme.dart';
 import 'services/txa_language.dart';
 import 'services/txa_format.dart';
@@ -47,6 +46,8 @@ class TXAScrollBehavior extends MaterialScrollBehavior {
 final GlobalKey<NavigatorState> navigatorKey = GlobalKey<NavigatorState>();
 
 void main(List<String> args) {
+  WidgetsFlutterBinding.ensureInitialized();
+
   // Override Flutter Red/Gray Screen of Death with TXACrashScreen
   ErrorWidget.builder = (FlutterErrorDetails details) {
     return TXACrashScreen(
@@ -58,7 +59,6 @@ void main(List<String> args) {
 
   runZonedGuarded(() async {
     HttpOverrides.global = MyHttpOverrides();
-    WidgetsFlutterBinding.ensureInitialized();
 
     // 1. Catch uncaught Flutter framework errors
     FlutterError.onError = (FlutterErrorDetails details) {
@@ -134,10 +134,10 @@ void main(List<String> args) {
     await safeInit('TXAInAppUpdateService', () => TXAInAppUpdateService.instance.checkForUpdates());
 
 
-    // 5.5. Log app open event to Google Analytics and Firestore
+    // 5.5. Log app open event safely
     try {
-      FirebaseAnalytics.instance.logAppOpen();
-      TXAAnalytics.logEvent('app_open');
+      await TXAAnalytics.logAppOpen();
+      await TXAAnalytics.logEvent('app_open');
       debugPrint('📊 Analytics app_open event logged successfully.');
     } catch (e) {
       debugPrint('Analytics event log error: $e');

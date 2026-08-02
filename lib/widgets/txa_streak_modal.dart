@@ -420,7 +420,7 @@ class TXAStreakModal {
                                       hasUnlimited
                                           ? txaLang.getText('restore_vip_unlimited')
                                           : (!freeMonthlyUsed
-                                              ? '${txaLang.getText('restore_credits_label').replaceAll('%count%', '0')} (${txaLang.getText('free')})'
+                                              ? '${txaLang.getText('restore_credits_label').replaceAll('%count%', '1')} (${txaLang.getText('free')})'
                                               : txaLang.getText('restore_credits_label').replaceAll('%count%', '$adCredits')),
                                       style: TextStyle(
                                         color: hasUnlimited ? const Color(0xFFFFD700) : const Color(0xFF42A5F5),

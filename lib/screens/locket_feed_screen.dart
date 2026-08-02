@@ -1107,7 +1107,7 @@ class _LocketFeedScreenState extends State<LocketFeedScreen> {
                   ),
                 ),
                 // Thanh bottom bar của Grid View
-                _buildBottomNavigationBar(context, visiblePosts),
+                _buildBottomNavigationBar(context, visiblePosts, feedItems),
               ],
             ),
           );
@@ -1906,7 +1906,7 @@ class _LocketFeedScreenState extends State<LocketFeedScreen> {
                   ),
 
                   // Bottom navigation bar chứa: Nút Lưới, Nút Thêm ảnh, Nút Option (...)
-                  _buildBottomNavigationBar(context, visiblePosts),
+                  _buildBottomNavigationBar(context, visiblePosts, feedItems),
                 ],
               ),
             ),
@@ -1916,8 +1916,13 @@ class _LocketFeedScreenState extends State<LocketFeedScreen> {
     );
   }
 
-  Widget _buildBottomNavigationBar(BuildContext context, List<LocketPostModel> visiblePosts) {
-    final currentPost = visiblePosts[_currentIndex >= visiblePosts.length ? 0 : _currentIndex];
+  Widget _buildBottomNavigationBar(BuildContext context, List<LocketPostModel> visiblePosts, List<dynamic> feedItems) {
+    final bool isAd = _currentIndex < feedItems.length && feedItems[_currentIndex] == 'ad_slot';
+
+    final safeIndex = _currentIndex.clamp(0, feedItems.length - 1);
+    final currentPost = (feedItems.isNotEmpty && feedItems[safeIndex] is LocketPostModel)
+        ? feedItems[safeIndex] as LocketPostModel
+        : (visiblePosts.isNotEmpty ? visiblePosts.first : null);
 
     return Container(
       padding: const EdgeInsets.only(bottom: 24, top: 12, left: 24, right: 24),
@@ -1927,23 +1932,28 @@ class _LocketFeedScreenState extends State<LocketFeedScreen> {
         children: [
           // Left: Nút chuyển chế độ Lưới / Cuộn
           GestureDetector(
-            onTap: () {
-              setState(() {
-                _isGridView = !_isGridView;
-              });
-            },
-            child: Container(
-              width: 52,
-              height: 52,
-              decoration: BoxDecoration(
-                color: const Color(0xFF1E1E24),
-                shape: BoxShape.circle,
-                border: Border.all(color: Colors.white10),
-              ),
-              child: Icon(
-                _isGridView ? Icons.format_list_bulleted_rounded : Icons.grid_view_rounded,
-                color: Colors.white,
-                size: 24,
+            onTap: isAd
+                ? null
+                : () {
+                    setState(() {
+                      _isGridView = !_isGridView;
+                    });
+                  },
+            child: Opacity(
+              opacity: isAd ? 0.3 : 1.0,
+              child: Container(
+                width: 52,
+                height: 52,
+                decoration: BoxDecoration(
+                  color: const Color(0xFF1E1E24),
+                  shape: BoxShape.circle,
+                  border: Border.all(color: Colors.white10),
+                ),
+                child: Icon(
+                  _isGridView ? Icons.format_list_bulleted_rounded : Icons.grid_view_rounded,
+                  color: Colors.white,
+                  size: 24,
+                ),
               ),
             ),
           ),
@@ -1977,19 +1987,24 @@ class _LocketFeedScreenState extends State<LocketFeedScreen> {
           TXAAuthService.instance.feedGridMode == 'thought_bubble' && _isGridView
               ? const SizedBox(width: 52)
               : GestureDetector(
-                  onTap: () => _showFeedOptionsModal(context, currentPost),
-                  child: Container(
-                    width: 52,
-                    height: 52,
-                    decoration: BoxDecoration(
-                      color: const Color(0xFF1E1E24),
-                      shape: BoxShape.circle,
-                      border: Border.all(color: Colors.white10),
-                    ),
-                    child: const Icon(
-                      Icons.more_horiz_rounded,
-                      color: Colors.white,
-                      size: 26,
+                  onTap: (isAd || currentPost == null)
+                      ? null
+                      : () => _showFeedOptionsModal(context, currentPost),
+                  child: Opacity(
+                    opacity: (isAd || currentPost == null) ? 0.3 : 1.0,
+                    child: Container(
+                      width: 52,
+                      height: 52,
+                      decoration: BoxDecoration(
+                        color: const Color(0xFF1E1E24),
+                        shape: BoxShape.circle,
+                        border: Border.all(color: Colors.white10),
+                      ),
+                      child: const Icon(
+                        Icons.more_horiz_rounded,
+                        color: Colors.white,
+                        size: 26,
+                      ),
                     ),
                   ),
                 ),

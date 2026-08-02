@@ -21,6 +21,7 @@ import 'txa_profile_screen.dart';
 import 'txa_chat_list_screen.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../widgets/txa_avatar_frame.dart';
+import '../widgets/txa_network_image.dart';
 import '../widgets/txa_coach_mark.dart';
 import 'photo_preview_screen.dart';
 import '../services/txa_version.dart';
@@ -523,10 +524,11 @@ class _LocketMainScreenState extends State<LocketMainScreen> with WidgetsBinding
         minZoom = await controller.getMinZoomLevel();
       } catch (_) {}
 
-      // Tự động bật mốc 0.5x nếu phần cứng thiết bị hỗ trợ camera góc rộng (Ultra-Wide)
-      final List<double> newZoomLevels = minZoom <= 0.6
+      // Hiện mức zoom 0.5x chỉ khi phần cứng camera có hỗ trợ góc rộng (minZoom ≤ 0.6)
+      final bool hasUltraWide = minZoom <= 0.6;
+      final List<double> newZoomLevels = hasUltraWide
           ? [0.5, 1.0, 1.5, 2.0, 3.0]
-          : [0.5, 1.0, 1.5, 2.0, 3.0]; // Luôn bật 0.5x trên danh sách cho thiết bị hỗ trợ
+          : [1.0, 1.5, 2.0, 3.0];
 
       if (mounted) {
         setState(() {
@@ -818,7 +820,7 @@ class _LocketMainScreenState extends State<LocketMainScreen> with WidgetsBinding
                             child: Container(
                               color: Color(avatarColorVal).withAlpha(200),
                               child: avatarEmoji.startsWith('http')
-                                  ? Image.network(avatarEmoji, fit: BoxFit.cover)
+                                  ? TXANetworkImage(url: avatarEmoji, fit: BoxFit.cover)
                                   : Center(
                                       child: Text(
                                         avatarEmoji,
@@ -1182,6 +1184,7 @@ class _LocketMainScreenState extends State<LocketMainScreen> with WidgetsBinding
                                                         children: [
                                                           Text(
                                                             '${_currentZoom.toStringAsFixed(1)}x',
+                                                            textScaler: TextScaler.noScaling,
                                                             style: TextStyle(
                                                               color: _isZoomPillOpen ? Colors.black : themeAccent,
                                                               fontSize: 12,
@@ -1244,6 +1247,7 @@ class _LocketMainScreenState extends State<LocketMainScreen> with WidgetsBinding
                                                               ),
                                                               child: Text(
                                                                 '${level.toStringAsFixed(1)}x',
+                                                                textScaler: TextScaler.noScaling,
                                                                 style: TextStyle(
                                                                   color: isSelected ? Colors.black : Colors.white,
                                                                   fontSize: 11,

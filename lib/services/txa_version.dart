@@ -5,12 +5,51 @@ class TXAVersion extends ChangeNotifier {
   TXAVersion._internal();
 
   static const String appName = 'Army';
-  static const String currentVersion = '1.0.1';
-  static const int buildNumber = 2;
-  static const String releaseDate = '01/08/2026';
-  static const String fullVersionString = 'Bản 1.0.1+2';
+  static const String currentVersion = '1.0.2';
+  static const int buildNumber = 3;
+  static const String releaseDate = '02/08/2026';
+  static const String fullVersionString = 'Bản 1.0.2+3';
 
   static const List<Map<String, dynamic>> changelogData = [
+    {
+      'version': '1.0.2+3',
+      'date': '02/08/2026',
+      'title': 'Bản sửa lỗi & Tối ưu hóa Toàn diện 🌟',
+      'subtitle': 'Khắc phục các lỗi crash quảng cáo, cải thiện đồng bộ thời gian thực và trải nghiệm điều hướng.',
+      'badge': 'BẢN SỬA LỖI',
+      'features': [
+        {
+          'icon': '🚪',
+          'title': 'Sửa lỗi điều hướng Đăng xuất',
+          'description': 'Đảm bảo điều hướng sạch sẽ về màn login sau khi logout không bị gián đoạn do unmount context.',
+        },
+        {
+          'icon': '🛡️',
+          'title': 'Ngăn chặn đè thanh hệ thống',
+          'description': 'Thêm SafeArea và useSafeArea vào modal nhập tên tháng giúp tránh bị che khuất bởi thanh điều hướng ảo ở đáy màn hình.',
+        },
+        {
+          'icon': '👥',
+          'title': 'Đồng bộ Bạn bè & Bạn thân Real-time',
+          'description': 'Đồng bộ trực tiếp danh sách bạn bè và trạng thái bạn thân từ Firestore theo thời gian thực thay vì lưu cục bộ.',
+        },
+        {
+          'icon': '🖼️',
+          'title': 'Bảo toàn Avatar Google & TXANetworkImage',
+          'description': 'Giữ nguyên avatar Google khi đăng nhập lại mà không bị reset, đồng thời tăng tính ổn định tải ảnh qua TXANetworkImage.',
+        },
+        {
+          'icon': '📢',
+          'title': 'Sửa lỗi Crash Native Ad & Dimming',
+          'description': 'Tích hợp Template Medium của Google Mobile Ads sửa lỗi crash NativeAdFactory, đồng thời làm mờ & khóa các nút tương tác khi xem quảng cáo.',
+        },
+        {
+          'icon': '🔍',
+          'title': 'Ẩn Zoom 0.5x & Tối ưu chữ',
+          'description': 'Ẩn tùy chọn 0.5x trên máy không có camera góc rộng và cố định cỡ chữ trên zoom pill tránh tràn khung hình.',
+        },
+      ],
+    },
     {
       'version': '1.0.1+2',
       'date': '01/08/2026',

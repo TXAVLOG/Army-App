@@ -10,7 +10,6 @@ import 'package:google_sign_in/google_sign_in.dart';
 import 'package:google_sign_in_all_platforms/google_sign_in_all_platforms.dart' as gsiap;
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
-import 'package:firebase_analytics/firebase_analytics.dart';
 import 'txa_chat_service.dart';
 import 'txa_language.dart';
 import 'txa_streak_service.dart';
@@ -322,6 +321,7 @@ class TXAAuthService extends ChangeNotifier {
           } catch (_) {}
           syncUserFromFirestore();
           _startUserListener();
+          startFriendsListener();
         }
         if (_currentUser?.isGoogleAccount == true) {
           _syncGooglePhotoUrl();
@@ -412,7 +412,7 @@ class TXAAuthService extends ChangeNotifier {
             final user = UserModel.fromJson(data);
             await _setActiveUser(user);
             try {
-              FirebaseAnalytics.instance.logLogin(loginMethod: 'email_username');
+              TXAAnalytics.logLogin(loginMethod: 'email_username');
             } catch (_) {}
             return {'success': true, 'user': user};
           } else {
@@ -439,7 +439,7 @@ class TXAAuthService extends ChangeNotifier {
           final user = UserModel.fromJson(acc['user']);
           await _setActiveUser(user);
           try {
-            FirebaseAnalytics.instance.logLogin(loginMethod: 'email_username_local');
+            TXAAnalytics.logLogin(loginMethod: 'email_username_local');
           } catch (_) {}
           return {'success': true, 'user': user};
         } else {
@@ -569,33 +569,46 @@ class TXAAuthService extends ChangeNotifier {
         photoUrl = user.photoURL ?? googleUser.photoUrl;
       }
 
-      final cleanUsername = generateShortGoogleUsername(displayName, userEmail, googleId);
+      final docRef = FirebaseFirestore.instance.collection('users').doc('user_google_$googleId');
+      final docSnap = await docRef.get();
 
-      final googleUserAccount = UserModel(
-        id: 'user_google_$googleId',
-        email: userEmail.isEmpty ? 'user@gmail.com' : userEmail,
-        username: cleanUsername,
-        dob: '19/10/2000',
-        avatar: '🦊',
-        avatarBgColor: '0xFFF57C00',
-        googlePhotoUrl: photoUrl ?? 'https://lh3.googleusercontent.com/a/default-user',
-        isGoogleAccount: true,
-        createdTime: DateTime.now().toIso8601String(),
-        role: 'user',
-        displayName: displayName,
-      );
+      UserModel googleUserAccount;
+      if (docSnap.exists && docSnap.data() != null) {
+        final existingData = docSnap.data()!;
+        googleUserAccount = UserModel.fromJson(existingData);
+        // Cập nhật googlePhotoUrl và displayName nếu có thay đổi từ Google OAuth
+        await docRef.update({
+          'googlePhotoUrl': photoUrl ?? googleUserAccount.googlePhotoUrl ?? 'https://lh3.googleusercontent.com/a/default-user',
+          'displayName': displayName.isNotEmpty ? displayName : googleUserAccount.displayName,
+        });
+        // Tải lại để lấy dữ liệu mới nhất
+        final updatedDoc = await docRef.get();
+        googleUserAccount = UserModel.fromJson(updatedDoc.data()!);
+      } else {
+        final cleanUsername = generateShortGoogleUsername(displayName, userEmail, googleId);
+        googleUserAccount = UserModel(
+          id: 'user_google_$googleId',
+          email: userEmail.isEmpty ? 'user@gmail.com' : userEmail,
+          username: cleanUsername,
+          dob: '19/10/2000',
+          avatar: '🦊',
+          avatarBgColor: '0xFFF57C00',
+          googlePhotoUrl: photoUrl ?? 'https://lh3.googleusercontent.com/a/default-user',
+          isGoogleAccount: true,
+          createdTime: DateTime.now().toIso8601String(),
+          role: 'user',
+          displayName: displayName,
+        );
 
-      // Save to Firestore
-      try {
-        await FirebaseFirestore.instance.collection('users').doc(googleUserAccount.id).set({
+        await docRef.set({
           ...googleUserAccount.toJson(),
           'password': 'google_oauth_bypass',
         });
-      } catch (_) {}
+      }
 
       await _setActiveUser(googleUserAccount);
       try {
-        FirebaseAnalytics.instance.logLogin(loginMethod: 'google');
+        TXAAnalytics.logLogin(loginMethod: 'google');
       } catch (_) {}
       return {'success': true, 'user': googleUserAccount};
     } catch (e, stack) {
@@ -692,7 +705,7 @@ class TXAAuthService extends ChangeNotifier {
       await updateOnlineStatus(false);
     }
     _userSubscription?.cancel();
-    _userSubscription = null;
+    cancelFriendsListener();
     _currentUser = null;
     final prefs = await SharedPreferences.getInstance();
     await prefs.remove(_keyActiveUser);
@@ -780,6 +793,9 @@ class TXAAuthService extends ChangeNotifier {
         
         final prefs = await SharedPreferences.getInstance();
         await prefs.setString(_keyActiveUser, jsonEncode(updatedUser.toJson()));
+        
+        // Rebuild friends list when user doc changes (e.g. bestFriends list updated)
+        _rebuildFriendsListRealtime();
       }
     });
   }
@@ -805,7 +821,7 @@ class TXAAuthService extends ChangeNotifier {
     } catch (_) {}
     notifyListeners();
     _startUserListener();
-    syncFriendsFromFirestore();
+    startFriendsListener();
   }
 
   Map<String, Map<String, dynamic>> _getStoredAccounts(SharedPreferences prefs) {
@@ -864,16 +880,135 @@ class TXAAuthService extends ChangeNotifier {
   Future<void> toggleBestFriend(String friendId) async {
     final index = _friends.indexWhere((f) => f['id'] == friendId);
     if (index != -1) {
+      final friendUsername = _friends[index]['username'] as String;
       final current = _friends[index]['isBestFriend'] == true;
-      _friends[index]['isBestFriend'] = !current;
-      await _saveFriendsToPrefs();
-      notifyListeners();
+
+      final firestore = FirebaseFirestore.instance;
+      if (current) {
+        await firestore.collection('users').doc(_currentUser!.id).update({
+          'bestFriends': FieldValue.arrayRemove([friendUsername]),
+        });
+      } else {
+        await firestore.collection('users').doc(_currentUser!.id).update({
+          'bestFriends': FieldValue.arrayUnion([friendUsername]),
+        });
+      }
     }
   }
 
   Future<void> _saveFriendsToPrefs() async {
     final prefs = await SharedPreferences.getInstance();
     await prefs.setString(_keyFriendsList, jsonEncode(_friends));
+  }
+
+  StreamSubscription<QuerySnapshot>? _sentFriendsSub;
+  StreamSubscription<QuerySnapshot>? _receivedFriendsSub;
+
+  void startFriendsListener() {
+    _sentFriendsSub?.cancel();
+    _receivedFriendsSub?.cancel();
+
+    final username = _currentUser?.username ?? '';
+    if (username.isEmpty) return;
+
+    final firestore = FirebaseFirestore.instance;
+
+    _sentFriendsSub = firestore
+        .collection('friend_requests')
+        .where('from', isEqualTo: username)
+        .snapshots()
+        .listen((snap) {
+      _rebuildFriendsListRealtime();
+    });
+
+    _receivedFriendsSub = firestore
+        .collection('friend_requests')
+        .where('to', isEqualTo: username)
+        .snapshots()
+        .listen((snap) {
+      _rebuildFriendsListRealtime();
+    });
+  }
+
+  void cancelFriendsListener() {
+    _sentFriendsSub?.cancel();
+    _sentFriendsSub = null;
+    _receivedFriendsSub?.cancel();
+    _receivedFriendsSub = null;
+  }
+
+  Future<void> _rebuildFriendsListRealtime() async {
+    final username = _currentUser?.username ?? '';
+    if (username.isEmpty) return;
+
+    try {
+      final firestore = FirebaseFirestore.instance;
+
+      final sentQuery = await firestore
+          .collection('friend_requests')
+          .where('from', isEqualTo: username)
+          .get();
+
+      final receivedQuery = await firestore
+          .collection('friend_requests')
+          .where('to', isEqualTo: username)
+          .get();
+
+      final userDoc = await firestore.collection('users').doc(_currentUser!.id).get();
+      final Map<String, dynamic> userData = userDoc.data() ?? {};
+      final List<dynamic> bestFriendsListRaw = userData['bestFriends'] ?? [];
+      final Set<String> bestFriends = bestFriendsListRaw.map((e) => e.toString()).toSet();
+
+      final Set<String> friendUsernames = {};
+      final List<Map<String, dynamic>> newFriends = [];
+
+      void addFriendInfo(String fUsername, String avatar, String avatarColor) {
+        if (friendUsernames.contains(fUsername)) return;
+        friendUsernames.add(fUsername);
+
+        final isBest = bestFriends.contains(fUsername);
+        final isLover = _currentUser?.loverUsername == fUsername;
+
+        newFriends.add({
+          'id': 'txa_${fUsername}_${DateTime.now().millisecondsSinceEpoch}',
+          'name': fUsername,
+          'username': fUsername,
+          'avatar': avatar,
+          'bgColor': int.tryParse(avatarColor) ?? 0xFF607D8B,
+          'isBestFriend': isBest,
+          'isLover': isLover,
+        });
+      }
+
+      for (var doc in sentQuery.docs) {
+        final data = doc.data();
+        final status = data['status'] as String?;
+        if (status != null && status.startsWith('accepted')) {
+          final toUser = data['to'] as String;
+          final toAvatar = data['toAvatar'] as String? ?? '👤';
+          final toAvatarColor = data['toAvatarColor'] as String? ?? '0xFF607D8B';
+          addFriendInfo(toUser, toAvatar, toAvatarColor);
+        }
+      }
+
+      for (var doc in receivedQuery.docs) {
+        final data = doc.data();
+        final status = data['status'] as String?;
+        if (status != null && status.startsWith('accepted')) {
+          final fromUser = data['from'] as String;
+          final fromAvatar = data['fromAvatar'] as String? ?? '👤';
+          final fromAvatarColor = data['fromAvatarColor'] as String? ?? '0xFF607D8B';
+          addFriendInfo(fromUser, fromAvatar, fromAvatarColor);
+        }
+      }
+
+      _friends.clear();
+      _friends.addAll(newFriends);
+      await _saveFriendsToPrefs();
+      notifyListeners();
+    } catch (e) {
+      debugPrint('Rebuild friends list error: $e');
+    }
   }
 
   // ─── Friend Requests (Firestore) ──────────────────────────────────────────

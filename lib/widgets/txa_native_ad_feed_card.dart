@@ -31,7 +31,6 @@ class _TXANativeAdFeedCardState extends State<TXANativeAdFeedCard> {
 
     _nativeAd = NativeAd(
       adUnitId: TXAAdMobService.instance.nativeAdUnitId,
-      factoryId: 'adFactoryFeedCard', // Map this factory in native Android code
       request: const AdRequest(),
       listener: NativeAdListener(
         onAdLoaded: (ad) {
@@ -46,8 +45,18 @@ class _TXANativeAdFeedCardState extends State<TXANativeAdFeedCard> {
           ad.dispose();
         },
       ),
+      nativeTemplateStyle: NativeTemplateStyle(
+        templateType: TemplateType.medium,
+        mainBackgroundColor: Colors.transparent,
+      ),
     );
-    _nativeAd!.load();
+    try {
+      _nativeAd!.load();
+    } catch (e, stack) {
+      TXALogger.logError(e, stackTrace: stack, extraInfo: {'widget': 'TXANativeAdFeedCard', 'action': '_loadAd'});
+      _nativeAd?.dispose();
+      _nativeAd = null;
+    }
   }
 
   @override

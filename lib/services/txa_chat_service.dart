@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'txa_notification_service.dart';
 import 'txa_language.dart';
-import 'package:firebase_analytics/firebase_analytics.dart';
 import 'txa_analytics.dart';
 
 class TXAChatMessageModel {
@@ -226,16 +225,15 @@ class TXAChatService extends ChangeNotifier {
       });
     } catch (_) {}
 
-    // Log event to Analytics
+    // Log event to Analytics safely
     try {
-      FirebaseAnalytics.instance.logEvent(
-        name: 'send_message',
+      await TXAAnalytics.logEvent(
+        'send_message',
         parameters: {
           'sender': senderUsername,
           'is_reply': postId != null ? 'true' : 'false',
         },
       );
-      TXAAnalytics.logEvent('send_message');
     } catch (_) {}
   }
 

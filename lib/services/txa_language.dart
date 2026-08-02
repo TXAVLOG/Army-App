@@ -830,7 +830,7 @@ class TXALanguage extends ChangeNotifier {
       'avatar_emoji_changed': 'Avatar changed successfully!',
       'posts_badge': 'Army',
       'streak_days': 'days',
-      'feed_display_mode': 'Hiển thị Feed Grid',
+      'feed_display_mode': 'Feed Display Mode',
       'thought_bubbles': 'Thought bubbles',
       'photos_only': 'Photos',
       'choose_feed_mode_title': 'Choose Feed Grid display mode',

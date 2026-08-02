@@ -591,7 +591,7 @@ class _TXAProfileScreenState extends State<TXAProfileScreen>
                       child: ClipRRect(
                         borderRadius: BorderRadius.circular(40),
                         child: selectedEmoji.startsWith('http')
-                            ? Image.network(selectedEmoji, fit: BoxFit.cover)
+                            ? TXANetworkImage(url: selectedEmoji, fit: BoxFit.cover)
                             : Center(
                                 child: Text(
                                   selectedEmoji,
@@ -636,7 +636,7 @@ class _TXAProfileScreenState extends State<TXAProfileScreen>
                                 child: ClipRRect(
                                   borderRadius: BorderRadius.circular(30),
                                   child: isOptGoogle
-                                      ? Image.network(option['emoji']!, fit: BoxFit.cover)
+                                      ? TXANetworkImage(url: option['emoji']!, fit: BoxFit.cover)
                                       : Center(
                                           child: Text(
                                             option['emoji']!,
@@ -789,7 +789,7 @@ class _TXAProfileScreenState extends State<TXAProfileScreen>
                         child: Container(
                           color: Color(avatarColorVal).withAlpha(200),
                           child: avatarEmoji.startsWith('http')
-                              ? Image.network(avatarEmoji, fit: BoxFit.cover)
+                              ? TXANetworkImage(url: avatarEmoji, fit: BoxFit.cover)
                               : Center(
                                   child: Text(
                                     avatarEmoji,
@@ -1357,6 +1357,7 @@ class _TXAProfileScreenState extends State<TXAProfileScreen>
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
+      useSafeArea: true,
       backgroundColor: const Color(0xFF16161A),
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
@@ -2110,6 +2111,10 @@ class _TXAProfileScreenState extends State<TXAProfileScreen>
                         height: 52,
                         child: ElevatedButton(
                           onPressed: () async {
+                            // Capture navigator TRƯỚC khi pop sheet
+                            // để tránh lỗi context bị unmounted sau khi đóng modal
+                            final rootNavigator = Navigator.of(context, rootNavigator: true);
+
                             // Hiện dialog xác nhận đăng xuất
                             final confirmed = await showDialog<bool>(
                               context: context,
@@ -2144,23 +2149,20 @@ class _TXAProfileScreenState extends State<TXAProfileScreen>
                             );
 
                             if (confirmed != true) return;
-                            if (!context.mounted) return;
 
                             // Reset static state của Profile
                             _TXAProfileScreenState.resetLoadState();
 
-                            // Đóng settings sheet
-                            Navigator.pop(context);
+                            // Đóng settings sheet rồi logout
+                            if (context.mounted) Navigator.pop(context);
                             await txaAuth.logout();
 
-                            // Về màn login, xóa toàn bộ stack
-                            if (context.mounted) {
-                              Navigator.of(context).pushAndRemoveUntil(
-                                MaterialPageRoute(builder: (_) => const TXALoginScreen()),
-                                (route) => false,
-                              );
-                            }
-
+                            // Dùng rootNavigator đã capture để về màn login,
+                            // xóa toàn bộ stack — KHÔNG cần check mounted nữa
+                            rootNavigator.pushAndRemoveUntil(
+                              MaterialPageRoute(builder: (_) => const TXALoginScreen()),
+                              (route) => false,
+                            );
                           },
                           style: ElevatedButton.styleFrom(
                             backgroundColor: TXATheme.statusRed,
