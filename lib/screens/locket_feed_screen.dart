@@ -1,4 +1,5 @@
 import 'dart:io';
+import 'dart:math';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
@@ -814,13 +815,16 @@ class _LocketFeedScreenState extends State<LocketFeedScreen> {
         if (isVip) {
           feedItems.addAll(visiblePosts);
         } else {
+          final rand = Random();
+          int targetAdOffset = rand.nextInt(4) + 2; // Sinh ngẫu nhiên từ 2 đến 5
           int postCounter = 0;
           for (var post in visiblePosts) {
             feedItems.add(post);
             postCounter++;
-            if (postCounter == 2) {
+            if (postCounter == targetAdOffset) {
               feedItems.add('ad_slot');
               postCounter = 0;
+              targetAdOffset = rand.nextInt(4) + 2; // Sinh tiếp khoảng cách ngẫu nhiên cho ad kế
             }
           }
         }
