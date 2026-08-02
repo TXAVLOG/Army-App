@@ -23,6 +23,8 @@ import 'txa_login_screen.dart';
 import '../services/txa_web.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../widgets/txa_avatar_frame.dart';
+import '../services/txa_iap_service.dart';
+import 'txa_gold_pass_paywall_screen.dart';
 
 class TXAProfileScreen extends StatefulWidget {
   const TXAProfileScreen({super.key});
@@ -1984,6 +1986,12 @@ class _TXAProfileScreenState extends State<TXAProfileScreen>
                       ),
                       const SizedBox(height: 20),
 
+                      // ─── Army Subscription Card ───
+                      _buildSubscriptionCard(context, currentUser, setModalState),
+                      const SizedBox(height: 16),
+                      Divider(color: TXATheme.cardBorder),
+                      const SizedBox(height: 12),
+
                       // ─── 1. Ngôn ngữ ───────────────────────────────────────
                       ListTile(
                         contentPadding: EdgeInsets.zero,
@@ -2341,6 +2349,195 @@ class _TXAProfileScreenState extends State<TXAProfileScreen>
         );
       },
     );
+  }
+
+  Widget _buildSubscriptionCard(BuildContext context, UserModel? user, StateSetter setModalState) {
+    final txaLang = TXALanguage.instance;
+    final isVip = TXAIAPService.instance.isVipActive;
+
+    if (isVip && user != null) {
+      String expiryText = '';
+      if (user.vipExpiryDate != null) {
+        try {
+          final dt = DateTime.parse(user.vipExpiryDate!).toLocal();
+          expiryText = '${dt.day.toString().padLeft(2, '0')}/${dt.month.toString().padLeft(2, '0')}/${dt.year}';
+        } catch (_) {}
+      }
+
+      final planType = user.vipProductId == TXAIAPService.yearlyProductId
+          ? txaLang.getText('vip_plan_yearly')
+          : txaLang.getText('vip_plan_monthly');
+
+      return Container(
+        width: double.infinity,
+        padding: const EdgeInsets.all(18),
+        decoration: BoxDecoration(
+          gradient: const LinearGradient(
+            colors: [Color(0xFFD4AF37), Color(0xFFF3E5AB)],
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+          ),
+          borderRadius: BorderRadius.circular(20),
+          boxShadow: [
+            BoxShadow(
+              color: const Color(0xFFD4AF37).withAlpha(100),
+              blurRadius: 12,
+              offset: const Offset(0, 4),
+            )
+          ],
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                const Icon(Icons.workspace_premium_rounded, color: Color(0xFF5C4033), size: 28),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: Text(
+                    'Army Gold Pass 🌟',
+                    style: const TextStyle(
+                      color: Color(0xFF5C4033),
+                      fontSize: 18,
+                      fontWeight: FontWeight.w900,
+                    ),
+                  ),
+                ),
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFF5C4033),
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                  child: Text(
+                    planType,
+                    style: const TextStyle(color: Colors.white, fontSize: 10, fontWeight: FontWeight.bold),
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 12),
+            Text(
+              '${txaLang.getText('vip_status_active')} • ${txaLang.getText('vip_expiry_date').replaceAll('%date%', expiryText)}',
+              style: const TextStyle(
+                color: Color(0xFF5C4033),
+                fontSize: 13,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+            const SizedBox(height: 16),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.end,
+              children: [
+                TextButton(
+                  onPressed: () async {
+                    await TXAIAPService.instance.openCancelSubscription();
+                  },
+                  style: TextButton.styleFrom(
+                    foregroundColor: const Color(0xFF5C4033),
+                    padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+                  ),
+                  child: Text(
+                    txaLang.getText('vip_cancel_renewal'),
+                    style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
+                  ),
+                ),
+                const SizedBox(width: 8),
+                ElevatedButton(
+                  onPressed: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(builder: (_) => const TXAGoldPassPaywallScreen()),
+                    ).then((_) {
+                      setModalState(() {});
+                    });
+                  },
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: const Color(0xFF5C4033),
+                    foregroundColor: Colors.white,
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                    elevation: 0,
+                  ),
+                  child: Text(
+                    txaLang.getText('vip_upgrade_btn'),
+                    style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
+                  ),
+                ),
+              ],
+            ),
+          ],
+        ),
+      );
+    } else {
+      return Container(
+        width: double.infinity,
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          color: const Color(0xFF1E1E24),
+          borderRadius: BorderRadius.circular(20),
+          border: Border.all(
+            color: const Color(0xFFFFD700).withAlpha(100),
+            width: 1,
+          ),
+        ),
+        child: Row(
+          children: [
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      const Icon(Icons.workspace_premium_rounded, color: Color(0xFFFFD700), size: 22),
+                      const SizedBox(width: 8),
+                      Text(
+                        'Army Gold Pass 🌟',
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 16,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 6),
+                  Text(
+                    txaLang.getText('gold_pass_paywall_subtitle'),
+                    style: const TextStyle(
+                      color: Colors.white70,
+                      fontSize: 12,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(width: 12),
+            ElevatedButton(
+              onPressed: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (_) => const TXAGoldPassPaywallScreen()),
+                ).then((_) {
+                  setModalState(() {});
+                });
+              },
+              style: ElevatedButton.styleFrom(
+                backgroundColor: const Color(0xFFFFD700),
+                foregroundColor: Colors.black,
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+                elevation: 0,
+              ),
+              child: Text(
+                txaLang.getText('vip_upgrade_btn'),
+                style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
+              ),
+            ),
+          ],
+        ),
+      );
+    }
   }
 }
 

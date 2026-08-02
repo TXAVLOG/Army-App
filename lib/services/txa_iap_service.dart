@@ -3,6 +3,8 @@ import 'dart:io';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:in_app_purchase/in_app_purchase.dart';
+import 'package:url_launcher/url_launcher.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'txa_supabase_service.dart';
 import 'txa_auth_service.dart';
 import '../widgets/txa_toast.dart';
@@ -10,7 +12,6 @@ import 'txa_language.dart';
 import '../main.dart';
 import 'txa_logger.dart';
 import 'txa_config.dart';
-
 
 class TXAIAPService extends ChangeNotifier {
   static final TXAIAPService instance = TXAIAPService._internal();
@@ -34,7 +35,7 @@ class TXAIAPService extends ChangeNotifier {
       return true; // Bypass on Windows/Web
     }
     final user = TXAAuthService.instance.currentUser;
-    return user?.isVipActive ?? false;
+    return user?.isVipCurrentlyActive ?? false;
   }
 
   void _initialize() {
@@ -72,7 +73,6 @@ class TXAIAPService extends ChangeNotifier {
 
   Future<void> buySubscription(ProductDetails product) async {
     if (Platform.isIOS) {
-      // iOS Toast placeholder as requested
       final context = navigatorKey.currentContext;
       if (context != null) {
         TXAToast.show(
@@ -110,7 +110,6 @@ class TXAIAPService extends ChangeNotifier {
           debugPrint('Purchase error: ${purchaseDetails.error}');
         } else if (purchaseDetails.status == PurchaseStatus.purchased ||
             purchaseDetails.status == PurchaseStatus.restored) {
-          // Verify purchase and update user VIP status in Firestore
           await _verifyAndActivateVIP(purchaseDetails);
         }
         if (purchaseDetails.pendingCompletePurchase) {
@@ -124,15 +123,102 @@ class TXAIAPService extends ChangeNotifier {
     final user = TXAAuthService.instance.currentUser;
     if (user == null) return;
 
+    final context = navigatorKey.currentContext;
+    final txaLang = TXALanguage.instance;
+
+    // Lấy thông tin tài khoản đăng ký hiện tại (Gmail)
+    final googleEmail = FirebaseAuth.instance.currentUser?.email;
+
     try {
+      // 1. Kiểm tra chéo xem giao dịch đã được liên kết với một App UID khác chưa
+      final existingUserQuery = await TXASupabaseService.instance.client
+          .from('txa_users')
+          .select('id, email, vipGoogleEmail')
+          .eq('vipPurchaseToken', purchase.purchaseID ?? '')
+          .maybeSingle();
+
+      if (existingUserQuery != null && existingUserQuery['id'] != user.id) {
+        // Giao dịch đã thuộc về tài khoản app khác
+        if (context != null && context.mounted) {
+          TXAToast.show(
+            context,
+            txaLang.getText('restore_wrong_account'),
+            icon: Icons.error_outline_rounded,
+          );
+        }
+        return;
+      }
+
+      // Tự tính hạn lâm thời (Webhook Edge Function sẽ ghi đè chính xác sau)
+      int durationDays = purchase.productID == yearlyProductId ? 365 : 30;
+      final expiryDate = DateTime.now().add(Duration(days: durationDays));
+
       await TXASupabaseService.instance.client.from('txa_users').update({
         'isVipActive': true,
+        'vipProductId': purchase.productID,
         'vipPurchaseToken': purchase.purchaseID,
         'vipPurchaseDate': DateTime.now().toIso8601String(),
+        'vipExpiryDate': expiryDate.toIso8601String(),
+        'vipGoogleEmail': googleEmail,
       }).eq('id', user.id);
+
       await TXAAuthService.instance.syncUserFromFirestore();
+
+      if (context != null && context.mounted) {
+        TXAToast.show(
+          context,
+          purchase.status == PurchaseStatus.restored
+              ? txaLang.getText('purchase_restored_toast')
+              : txaLang.getText('purchase_success_toast'),
+          icon: Icons.check_circle_rounded,
+        );
+      }
     } catch (e) {
       debugPrint('Error updating VIP status: $e');
+    }
+  }
+
+  /// Quét trạng thái hạn dùng VIP
+  Future<void> checkVipExpiry() async {
+    final user = TXAAuthService.instance.currentUser;
+    if (user == null || !user.isVipActive) return;
+
+    if (user.vipExpiryDate != null) {
+      final expiry = DateTime.tryParse(user.vipExpiryDate!);
+      if (expiry != null && expiry.isBefore(DateTime.now())) {
+        // Gói cước đã hết hạn thực tế
+        await TXAAuthService.instance.downgradeToFree();
+        final context = navigatorKey.currentContext;
+        if (context != null && context.mounted) {
+          TXAToast.show(
+            context,
+            TXALanguage.instance.getText('vip_downgraded_toast'),
+            icon: Icons.info_outline_rounded,
+          );
+        }
+      }
+    }
+  }
+
+  /// Hủy gia hạn gói cước
+  Future<void> openCancelSubscription() async {
+    // Package name của app
+    const String packageName = 'com.txavlog.army'; 
+    final Uri url = Uri.parse(
+      'https://play.google.com/store/account/subscriptions?sku=$monthlyProductId&package=$packageName',
+    );
+
+    if (await canLaunchUrl(url)) {
+      await launchUrl(url, mode: LaunchMode.externalApplication);
+    } else {
+      final context = navigatorKey.currentContext;
+      if (context != null && context.mounted) {
+        TXAToast.show(
+          context,
+          'Could not open Subscriptions page',
+          icon: Icons.error_outline_rounded,
+        );
+      }
     }
   }
 
@@ -142,4 +228,3 @@ class TXAIAPService extends ChangeNotifier {
     super.dispose();
   }
 }
-

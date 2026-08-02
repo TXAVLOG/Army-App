@@ -10,6 +10,7 @@ import 'package:google_sign_in/google_sign_in.dart';
 import 'package:google_sign_in_all_platforms/google_sign_in_all_platforms.dart' as gsiap;
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'txa_supabase_service.dart';
+import 'txa_iap_service.dart';
 import 'txa_chat_service.dart';
 import 'txa_language.dart';
 import 'txa_streak_service.dart';
@@ -34,6 +35,9 @@ class UserModel {
   final String? loveId;
   final String? loverUsername;
   final bool isVipActive;
+  final String? vipProductId;
+  final String? vipExpiryDate;
+  final String? vipGoogleEmail;
   final String? displayName;
   final bool isOnline;
   final String? fcmToken;
@@ -54,10 +58,25 @@ class UserModel {
     this.loveId,
     this.loverUsername,
     this.isVipActive = false,
+    this.vipProductId,
+    this.vipExpiryDate,
+    this.vipGoogleEmail,
     this.displayName,
     this.isOnline = false,
     this.fcmToken,
   });
+
+  bool get isVipCurrentlyActive {
+    if (!isVipActive) return false;
+    if (vipExpiryDate == null) return false;
+    try {
+      final expiry = DateTime.tryParse(vipExpiryDate!);
+      if (expiry == null) return false;
+      return expiry.isAfter(DateTime.now());
+    } catch (_) {
+      return false;
+    }
+  }
 
   Map<String, dynamic> toJson() => {
         'id': id,
@@ -75,6 +94,9 @@ class UserModel {
         'loveId': loveId,
         'loverUsername': loverUsername,
         'isVipActive': isVipActive,
+        'vipProductId': vipProductId,
+        'vipExpiryDate': vipExpiryDate,
+        'vipGoogleEmail': vipGoogleEmail,
         'displayName': displayName,
         'isOnline': isOnline,
         'fcmToken': fcmToken,
@@ -107,6 +129,9 @@ class UserModel {
       loveId: json['loveId'] as String?,
       loverUsername: json['loverUsername'] as String?,
       isVipActive: json['isVipActive'] ?? false,
+      vipProductId: json['vipProductId'] as String?,
+      vipExpiryDate: json['vipExpiryDate'] as String?,
+      vipGoogleEmail: json['vipGoogleEmail'] as String?,
       displayName: json['displayName'] as String?,
       isOnline: json['isOnline'] ?? false,
       fcmToken: json['fcmToken'] as String?,
@@ -324,6 +349,7 @@ class TXAAuthService extends ChangeNotifier {
             TXANotificationService.instance.startListeningNotifications(_currentUser!.username);
           } catch (_) {}
           syncUserFromFirestore();
+          TXAIAPService.instance.checkVipExpiry();
           _startUserListener();
           startFriendsListener();
         }
@@ -716,6 +742,26 @@ class TXAAuthService extends ChangeNotifier {
       TXANotificationService.instance.stopListeningNotifications();
     } catch (_) {}
     notifyListeners();
+  }
+
+  Future<void> downgradeToFree() async {
+    final user = _currentUser;
+    if (user == null) return;
+
+    try {
+      await TXASupabaseService.instance.client.from('txa_users').update({
+        'isVipActive': false,
+        'vipProductId': null,
+        'vipExpiryDate': null,
+      }).eq('id', user.id);
+
+      await syncUserFromFirestore();
+
+      // Reset icon app về mặc định ở đây nếu cần (có thể gọi method reset icon)
+      debugPrint('User ${user.username} has been downgraded to Free package.');
+    } catch (e) {
+      debugPrint('downgradeToFree error: $e');
+    }
   }
 
   Future<void> updateOnlineStatus(bool online) async {
