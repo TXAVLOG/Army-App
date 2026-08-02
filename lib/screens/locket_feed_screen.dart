@@ -814,15 +814,13 @@ class _LocketFeedScreenState extends State<LocketFeedScreen> {
         if (isVip) {
           feedItems.addAll(visiblePosts);
         } else {
-          int nextAdOffset = 3;
           int postCounter = 0;
           for (var post in visiblePosts) {
             feedItems.add(post);
             postCounter++;
-            if (postCounter == nextAdOffset) {
+            if (postCounter == 2) {
               feedItems.add('ad_slot');
               postCounter = 0;
-              nextAdOffset = nextAdOffset == 3 ? 5 : 3;
             }
           }
         }

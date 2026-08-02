@@ -1,4 +1,5 @@
 import 'dart:io';
+import 'dart:async';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:google_mobile_ads/google_mobile_ads.dart';
@@ -17,6 +18,8 @@ class TXANativeAdFeedCard extends StatefulWidget {
 class _TXANativeAdFeedCardState extends State<TXANativeAdFeedCard> {
   NativeAd? _nativeAd;
   bool _adLoaded = false;
+  double _adLoadProgress = 0.0;
+  Timer? _progressTimer;
 
   @override
   void initState() {
@@ -29,18 +32,32 @@ class _TXANativeAdFeedCardState extends State<TXANativeAdFeedCard> {
       return;
     }
 
+    // Giả lập thanh tiến độ ads chạy từ 0 đến 90% trong lúc đợi AdMob load
+    _progressTimer = Timer.periodic(const Duration(milliseconds: 100), (timer) {
+      if (mounted) {
+        setState(() {
+          if (_adLoadProgress < 0.9) {
+            _adLoadProgress += 0.05;
+          }
+        });
+      }
+    });
+
     _nativeAd = NativeAd(
       adUnitId: TXAAdMobService.instance.nativeAdUnitId,
       request: const AdRequest(),
       listener: NativeAdListener(
         onAdLoaded: (ad) {
+          _progressTimer?.cancel();
           if (mounted) {
             setState(() {
+              _adLoadProgress = 1.0;
               _adLoaded = true;
             });
           }
         },
         onAdFailedToLoad: (ad, error) {
+          _progressTimer?.cancel();
           TXALogger.logError(error, extraInfo: {'widget': 'TXANativeAdFeedCard', 'action': 'onAdFailedToLoad'});
           ad.dispose();
         },
@@ -53,6 +70,7 @@ class _TXANativeAdFeedCardState extends State<TXANativeAdFeedCard> {
     try {
       _nativeAd!.load();
     } catch (e, stack) {
+      _progressTimer?.cancel();
       TXALogger.logError(e, stackTrace: stack, extraInfo: {'widget': 'TXANativeAdFeedCard', 'action': '_loadAd'});
       _nativeAd?.dispose();
       _nativeAd = null;
@@ -61,6 +79,7 @@ class _TXANativeAdFeedCardState extends State<TXANativeAdFeedCard> {
 
   @override
   void dispose() {
+    _progressTimer?.cancel();
     _nativeAd?.dispose();
     super.dispose();
   }
@@ -74,17 +93,17 @@ class _TXANativeAdFeedCardState extends State<TXANativeAdFeedCard> {
       return const SizedBox.shrink();
     }
 
-    // On Windows/Web or before ad loads, show a premium-looking mockup/placeholder card
+    // On Windows/Web, hide ads completely
     final isDesktopOrWeb = kIsWeb || Platform.isWindows;
     if (isDesktopOrWeb) {
-      return const SizedBox.shrink(); // Hide ads completely on Desktop/Web
+      return const SizedBox.shrink(); 
     }
 
     return Center(
       child: ConstrainedBox(
         constraints: BoxConstraints(
           maxWidth: 350,
-          maxHeight: MediaQuery.of(context).size.height * 0.55,
+          maxHeight: MediaQuery.of(context).size.height * 0.52,
         ),
         child: AspectRatio(
           aspectRatio: 3 / 4,
@@ -100,9 +119,14 @@ class _TXANativeAdFeedCardState extends State<TXANativeAdFeedCard> {
                 child: Stack(
                   fit: StackFit.expand,
                   children: [
-                    // Admob Native Ad View or Placeholder
+                    // Căn giữa toàn bộ Native Ad Widget trong khung hình
                     _adLoaded && _nativeAd != null
-                        ? AdWidget(ad: _nativeAd!)
+                        ? Center(
+                            child: SizedBox(
+                              height: 320, // Kích thước chuẩn cho Medium template
+                              child: AdWidget(ad: _nativeAd!),
+                            ),
+                          )
                         : _buildPremiumPlaceholder(),
 
                     // Sponsored Label and Tooltip at Bottom Left
@@ -134,7 +158,7 @@ class _TXANativeAdFeedCardState extends State<TXANativeAdFeedCard> {
                             mainAxisSize: MainAxisSize.min,
                             children: [
                               Text(
-                                txaLang.currentLanguage == 'vi' ? '? Được tài trợ' : '? Sponsored',
+                                txaLang.currentLanguage == 'vi' ? 'ⓘ Được tài trợ' : 'ⓘ Sponsored',
                                 style: const TextStyle(
                                   color: Colors.white70,
                                   fontSize: 11,
@@ -157,24 +181,32 @@ class _TXANativeAdFeedCardState extends State<TXANativeAdFeedCard> {
   }
 
   Widget _buildPremiumPlaceholder() {
+    final txaLang = TXALanguage.instance;
     return Container(
       color: const Color(0xFF13131A),
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          Icon(Icons.video_library_rounded, color: Colors.blueAccent.withAlpha(200), size: 48),
+          Icon(Icons.workspace_premium_rounded, color: const Color(0xFFFFD700).withAlpha(200), size: 48),
           const SizedBox(height: 16),
-          const Text(
-            'Armi Sponsor Video',
-            style: TextStyle(color: Colors.white70, fontWeight: FontWeight.bold, fontSize: 14),
+          Text(
+            txaLang.currentLanguage == 'vi' ? 'Đang tải quảng cáo tài trợ...' : 'Loading sponsored content...',
+            style: const TextStyle(color: Colors.white70, fontWeight: FontWeight.bold, fontSize: 13),
           ),
-          const SizedBox(height: 6),
-          const Padding(
-            padding: EdgeInsets.symmetric(horizontal: 32),
-            child: Text(
-              'Loading sponsored content...',
-              style: TextStyle(color: Colors.white38, fontSize: 11),
-              textAlign: TextAlign.center,
+          const SizedBox(height: 16),
+          // Thanh tiến độ ads phong cách AdMob
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 48),
+            child: ClipRRect(
+              borderRadius: BorderRadius.circular(10),
+              child: SizedBox(
+                height: 4,
+                child: LinearProgressIndicator(
+                  value: _adLoadProgress,
+                  backgroundColor: Colors.white12,
+                  color: const Color(0xFFFFD700),
+                ),
+              ),
             ),
           ),
         ],

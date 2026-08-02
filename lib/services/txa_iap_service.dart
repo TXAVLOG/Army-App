@@ -31,9 +31,6 @@ class TXAIAPService extends ChangeNotifier {
   static const String yearlyProductId = TXAConfig.iapYearlyProductId;
 
   bool get isVipActive {
-    if (kIsWeb || Platform.isWindows) {
-      return true; // Bypass on Windows/Web
-    }
     final user = TXAAuthService.instance.currentUser;
     return user?.isVipCurrentlyActive ?? false;
   }
