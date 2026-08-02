@@ -1,6 +1,6 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
-import 'package:cloud_firestore/cloud_firestore.dart';
+import 'txa_supabase_service.dart';
 import 'txa_cloudinary_service.dart';
 import 'txa_auth_service.dart';
 import 'txa_language.dart';
@@ -154,26 +154,23 @@ class TXAFeedService extends ChangeNotifier {
   List<LocketPostModel> get posts => List.unmodifiable(_posts);
 
   Future<void> init() async {
-    FirebaseFirestore.instance
-        .collection('posts')
-        .orderBy('createdTime', descending: true)
-        .snapshots()
-        .listen((snapshot) async {
+    TXASupabaseService.instance.client
+        .from('txa_posts')
+        .stream(primaryKey: ['id'])
+        .order('createdTime', ascending: false)
+        .listen((List<Map<String, dynamic>> data) {
       _posts.clear();
-      for (var doc in snapshot.docs) {
-        final data = doc.data();
-        final photoPath = data['photoPath'] as String? ?? '';
+      for (var row in data) {
+        final photoPath = row['photoPath'] as String? ?? '';
         if (photoPath.startsWith('assets/')) {
-          FirebaseFirestore.instance.collection('posts').doc(doc.id).delete();
+          TXASupabaseService.instance.client.from('txa_posts').delete().eq('id', row['id'] as String);
           continue;
         }
-        data['id'] = doc.id;
-        _posts.add(LocketPostModel.fromJson(data));
+        _posts.add(LocketPostModel.fromJson(row));
       }
-
       notifyListeners();
     }, onError: (e) {
-      debugPrint('Firestore listen error: $e');
+      debugPrint('Supabase listen error: $e');
     });
   }
 
@@ -262,13 +259,13 @@ class TXAFeedService extends ChangeNotifier {
   // Mark post as read by current user
   Future<void> markPostAsRead(String postId, String currentUsername) async {
     try {
-      final docRef = FirebaseFirestore.instance.collection('posts').doc(postId);
-      final doc = await docRef.get();
-      if (doc.exists) {
-        final readBy = List<String>.from(doc.data()?['readBy'] ?? []);
+      final supabase = TXASupabaseService.instance.client;
+      final doc = await supabase.from('txa_posts').select().eq('id', postId).maybeSingle();
+      if (doc != null) {
+        final readBy = List<String>.from(doc['readBy'] ?? []);
         if (!readBy.contains(currentUsername)) {
           readBy.add(currentUsername);
-          await docRef.update({'readBy': readBy});
+          await supabase.from('txa_posts').update({'readBy': readBy}).eq('id', postId);
         }
       }
     } catch (e) {
@@ -292,15 +289,13 @@ class TXAFeedService extends ChangeNotifier {
       }
       notifyListeners();
 
-      // Firestore updates
-      final batch = FirebaseFirestore.instance.batch();
+      // Supabase updates
+      final supabase = TXASupabaseService.instance.client;
       for (final post in unreadPosts) {
-        final docRef = FirebaseFirestore.instance.collection('posts').doc(post.id);
-        batch.update(docRef, {
-          'readBy': FieldValue.arrayUnion([currentUsername])
-        });
+        await supabase.from('txa_posts').update({
+          'readBy': post.readBy,
+        }).eq('id', post.id);
       }
-      await batch.commit();
     } catch (e) {
       debugPrint('markAllPostsAsRead error: $e');
     }
@@ -355,8 +350,8 @@ class TXAFeedService extends ChangeNotifier {
       }
     }
 
-    // 3. Write document to Firestore
-    await FirebaseFirestore.instance.collection('posts').add({
+    // 3. Write document to Supabase
+    await TXASupabaseService.instance.client.from('txa_posts').insert({
       'senderUsername': senderUsername,
       'senderAvatar': senderAvatar,
       'senderAvatarColor': senderAvatarColor,
@@ -402,13 +397,12 @@ class TXAFeedService extends ChangeNotifier {
     required String emoji,
   }) async {
     try {
-      final docRef = FirebaseFirestore.instance.collection('posts').doc(postId);
-      final doc = await docRef.get();
-      if (doc.exists) {
-        final data = doc.data();
-        final postSender = data?['senderUsername'] as String? ?? '';
+      final supabase = TXASupabaseService.instance.client;
+      final doc = await supabase.from('txa_posts').select().eq('id', postId).maybeSingle();
+      if (doc != null) {
+        final postSender = doc['senderUsername'] as String? ?? '';
         final reactions = List<Map<String, dynamic>>.from(
-            data?['reactions']?.map((e) => Map<String, dynamic>.from(e as Map)) ?? []);
+            doc['reactions']?.map((e) => Map<String, dynamic>.from(e as Map)) ?? []);
 
         final existingIdx = reactions.indexWhere((r) => r['sender'] == senderUsername);
         if (existingIdx != -1) {
@@ -417,7 +411,7 @@ class TXAFeedService extends ChangeNotifier {
           reactions.add({'sender': senderUsername, 'emoji': emoji});
         }
 
-        await docRef.update({'reactions': reactions});
+        await supabase.from('txa_posts').update({'reactions': reactions}).eq('id', postId);
 
         // Log event to Analytics safely
         try {
@@ -457,17 +451,17 @@ class TXAFeedService extends ChangeNotifier {
              debugPrint('Reaction background push error: $e');
           }
 
-          // Ghi nhận notification vào Firestore collection notifications
+          // Ghi nhận notification vào Supabase table txa_notifications
           try {
-            await FirebaseFirestore.instance.collection('notifications').add({
-              'type': 'reaction',
-              'sender': senderUsername,
-              'receiver': postSender,
-              'content': bodyText,
-              'postId': postId,
-              'createdTime': DateTime.now().toIso8601String(),
-              'read': false,
-            });
+             await supabase.from('txa_notifications').insert({
+               'type': 'reaction',
+               'sender': senderUsername,
+               'receiver': postSender,
+               'content': bodyText,
+               'postId': postId,
+               'createdTime': DateTime.now().toIso8601String(),
+               'read': false,
+             });
           } catch (_) {}
         }
       }
@@ -476,16 +470,16 @@ class TXAFeedService extends ChangeNotifier {
     }
   }
 
-  // Cập nhật thứ tự dải reaction emoji nhanh của bài viết trên Firestore
+  // Cập nhật thứ tự dải reaction emoji nhanh của bài viết trên Supabase
   Future<void> updateQuickEmojisOrder({
     required String postId,
     required List<String> newOrder,
   }) async {
     try {
-      await FirebaseFirestore.instance
-          .collection('posts')
-          .doc(postId)
-          .update({'quickEmojisOrder': newOrder});
+      await TXASupabaseService.instance.client
+          .from('txa_posts')
+          .update({'quickEmojisOrder': newOrder})
+          .eq('id', postId);
     } catch (e) {
       debugPrint('updateQuickEmojisOrder error: $e');
     }
@@ -494,7 +488,7 @@ class TXAFeedService extends ChangeNotifier {
   // Delete post
   Future<void> deletePost(String postId) async {
     try {
-      await FirebaseFirestore.instance.collection('posts').doc(postId).delete();
+      await TXASupabaseService.instance.client.from('txa_posts').delete().eq('id', postId);
     } catch (e) {
       debugPrint('deletePost error: $e');
     }
@@ -506,19 +500,18 @@ class TXAFeedService extends ChangeNotifier {
     required String reporterUsername,
   }) async {
     try {
-      final postRef = FirebaseFirestore.instance.collection('posts').doc(postId);
-      final postSnapshot = await postRef.get();
-      if (postSnapshot.exists) {
-        final data = postSnapshot.data();
-        final postSender = data?['senderUsername'] ?? '@unknown';
+      final supabase = TXASupabaseService.instance.client;
+      final postSnapshot = await supabase.from('txa_posts').select().eq('id', postId).maybeSingle();
+      if (postSnapshot != null) {
+        final postSender = postSnapshot['senderUsername'] ?? '@unknown';
 
-        await FirebaseFirestore.instance.collection('reports').add({
+        await supabase.from('txa_reports').insert({
           'postId': postId,
           'postSender': postSender,
           'reporter': reporterUsername,
           'status': 'pending',
-          'photoPath': data?['photoPath'] ?? '',
-          'caption': data?['caption'] ?? '',
+          'photoPath': postSnapshot['photoPath'] ?? '',
+          'caption': postSnapshot['caption'] ?? '',
           'createdTime': DateTime.now().toIso8601String(),
         });
       }
@@ -530,12 +523,8 @@ class TXAFeedService extends ChangeNotifier {
   // Get reports (Admin only)
   Future<List<Map<String, dynamic>>> getReportsFromFirestore() async {
     try {
-      final snapshot = await FirebaseFirestore.instance.collection('reports').get();
-      return snapshot.docs.map((doc) {
-        final data = doc.data();
-        data['id'] = doc.id;
-        return data;
-      }).toList();
+      final data = await TXASupabaseService.instance.client.from('txa_reports').select();
+      return List<Map<String, dynamic>>.from(data);
     } catch (e) {
       debugPrint('getReportsFromFirestore error: $e');
       return [];
@@ -548,12 +537,13 @@ class TXAFeedService extends ChangeNotifier {
     required String reporterUsername,
   }) async {
     try {
+      final supabase = TXASupabaseService.instance.client;
       // 1. Update report status
-      await FirebaseFirestore.instance.collection('reports').doc(reportId).update({'status': 'resolved'});
+      await supabase.from('txa_reports').update({'status': 'resolved'}).eq('id', reportId);
 
-      // 2. Add firestore notification document for reporter
+      // 2. Add notification for reporter
       final txaLang = TXALanguage.instance;
-      await FirebaseFirestore.instance.collection('notifications').add({
+      await supabase.from('txa_notifications').insert({
         'recipientUsername': reporterUsername,
         'title': txaLang.getText('report_resolved_title'),
         'body': txaLang.getText('report_resolved_body'),

@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import 'package:cloud_firestore/cloud_firestore.dart';
+import 'txa_supabase_service.dart';
 import 'txa_feed_service.dart';
 import 'txa_language.dart';
 import 'txa_format.dart';
@@ -432,16 +432,16 @@ class TXAStreakService extends ChangeNotifier {
     await _saveStreaks();
     notifyListeners();
 
-    // Sync to Firestore
+    // Sync to Supabase
     try {
       final user = TXAAuthService.instance.currentUser;
       if (user != null && user.username == username) {
-        await FirebaseFirestore.instance.collection('users').doc(user.id).update({
+        await TXASupabaseService.instance.client.from('txa_users').update({
           'streak': saved,
           'lastPostTime': _lastPostDates[username]!.toIso8601String(),
           'isFreeMonthlyRestoreUsed': _isFreeMonthlyRestoreUsed[username] ?? false,
           'restorationCredits': _restorationCredits[username] ?? 0,
-        });
+        }).eq('id', user.id);
         await TXAAuthService.instance.syncUserFromFirestore();
       }
     } catch (e, stack) {
@@ -524,17 +524,17 @@ class TXAStreakService extends ChangeNotifier {
     notifyListeners();
   }
 
-  /// Đồng bộ streak thực từ Firestore cho một user cụ thể
+  /// Đồng bộ streak thực từ Supabase cho một user cụ thể
   Future<void> syncStreakFromFirestore(String username) async {
     try {
-      final snap = await FirebaseFirestore.instance
-          .collection('users')
-          .where('username', isEqualTo: username)
-          .limit(1)
-          .get();
+      final snap = await TXASupabaseService.instance.client
+          .from('txa_users')
+          .select()
+          .eq('username', username)
+          .maybeSingle();
 
-      if (snap.docs.isNotEmpty) {
-        final data = snap.docs.first.data();
+      if (snap != null) {
+        final data = snap;
         final streakVal = data['streak'];
         int streak = 0;
         if (streakVal is num) {
@@ -554,13 +554,13 @@ class TXAStreakService extends ChangeNotifier {
         }
 
         // Đồng bộ thêm các trường khôi phục streak
-        if (data.containsKey('lastSavedStreak')) {
+        if (data.containsKey('lastSavedStreak') && data['lastSavedStreak'] != null) {
           _lastSavedStreaks[username] = (data['lastSavedStreak'] as num).toInt();
         }
-        if (data.containsKey('isFreeMonthlyRestoreUsed')) {
+        if (data.containsKey('isFreeMonthlyRestoreUsed') && data['isFreeMonthlyRestoreUsed'] != null) {
           _isFreeMonthlyRestoreUsed[username] = data['isFreeMonthlyRestoreUsed'] == true;
         }
-        if (data.containsKey('restorationCredits')) {
+        if (data.containsKey('restorationCredits') && data['restorationCredits'] != null) {
           _restorationCredits[username] = (data['restorationCredits'] as num).toInt();
         }
 

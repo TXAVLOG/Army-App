@@ -6,7 +6,7 @@ import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import 'package:cloud_firestore/cloud_firestore.dart';
+import 'txa_supabase_service.dart';
 import 'package:http/http.dart' as http;
 import 'txa_language.dart';
 import 'txa_auth_service.dart';
@@ -42,7 +42,7 @@ class TXANotificationService extends ChangeNotifier {
   String? _highlightMessageId;
   String? get highlightMessageId => _highlightMessageId;
 
-  StreamSubscription<QuerySnapshot>? _notificationsSubscription;
+  StreamSubscription<List<Map<String, dynamic>>>? _notificationsSubscription;
 
   void setHighlightMessageId(String? msgId) {
     _highlightMessageId = msgId;
@@ -103,33 +103,37 @@ class TXANotificationService extends ChangeNotifier {
 
   void startListeningNotifications(String currentUsername) {
     _notificationsSubscription?.cancel();
-    _notificationsSubscription = FirebaseFirestore.instance
-        .collection('notifications')
-        .where('receiver', isEqualTo: currentUsername)
-        .where('read', isEqualTo: false)
-        .snapshots()
-        .listen((snap) {
-      for (var change in snap.docChanges) {
-        if (change.type == DocumentChangeType.added) {
-          final data = change.doc.data();
-          if (data != null) {
-            final sender = data['sender'] as String? ?? '';
-            // Nếu người gửi trùng với activeChatFriendUsername (đang mở chat) thì skip hiển thị banner
-            if (sender.isNotEmpty && sender == TXAChatService.activeChatFriendUsername) {
-              change.doc.reference.update({'read': true});
-              continue;
-            }
-
-            // Đánh dấu đã đọc trên Firestore
-            change.doc.reference.update({'read': true});
-
-            // Hiển thị Overlay banner trượt lên màn hình
-            _showSlidingBannerNotification(
-              senderUsername: sender,
-              type: data['type'] as String? ?? 'message',
-              content: data['content'] as String? ?? '',
-            );
+    _notificationsSubscription = TXASupabaseService.instance.client
+        .from('txa_notifications')
+        .stream(primaryKey: ['id'])
+        .eq('receiver', currentUsername)
+        .listen((rows) async {
+      for (var row in rows) {
+        final isRead = row['read'] as bool? ?? false;
+        if (!isRead) {
+          final sender = row['sender'] as String? ?? '';
+          final id = row['id'] as String;
+          // Nếu người gửi trùng với activeChatFriendUsername (đang mở chat) thì skip hiển thị banner
+          if (sender.isNotEmpty && sender == TXAChatService.activeChatFriendUsername) {
+            await TXASupabaseService.instance.client
+                .from('txa_notifications')
+                .update({'read': true})
+                .eq('id', id);
+            continue;
           }
+
+          // Đánh dấu đã đọc trên Supabase
+          await TXASupabaseService.instance.client
+              .from('txa_notifications')
+              .update({'read': true})
+              .eq('id', id);
+
+          // Hiển thị Overlay banner trượt lên màn hình
+          _showSlidingBannerNotification(
+            senderUsername: sender,
+            type: row['type'] as String? ?? 'message',
+            content: row['content'] as String? ?? '',
+          );
         }
       }
     });
@@ -148,15 +152,15 @@ class TXANotificationService extends ChangeNotifier {
     Map<String, dynamic>? data,
   }) async {
     try {
-      // 1. Lấy FCM Token của người nhận từ Firestore
-      final userSnap = await FirebaseFirestore.instance
-          .collection('users')
-          .where('username', isEqualTo: targetUsername)
-          .limit(1)
-          .get();
+      // 1. Lấy FCM Token của người nhận từ Supabase
+      final userSnap = await TXASupabaseService.instance.client
+          .from('txa_users')
+          .select('fcmToken')
+          .eq('username', targetUsername)
+          .maybeSingle();
 
-      if (userSnap.docs.isEmpty) return;
-      final fcmToken = userSnap.docs.first.data()['fcmToken'] as String?;
+      if (userSnap == null) return;
+      final fcmToken = userSnap['fcmToken'] as String?;
       if (fcmToken == null || fcmToken.isEmpty) {
         debugPrint('FCM Token of receiver is empty/null. Cannot send background push.');
         return;
@@ -202,14 +206,14 @@ class TXANotificationService extends ChangeNotifier {
     required String content,
   }) {
     // Lấy thông tin user của sender để vẽ avatar
-    FirebaseFirestore.instance
-        .collection('users')
-        .where('username', isEqualTo: senderUsername)
-        .limit(1)
-        .get()
+    TXASupabaseService.instance.client
+        .from('txa_users')
+        .select()
+        .eq('username', senderUsername)
+        .maybeSingle()
         .then((userSnap) {
-      if (userSnap.docs.isEmpty) return;
-      final userModel = UserModel.fromJson(userSnap.docs.first.data());
+      if (userSnap == null) return;
+      final userModel = UserModel.fromJson(userSnap);
 
       final overlayState = navigatorKey.currentState?.overlay;
       if (overlayState == null) return;

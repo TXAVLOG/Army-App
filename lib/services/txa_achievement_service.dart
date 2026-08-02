@@ -1,4 +1,4 @@
-import 'package:cloud_firestore/cloud_firestore.dart';
+import 'txa_supabase_service.dart';
 import 'package:flutter/foundation.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../models/txa_achievement.dart';
@@ -50,16 +50,15 @@ class TXAAchievementService extends ChangeNotifier {
     if (currentUserId == null || currentUserId.isEmpty) return;
 
     try {
-      final doc = await FirebaseFirestore.instance
-          .collection('users')
-          .doc(currentUserId)
-          .get();
+      final snap = await TXASupabaseService.instance.client
+          .from('txa_users')
+          .select('achievements_stats')
+          .eq('id', currentUserId)
+          .maybeSingle();
 
-      if (doc.exists && doc.data() != null) {
-        final data = doc.data()!;
-        if (data.containsKey('achievements_stats') &&
-            data['achievements_stats'] is Map) {
-          final cloudMap = Map<String, dynamic>.from(data['achievements_stats']);
+      if (snap != null) {
+        final cloudMap = snap['achievements_stats'] as Map?;
+        if (cloudMap != null) {
           bool changed = false;
           final prefs = await SharedPreferences.getInstance();
 
@@ -79,7 +78,7 @@ class TXAAchievementService extends ChangeNotifier {
         }
       }
     } catch (e) {
-      debugPrint('TXAAchievementService _loadFromFirestore error: $e');
+      debugPrint('TXAAchievementService _loadFromSupabase error: $e');
     }
   }
 
@@ -100,21 +99,18 @@ class TXAAchievementService extends ChangeNotifier {
     }
   }
 
-  /// Sync stats to Firestore user document
+  /// Sync stats to Supabase user row
   Future<void> _syncToFirestore() async {
     final currentUserId = TXAAuthService.instance.currentUser?.id;
     if (currentUserId == null || currentUserId.isEmpty) return;
 
     try {
-      await FirebaseFirestore.instance
-          .collection('users')
-          .doc(currentUserId)
-          .set(
-        {'achievements_stats': _stats},
-        SetOptions(merge: true),
-      );
+      await TXASupabaseService.instance.client
+          .from('txa_users')
+          .update({'achievements_stats': _stats})
+          .eq('id', currentUserId);
     } catch (e) {
-      debugPrint('TXAAchievementService _syncToFirestore error: $e');
+      debugPrint('TXAAchievementService _syncToSupabase error: $e');
     }
   }
 

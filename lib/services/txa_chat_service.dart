@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:cloud_firestore/cloud_firestore.dart';
+import 'txa_supabase_service.dart';
 import 'txa_notification_service.dart';
 import 'txa_language.dart';
 import 'txa_analytics.dart';
@@ -118,33 +118,25 @@ class TXAChatService extends ChangeNotifier {
     if (currentUsername.isEmpty) return;
     _allUserMessages.clear();
 
-    FirebaseFirestore.instance
-        .collection('messages')
-        .where('participants', arrayContains: currentUsername)
-        .snapshots()
-        .listen((snap) async {
+    TXASupabaseService.instance.client
+        .from('txa_messages')
+        .stream(primaryKey: ['id'])
+        .listen((List<Map<String, dynamic>> data) async {
       _allUserMessages.clear();
-      final batch = FirebaseFirestore.instance.batch();
-      bool hasUpdates = false;
 
-      for (var doc in snap.docs) {
-        final data = doc.data();
-        data['id'] = doc.id;
-        final msg = TXAChatMessageModel.fromJson(data);
-        _allUserMessages.add(msg);
+      for (var row in data) {
+        final msg = TXAChatMessageModel.fromJson(row);
+        // Lọc client side để chỉ hiển thị tin nhắn của tôi
+        if (msg.senderUsername == currentUsername || msg.receiverUsername == currentUsername) {
+          _allUserMessages.add(msg);
 
-        // Tự động cập nhật isDelivered = true nếu người nhận là tôi và tin nhắn chưa được delivered
-        if (msg.receiverUsername == currentUsername && !msg.isDelivered) {
-          batch.update(doc.reference, {'isDelivered': true});
-          hasUpdates = true;
-        }
-      }
-
-      if (hasUpdates) {
-        try {
-          await batch.commit();
-        } catch (e) {
-          debugPrint('TXAChatService batch update isDelivered error: $e');
+          // Tự động cập nhật isDelivered = true nếu người nhận là tôi và tin nhắn chưa được delivered
+          if (msg.receiverUsername == currentUsername && !msg.isDelivered) {
+            await TXASupabaseService.instance.client
+                .from('txa_messages')
+                .update({'isDelivered': true})
+                .eq('id', msg.id);
+          }
         }
       }
 
@@ -156,7 +148,7 @@ class TXAChatService extends ChangeNotifier {
     });
   }
 
-  /// Gửi tin nhắn thực tế lên Firestore
+  /// Gửi tin nhắn thực tế lên Supabase
   Future<void> sendMessage({
     required String senderUsername,
     required String receiverUsername,
@@ -172,8 +164,8 @@ class TXAChatService extends ChangeNotifier {
     final conversationId = getConversationId(senderUsername, receiverUsername);
     final timestamp = DateTime.now().toIso8601String();
 
-    final docRef = FirebaseFirestore.instance.collection('messages').doc();
-    await docRef.set({
+    final supabase = TXASupabaseService.instance.client;
+    final inserted = await supabase.from('txa_messages').insert({
       'senderUsername': senderUsername,
       'receiverUsername': receiverUsername,
       'conversationId': conversationId,
@@ -189,8 +181,9 @@ class TXAChatService extends ChangeNotifier {
       'replyToText': replyToText,
       'isDelivered': false,
       'isRead': false,
-    });
+    }).select().single();
 
+    final String messageId = inserted['id'] as String;
     final type = postId != null ? 'reply' : 'message';
 
     // Trigger Push Notification nền qua FCM API
@@ -205,21 +198,21 @@ class TXAChatService extends ChangeNotifier {
           'click_action': 'FLUTTER_NOTIFICATION_CLICK',
           'type': type,
           'sender': senderUsername,
-          'messageId': docRef.id,
+          'messageId': messageId,
         },
       );
     } catch (e) {
       debugPrint('FCM background push notify error: $e');
     }
 
-    // Đồng bộ Firestore Notification document
+    // Đồng bộ Supabase Notification
     try {
-      await FirebaseFirestore.instance.collection('notifications').add({
+      await supabase.from('txa_notifications').insert({
         'type': type,
         'sender': senderUsername,
         'receiver': receiverUsername,
         'content': text,
-        'messageId': docRef.id,
+        'messageId': messageId,
         'createdTime': timestamp,
         'read': false,
       });
@@ -240,25 +233,22 @@ class TXAChatService extends ChangeNotifier {
   Future<void> markMessagesAsRead(String currentUsername, String friendUsername) async {
     final conversationId = getConversationId(currentUsername, friendUsername);
     try {
-      final snap = await FirebaseFirestore.instance
-          .collection('messages')
-          .where('conversationId', isEqualTo: conversationId)
-          .where('receiverUsername', isEqualTo: currentUsername)
-          .get();
+      final supabase = TXASupabaseService.instance.client;
+      final data = await supabase
+          .from('txa_messages')
+          .select()
+          .eq('conversationId', conversationId)
+          .eq('receiverUsername', currentUsername);
 
-      final batch = FirebaseFirestore.instance.batch();
-      bool hasUpdates = false;
-      for (var doc in snap.docs) {
-        final data = doc.data();
-        final read = data['isRead'] as bool? ?? false;
-        final delivered = data['isDelivered'] as bool? ?? false;
+      for (var row in data) {
+        final read = row['isRead'] as bool? ?? false;
+        final delivered = row['isDelivered'] as bool? ?? false;
         if (!read || !delivered) {
-          batch.update(doc.reference, {'isRead': true, 'isDelivered': true});
-          hasUpdates = true;
+          await supabase.from('txa_messages').update({
+            'isRead': true,
+            'isDelivered': true,
+          }).eq('id', row['id'] as String);
         }
-      }
-      if (hasUpdates) {
-        await batch.commit();
       }
     } catch (e) {
       debugPrint('markMessagesAsRead error: $e');
@@ -273,17 +263,12 @@ class TXAChatService extends ChangeNotifier {
   /// Stream lấy danh sách tin nhắn của một cuộc hội thoại cụ thể
   Stream<List<TXAChatMessageModel>> listenMessages(String sender, String receiver) {
     final conversationId = getConversationId(sender, receiver);
-    return FirebaseFirestore.instance
-        .collection('messages')
-        .where('conversationId', isEqualTo: conversationId)
-        .snapshots()
-        .map((snap) {
-      final list = snap.docs.map((doc) {
-        final data = doc.data();
-        data['id'] = doc.id;
-        return TXAChatMessageModel.fromJson(data);
-      }).toList();
-      // Sắp xếp thời gian tăng dần (local để tránh yêu cầu Firestore Index)
+    return TXASupabaseService.instance.client
+        .from('txa_messages')
+        .stream(primaryKey: ['id'])
+        .eq('conversationId', conversationId)
+        .map((rows) {
+      final list = rows.map((row) => TXAChatMessageModel.fromJson(row)).toList();
       list.sort((a, b) => a.timestamp.compareTo(b.timestamp));
       return list;
     });
@@ -297,19 +282,21 @@ class TXAChatService extends ChangeNotifier {
     return msgs.last; // Vì đã được sort tăng dần, phần tử cuối là mới nhất
   }
 
-  /// Cập nhật cảm xúc (reaction) của tin nhắn lên Firestore và trigger notification
+  /// Cập nhật cảm xúc (reaction) của tin nhắn lên Supabase và trigger notification
   Future<void> updateMessageReaction({
     required String messageId,
     required String username,
     required String emoji,
     required String receiverUsername,
   }) async {
-    final docRef = FirebaseFirestore.instance.collection('messages').doc(messageId);
-    await docRef.set({
-      'reactions': {
-        username: emoji,
-      }
-    }, SetOptions(merge: true));
+    final supabase = TXASupabaseService.instance.client;
+    final doc = await supabase.from('txa_messages').select('reactions').eq('id', messageId).maybeSingle();
+    final Map<String, dynamic> reactions = Map<String, dynamic>.from(doc?['reactions'] ?? {});
+    reactions[username] = emoji;
+
+    await supabase.from('txa_messages').update({
+      'reactions': reactions,
+    }).eq('id', messageId);
 
     // Gửi thông báo reaction đa ngôn ngữ
     final txaLang = TXALanguage.instance;
@@ -325,7 +312,7 @@ class TXAChatService extends ChangeNotifier {
 
     // Đồng bộ vào DB notifications
     try {
-      await FirebaseFirestore.instance.collection('notifications').add({
+      await supabase.from('txa_notifications').insert({
         'type': 'reaction',
         'sender': username,
         'receiver': receiverUsername,

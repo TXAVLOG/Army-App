@@ -2019,6 +2019,17 @@ class _TXAProfileScreenState extends State<TXAProfileScreen>
                         onTap: () => _showCameraThemeBottomSheet(context),
                       ),
 
+                      // ─── 3.1. Đổi icon app ────────────────────────────────
+                      ListTile(
+                        contentPadding: EdgeInsets.zero,
+                        leading: const Icon(Icons.crop_original_rounded, color: Colors.white70),
+                        title: Text(txaLang.getText('change_app_icon'), style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+                        trailing: const Icon(Icons.arrow_forward_ios_rounded, color: Colors.white24, size: 16),
+                        onTap: () {
+                          TXAToast.show(context, txaLang.getText('feature_coming_soon'));
+                        },
+                      ),
+
                       // ─── 4. Chế độ hiển thị Feed ─────────────────────────
                       ListTile(
                         contentPadding: EdgeInsets.zero,

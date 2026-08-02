@@ -8,8 +8,8 @@ import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:google_sign_in/google_sign_in.dart';
 import 'package:google_sign_in_all_platforms/google_sign_in_all_platforms.dart' as gsiap;
-import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
+import 'txa_supabase_service.dart';
 import 'txa_chat_service.dart';
 import 'txa_language.dart';
 import 'txa_streak_service.dart';
@@ -124,7 +124,7 @@ class TXAAuthService extends ChangeNotifier {
   static const String _keyActiveUser = 'txa_active_user_session';
 
   UserModel? _currentUser;
-  StreamSubscription<DocumentSnapshot>? _userSubscription;
+  StreamSubscription<List<Map<String, dynamic>>>? _userSubscription;
   Timer? _presenceTimer;
   UserModel? get currentUser => _currentUser;
   bool get isLoggedIn => _currentUser != null;
@@ -185,15 +185,17 @@ class TXAAuthService extends ChangeNotifier {
           // Update local cache
           await _setActiveUser(updatedUser);
 
-          // Update Firestore
-          final firestore = FirebaseFirestore.instance;
+          // Update Supabase
           final updates = <String, dynamic>{
             'googlePhotoUrl': newPhotoUrl,
           };
           if (shouldUpdateActiveAvatar) {
             updates['avatar'] = newPhotoUrl;
           }
-          await firestore.collection('users').doc(_currentUser!.id).update(updates);
+          await TXASupabaseService.instance.client
+              .from('txa_users')
+              .update(updates)
+              .eq('id', _currentUser!.id);
 
           // Update local accounts fallback
           final prefs = await SharedPreferences.getInstance();
@@ -216,16 +218,16 @@ class TXAAuthService extends ChangeNotifier {
     if (username.isEmpty) return;
 
     try {
-      final firestore = FirebaseFirestore.instance;
-      final sentQuery = await firestore
-          .collection('friend_requests')
-          .where('from', isEqualTo: username)
-          .get();
+      final supabase = TXASupabaseService.instance.client;
+      final sentData = await supabase
+          .from('txa_friend_requests')
+          .select()
+          .eq('from', username);
           
-      final receivedQuery = await firestore
-          .collection('friend_requests')
-          .where('to', isEqualTo: username)
-          .get();
+      final receivedData = await supabase
+          .from('txa_friend_requests')
+          .select()
+          .eq('to', username);
 
       final Set<String> friendUsernames = {};
       final List<Map<String, dynamic>> newFriends = [];
@@ -249,24 +251,22 @@ class TXAAuthService extends ChangeNotifier {
         });
       }
 
-      for (var doc in sentQuery.docs) {
-        final data = doc.data();
-        final status = data['status'] as String?;
+      for (var row in sentData) {
+        final status = row['status'] as String?;
         if (status != null && status.startsWith('accepted')) {
-          final toUser = data['to'] as String;
-          final toAvatar = data['toAvatar'] as String? ?? '👤';
-          final toAvatarColor = data['toAvatarColor'] as String? ?? '0xFF607D8B';
+          final toUser = row['to'] as String;
+          final toAvatar = row['toAvatar'] as String? ?? '👤';
+          final toAvatarColor = row['toAvatarColor'] as String? ?? '0xFF607D8B';
           addFriendInfo(toUser, toAvatar, toAvatarColor);
         }
       }
 
-      for (var doc in receivedQuery.docs) {
-        final data = doc.data();
-        final status = data['status'] as String?;
+      for (var row in receivedData) {
+        final status = row['status'] as String?;
         if (status != null && status.startsWith('accepted')) {
-          final fromUser = data['from'] as String;
-          final fromAvatar = data['fromAvatar'] as String? ?? '👤';
-          final fromAvatarColor = data['fromAvatarColor'] as String? ?? '0xFF607D8B';
+          final fromUser = row['from'] as String;
+          final fromAvatar = row['fromAvatar'] as String? ?? '👤';
+          final fromAvatarColor = row['fromAvatarColor'] as String? ?? '0xFF607D8B';
           addFriendInfo(fromUser, fromAvatar, fromAvatarColor);
         }
       }
@@ -276,7 +276,7 @@ class TXAAuthService extends ChangeNotifier {
       await _saveFriendsToPrefs();
       notifyListeners();
     } catch (e) {
-      debugPrint('Sync friends from Firestore error: $e');
+      debugPrint('Sync friends from Supabase error: $e');
     }
   }
 
@@ -284,9 +284,13 @@ class TXAAuthService extends ChangeNotifier {
     final user = _currentUser;
     if (user == null) return;
     try {
-      final doc = await FirebaseFirestore.instance.collection('users').doc(user.id).get();
-      if (doc.exists && doc.data() != null) {
-        final updatedUser = UserModel.fromJson(doc.data()!);
+      final data = await TXASupabaseService.instance.client
+          .from('txa_users')
+          .select()
+          .eq('id', user.id)
+          .maybeSingle();
+      if (data != null) {
+        final updatedUser = UserModel.fromJson(data);
         _currentUser = updatedUser;
         notifyListeners();
         
@@ -299,7 +303,7 @@ class TXAAuthService extends ChangeNotifier {
         await TXAStreakService.instance.syncStreakFromFirestore(updatedUser.username);
       }
     } catch (e) {
-      debugPrint('Sync user from Firestore error: $e');
+      debugPrint('Sync user from Supabase error: $e');
     }
   }
 
@@ -347,17 +351,17 @@ class TXAAuthService extends ChangeNotifier {
     final cleanUsername = username.trim().startsWith('@') ? username.trim() : '@${username.trim()}';
 
     try {
-      final firestore = FirebaseFirestore.instance;
+      final supabase = TXASupabaseService.instance.client;
       
       // Check duplicate email
-      final emailQuery = await firestore.collection('users').where('email', isEqualTo: cleanEmail).get();
-      if (emailQuery.docs.isNotEmpty) {
+      final emailQuery = await supabase.from('txa_users').select('id').eq('email', cleanEmail).maybeSingle();
+      if (emailQuery != null) {
         return {'success': false, 'errorField': 'email', 'message': TXALanguage.instance.getText('email_in_use_error')};
       }
 
       // Check duplicate username
-      final usernameQuery = await firestore.collection('users').where('username', isEqualTo: cleanUsername).get();
-      if (usernameQuery.docs.isNotEmpty) {
+      final usernameQuery = await supabase.from('txa_users').select('id').eq('username', cleanUsername).maybeSingle();
+      if (usernameQuery != null) {
         return {'success': false, 'errorField': 'username', 'message': TXALanguage.instance.getText('username_exists_error')};
       }
 
@@ -374,8 +378,8 @@ class TXAAuthService extends ChangeNotifier {
         displayName: displayName,
       );
 
-      // Save to Firestore
-      await firestore.collection('users').doc(newUserId).set({
+      // Save to Supabase
+      await supabase.from('txa_users').insert({
         ...newUser.toJson(),
         'password': password,
       });
@@ -386,7 +390,7 @@ class TXAAuthService extends ChangeNotifier {
 
       return {'success': true, 'user': newUser};
     } catch (e) {
-      debugPrint('Firestore register error: $e');
+      debugPrint('Supabase register error: $e');
       return {'success': false, 'message': 'Lỗi đăng ký: $e'};
     }
   }
@@ -399,29 +403,28 @@ class TXAAuthService extends ChangeNotifier {
     final cleanIdentity = identity.trim().toLowerCase();
 
     try {
-      final firestore = FirebaseFirestore.instance;
-      final usersSnapshot = await firestore.collection('users').get();
-      for (var doc in usersSnapshot.docs) {
-        final data = doc.data();
-        final storedEmail = (data['email'] ?? '').toString().toLowerCase();
-        final storedUsername = (data['username'] ?? '').toString().toLowerCase();
-        final storedPassword = (data['password'] ?? '').toString();
+      final supabase = TXASupabaseService.instance.client;
+      final List<dynamic> users = await supabase
+          .from('txa_users')
+          .select()
+          .or('email.ilike.$cleanIdentity,username.ilike.$cleanIdentity,username.ilike.@$cleanIdentity');
 
-        if (storedEmail == cleanIdentity || storedUsername == cleanIdentity || storedUsername == '@$cleanIdentity') {
-          if (storedPassword == password) {
-            final user = UserModel.fromJson(data);
-            await _setActiveUser(user);
-            try {
-              TXAAnalytics.logLogin(loginMethod: 'email_username');
-            } catch (_) {}
-            return {'success': true, 'user': user};
-          } else {
-            return {'success': false, 'errorField': 'password', 'message': TXALanguage.instance.getText('incorrect_password_error')};
-          }
+      if (users.isNotEmpty) {
+        final data = users.first as Map<String, dynamic>;
+        final storedPassword = data['password']?.toString();
+        if (storedPassword == password) {
+          final user = UserModel.fromJson(data);
+          await _setActiveUser(user);
+          try {
+            TXAAnalytics.logLogin(loginMethod: 'email_username');
+          } catch (_) {}
+          return {'success': true, 'user': user};
+        } else {
+          return {'success': false, 'errorField': 'password', 'message': TXALanguage.instance.getText('incorrect_password_error')};
         }
       }
     } catch (e) {
-      debugPrint('Firestore login error: $e. Falling back to SharedPreferences.');
+      debugPrint('Supabase login error: $e. Falling back to SharedPreferences.');
     }
 
     // Fallback to local accounts
@@ -569,21 +572,24 @@ class TXAAuthService extends ChangeNotifier {
         photoUrl = user.photoURL ?? googleUser.photoUrl;
       }
 
-      final docRef = FirebaseFirestore.instance.collection('users').doc('user_google_$googleId');
-      final docSnap = await docRef.get();
+      final supabase = TXASupabaseService.instance.client;
+      final docSnap = await supabase
+          .from('txa_users')
+          .select()
+          .eq('id', 'user_google_$googleId')
+          .maybeSingle();
 
       UserModel googleUserAccount;
-      if (docSnap.exists && docSnap.data() != null) {
-        final existingData = docSnap.data()!;
-        googleUserAccount = UserModel.fromJson(existingData);
+      if (docSnap != null) {
+        googleUserAccount = UserModel.fromJson(docSnap);
         // Cập nhật googlePhotoUrl và displayName nếu có thay đổi từ Google OAuth
-        await docRef.update({
+        await supabase.from('txa_users').update({
           'googlePhotoUrl': photoUrl ?? googleUserAccount.googlePhotoUrl ?? 'https://lh3.googleusercontent.com/a/default-user',
           'displayName': displayName.isNotEmpty ? displayName : googleUserAccount.displayName,
-        });
+        }).eq('id', googleUserAccount.id);
         // Tải lại để lấy dữ liệu mới nhất
-        final updatedDoc = await docRef.get();
-        googleUserAccount = UserModel.fromJson(updatedDoc.data()!);
+        final updatedDoc = await supabase.from('txa_users').select().eq('id', googleUserAccount.id).single();
+        googleUserAccount = UserModel.fromJson(updatedDoc);
       } else {
         final cleanUsername = generateShortGoogleUsername(displayName, userEmail, googleId);
         googleUserAccount = UserModel(
@@ -600,7 +606,7 @@ class TXAAuthService extends ChangeNotifier {
           displayName: displayName,
         );
 
-        await docRef.set({
+        await supabase.from('txa_users').insert({
           ...googleUserAccount.toJson(),
           'password': 'google_oauth_bypass',
         });
@@ -637,13 +643,10 @@ class TXAAuthService extends ChangeNotifier {
   // Get all users (Admin only)
   Future<List<UserModel>> getAllUsersFromFirestore() async {
     try {
-      final snapshot = await FirebaseFirestore.instance.collection('users').get();
-      return snapshot.docs
-          .where((doc) {
-            final data = doc.data();
-            return data.containsKey('username') && data['username'] != null && data['username'].toString().isNotEmpty;
-          })
-          .map((doc) => UserModel.fromJson(doc.data()))
+      final data = await TXASupabaseService.instance.client.from('txa_users').select();
+      return data
+          .where((row) => row['username'] != null && row['username'].toString().isNotEmpty)
+          .map((row) => UserModel.fromJson(row))
           .toList();
     } catch (e) {
       debugPrint('getAllUsersFromFirestore error: $e');
@@ -654,7 +657,7 @@ class TXAAuthService extends ChangeNotifier {
   // Delete user (Admin only)
   Future<void> deleteUserFromFirestore(String userId) async {
     try {
-      await FirebaseFirestore.instance.collection('users').doc(userId).delete();
+      await TXASupabaseService.instance.client.from('txa_users').delete().eq('id', userId);
     } catch (e) {
       debugPrint('deleteUserFromFirestore error: $e');
     }
@@ -681,10 +684,10 @@ class TXAAuthService extends ChangeNotifier {
 
     // Update database
     try {
-      await FirebaseFirestore.instance.collection('users').doc(_currentUser!.id).update({
+      await TXASupabaseService.instance.client.from('txa_users').update({
         'avatar': newAvatar,
         'avatarBgColor': newColorHex,
-      });
+      }).eq('id', _currentUser!.id);
 
       // Update local accounts fallback
       final prefs = await SharedPreferences.getInstance();
@@ -744,12 +747,12 @@ class TXAAuthService extends ChangeNotifier {
     await prefs.setString(_keyActiveUser, jsonEncode(_currentUser!.toJson()));
 
     try {
-      await FirebaseFirestore.instance.collection('users').doc(_currentUser!.id).update({
+      await TXASupabaseService.instance.client.from('txa_users').update({
         'isOnline': online,
         'lastActive': nowStr,
-      });
+      }).eq('id', _currentUser!.id);
     } catch (e) {
-      debugPrint('updateOnlineStatus Firestore error: $e');
+      debugPrint('updateOnlineStatus Supabase error: $e');
     }
   }
 
@@ -765,14 +768,14 @@ class TXAAuthService extends ChangeNotifier {
   }
 
   Stream<UserModel?> listenToUser(String username) {
-    return FirebaseFirestore.instance
-        .collection('users')
-        .where('username', isEqualTo: username)
+    return TXASupabaseService.instance.client
+        .from('txa_users')
+        .stream(primaryKey: ['id'])
+        .eq('username', username)
         .limit(1)
-        .snapshots()
-        .map((snap) {
-          if (snap.docs.isEmpty) return null;
-          return UserModel.fromJson(snap.docs.first.data());
+        .map((rows) {
+          if (rows.isEmpty) return null;
+          return UserModel.fromJson(rows.first);
         });
   }
 
@@ -781,13 +784,13 @@ class TXAAuthService extends ChangeNotifier {
     final user = _currentUser;
     if (user == null) return;
     
-    _userSubscription = FirebaseFirestore.instance
-        .collection('users')
-        .doc(user.id)
-        .snapshots()
-        .listen((snap) async {
-      if (snap.exists && snap.data() != null) {
-        final updatedUser = UserModel.fromJson(snap.data()!);
+    _userSubscription = TXASupabaseService.instance.client
+        .from('txa_users')
+        .stream(primaryKey: ['id'])
+        .eq('id', user.id)
+        .listen((rows) async {
+      if (rows.isNotEmpty) {
+        final updatedUser = UserModel.fromJson(rows.first);
         _currentUser = updatedUser;
         notifyListeners();
         
@@ -809,9 +812,9 @@ class TXAAuthService extends ChangeNotifier {
     try {
       final token = await FirebaseMessaging.instance.getToken();
       if (token != null) {
-        await FirebaseFirestore.instance.collection('users').doc(user.id).update({
+        await TXASupabaseService.instance.client.from('txa_users').update({
           'fcmToken': token,
-        });
+        }).eq('id', user.id);
       }
     } catch (_) {}
     await updateOnlineStatus(true);
@@ -883,15 +886,19 @@ class TXAAuthService extends ChangeNotifier {
       final friendUsername = _friends[index]['username'] as String;
       final current = _friends[index]['isBestFriend'] == true;
 
-      final firestore = FirebaseFirestore.instance;
-      if (current) {
-        await firestore.collection('users').doc(_currentUser!.id).update({
-          'bestFriends': FieldValue.arrayRemove([friendUsername]),
-        });
-      } else {
-        await firestore.collection('users').doc(_currentUser!.id).update({
-          'bestFriends': FieldValue.arrayUnion([friendUsername]),
-        });
+      final supabase = TXASupabaseService.instance.client;
+      final userDoc = await supabase.from('txa_users').select('bestFriends').eq('id', _currentUser!.id).maybeSingle();
+      if (userDoc != null) {
+        final List<dynamic> bestFriendsListRaw = userDoc['bestFriends'] ?? [];
+        final List<String> bestFriends = bestFriendsListRaw.map((e) => e.toString()).toList();
+        if (current) {
+          bestFriends.remove(friendUsername);
+        } else {
+          if (!bestFriends.contains(friendUsername)) {
+            bestFriends.add(friendUsername);
+          }
+        }
+        await supabase.from('txa_users').update({'bestFriends': bestFriends}).eq('id', _currentUser!.id);
       }
     }
   }
@@ -901,8 +908,8 @@ class TXAAuthService extends ChangeNotifier {
     await prefs.setString(_keyFriendsList, jsonEncode(_friends));
   }
 
-  StreamSubscription<QuerySnapshot>? _sentFriendsSub;
-  StreamSubscription<QuerySnapshot>? _receivedFriendsSub;
+  StreamSubscription<List<Map<String, dynamic>>>? _sentFriendsSub;
+  StreamSubscription<List<Map<String, dynamic>>>? _receivedFriendsSub;
 
   void startFriendsListener() {
     _sentFriendsSub?.cancel();
@@ -911,20 +918,20 @@ class TXAAuthService extends ChangeNotifier {
     final username = _currentUser?.username ?? '';
     if (username.isEmpty) return;
 
-    final firestore = FirebaseFirestore.instance;
+    final supabase = TXASupabaseService.instance.client;
 
-    _sentFriendsSub = firestore
-        .collection('friend_requests')
-        .where('from', isEqualTo: username)
-        .snapshots()
+    _sentFriendsSub = supabase
+        .from('txa_friend_requests')
+        .stream(primaryKey: ['id'])
+        .eq('from', username)
         .listen((snap) {
       _rebuildFriendsListRealtime();
     });
 
-    _receivedFriendsSub = firestore
-        .collection('friend_requests')
-        .where('to', isEqualTo: username)
-        .snapshots()
+    _receivedFriendsSub = supabase
+        .from('txa_friend_requests')
+        .stream(primaryKey: ['id'])
+        .eq('to', username)
         .listen((snap) {
       _rebuildFriendsListRealtime();
     });
@@ -942,21 +949,20 @@ class TXAAuthService extends ChangeNotifier {
     if (username.isEmpty) return;
 
     try {
-      final firestore = FirebaseFirestore.instance;
+      final supabase = TXASupabaseService.instance.client;
 
-      final sentQuery = await firestore
-          .collection('friend_requests')
-          .where('from', isEqualTo: username)
-          .get();
+      final sentData = await supabase
+          .from('txa_friend_requests')
+          .select()
+          .eq('from', username);
 
-      final receivedQuery = await firestore
-          .collection('friend_requests')
-          .where('to', isEqualTo: username)
-          .get();
+      final receivedData = await supabase
+          .from('txa_friend_requests')
+          .select()
+          .eq('to', username);
 
-      final userDoc = await firestore.collection('users').doc(_currentUser!.id).get();
-      final Map<String, dynamic> userData = userDoc.data() ?? {};
-      final List<dynamic> bestFriendsListRaw = userData['bestFriends'] ?? [];
+      final userDoc = await supabase.from('txa_users').select('bestFriends').eq('id', _currentUser!.id).maybeSingle();
+      final List<dynamic> bestFriendsListRaw = userDoc?['bestFriends'] ?? [];
       final Set<String> bestFriends = bestFriendsListRaw.map((e) => e.toString()).toSet();
 
       final Set<String> friendUsernames = {};
@@ -980,24 +986,22 @@ class TXAAuthService extends ChangeNotifier {
         });
       }
 
-      for (var doc in sentQuery.docs) {
-        final data = doc.data();
-        final status = data['status'] as String?;
+      for (var row in sentData) {
+        final status = row['status'] as String?;
         if (status != null && status.startsWith('accepted')) {
-          final toUser = data['to'] as String;
-          final toAvatar = data['toAvatar'] as String? ?? '👤';
-          final toAvatarColor = data['toAvatarColor'] as String? ?? '0xFF607D8B';
+          final toUser = row['to'] as String;
+          final toAvatar = row['toAvatar'] as String? ?? '👤';
+          final toAvatarColor = row['toAvatarColor'] as String? ?? '0xFF607D8B';
           addFriendInfo(toUser, toAvatar, toAvatarColor);
         }
       }
 
-      for (var doc in receivedQuery.docs) {
-        final data = doc.data();
-        final status = data['status'] as String?;
+      for (var row in receivedData) {
+        final status = row['status'] as String?;
         if (status != null && status.startsWith('accepted')) {
-          final fromUser = data['from'] as String;
-          final fromAvatar = data['fromAvatar'] as String? ?? '👤';
-          final fromAvatarColor = data['fromAvatarColor'] as String? ?? '0xFF607D8B';
+          final fromUser = row['from'] as String;
+          final fromAvatar = row['fromAvatar'] as String? ?? '👤';
+          final fromAvatarColor = row['fromAvatarColor'] as String? ?? '0xFF607D8B';
           addFriendInfo(fromUser, fromAvatar, fromAvatarColor);
         }
       }
@@ -1017,14 +1021,11 @@ class TXAAuthService extends ChangeNotifier {
   Stream<List<Map<String, dynamic>>> listenIncomingRequests() {
     final username = _currentUser?.username ?? '';
     if (username.isEmpty) return const Stream.empty();
-    return FirebaseFirestore.instance
-        .collection('friend_requests')
-        .where('to', isEqualTo: username)
-        .where('status', isEqualTo: 'pending')
-        .snapshots()
-        .map((snap) => snap.docs
-            .map((d) => {'id': d.id, ...d.data()})
-            .toList());
+    return TXASupabaseService.instance.client
+        .from('txa_friend_requests')
+        .stream(primaryKey: ['id'])
+        .eq('to', username)
+        .map((rows) => rows.where((row) => row['status'] == 'pending').toList());
   }
 
   /// Gửi lời mời kết bạn theo username
@@ -1034,13 +1035,15 @@ class TXAAuthService extends ChangeNotifier {
     if (fromUsername.isEmpty) return {'success': false, 'message': txaLang.getText('not_logged_in_error')};
     if (toUsername == fromUsername) return {'success': false, 'message': txaLang.getText('cannot_friend_self')};
 
+    final supabase = TXASupabaseService.instance.client;
+
     // Kiểm tra user tồn tại
-    final userSnap = await FirebaseFirestore.instance
-        .collection('users')
-        .where('username', isEqualTo: toUsername)
-        .limit(1)
-        .get();
-    if (userSnap.docs.isEmpty) {
+    final userSnap = await supabase
+        .from('txa_users')
+        .select()
+        .eq('username', toUsername)
+        .maybeSingle();
+    if (userSnap == null) {
       return {'success': false, 'message': txaLang.getText('friend_not_found').replaceFirst('%user%', toUsername)};
     }
 
@@ -1049,21 +1052,20 @@ class TXAAuthService extends ChangeNotifier {
     if (alreadyFriend) return {'success': false, 'message': txaLang.getText('already_friends')};
 
     // Kiểm tra đã có request pending chưa
-    final existing = await FirebaseFirestore.instance
-        .collection('friend_requests')
-        .where('from', isEqualTo: fromUsername)
-        .where('to', isEqualTo: toUsername)
-        .where('status', isEqualTo: 'pending')
-        .get();
-    if (existing.docs.isNotEmpty) return {'success': false, 'message': txaLang.getText('friend_request_already_sent')};
+    final existing = await supabase
+        .from('txa_friend_requests')
+        .select()
+        .eq('from', fromUsername)
+        .eq('to', toUsername)
+        .eq('status', 'pending');
+    if (existing.isNotEmpty) return {'success': false, 'message': txaLang.getText('friend_request_already_sent')};
 
-    final userData = userSnap.docs.first.data();
-    await FirebaseFirestore.instance.collection('friend_requests').add({
+    await supabase.from('txa_friend_requests').insert({
       'from': fromUsername,
       'fromAvatar': _currentUser?.avatar ?? '👤',
       'fromAvatarColor': _currentUser?.avatarBgColor ?? '0xFF607D8B',
       'to': toUsername,
-      'toAvatar': userData['avatar'] ?? '👤',
+      'toAvatar': userSnap['avatar'] ?? '👤',
       'status': 'pending',
       'createdTime': DateTime.now().toIso8601String(),
     });
@@ -1072,7 +1074,7 @@ class TXAAuthService extends ChangeNotifier {
 
   /// Chấp nhận lời mời kết bạn
   Future<void> acceptFriendRequest(String requestId, Map<String, dynamic> requestData) async {
-    final firestore = FirebaseFirestore.instance;
+    final supabase = TXASupabaseService.instance.client;
     final fromUsername = requestData['from'] as String;
     final fromAvatar = requestData['fromAvatar'] as String? ?? '👤';
     final fromAvatarColor = requestData['fromAvatarColor'] as String? ?? '0xFF607D8B';
@@ -1091,11 +1093,11 @@ class TXAAuthService extends ChangeNotifier {
     await _saveFriendsToPrefs();
 
     // Cập nhật status request
-    await firestore.collection('friend_requests').doc(requestId).update({'status': 'accepted'});
+    await supabase.from('txa_friend_requests').update({'status': 'accepted'}).eq('id', requestId);
 
     // Gửi ngược lại request accepted cho bên kia
     final toUsername = _currentUser?.username ?? '';
-    await firestore.collection('friend_requests').add({
+    await supabase.from('txa_friend_requests').insert({
       'from': toUsername,
       'fromAvatar': _currentUser?.avatar ?? '👤',
       'fromAvatarColor': _currentUser?.avatarBgColor ?? '0xFF607D8B',
@@ -1110,10 +1112,10 @@ class TXAAuthService extends ChangeNotifier {
 
   /// Từ chối lời mời kết bạn
   Future<void> declineFriendRequest(String requestId) async {
-    await FirebaseFirestore.instance
-        .collection('friend_requests')
-        .doc(requestId)
-        .update({'status': 'declined'});
+    await TXASupabaseService.instance.client
+        .from('txa_friend_requests')
+        .update({'status': 'declined'})
+        .eq('id', requestId);
   }
 
   /// Thêm đối phương vào danh sách bạn bè local của mình khi họ đã đồng ý (chạy realtime)
@@ -1143,22 +1145,19 @@ class TXAAuthService extends ChangeNotifier {
   Stream<List<Map<String, dynamic>>> listenSentRequests() {
     final username = _currentUser?.username ?? '';
     if (username.isEmpty) return const Stream.empty();
-    return FirebaseFirestore.instance
-        .collection('friend_requests')
-        .where('from', isEqualTo: username)
-        .where('status', isEqualTo: 'pending')
-        .snapshots()
-        .map((snap) => snap.docs
-            .map((d) => {'id': d.id, ...d.data()})
-            .toList());
+    return TXASupabaseService.instance.client
+        .from('txa_friend_requests')
+        .stream(primaryKey: ['id'])
+        .eq('from', username)
+        .map((rows) => rows.where((row) => row['status'] == 'pending').toList());
   }
 
   /// Hủy yêu cầu kết bạn đã gửi
   Future<void> cancelFriendRequest(String requestId) async {
-    await FirebaseFirestore.instance
-        .collection('friend_requests')
-        .doc(requestId)
-        .delete();
+    await TXASupabaseService.instance.client
+        .from('txa_friend_requests')
+        .delete()
+        .eq('id', requestId);
   }
 
   /// Xóa bạn bè
@@ -1186,8 +1185,8 @@ class TXAAuthService extends ChangeNotifier {
     await _saveFriendsToPrefs();
 
     try {
-      // Sync sang Firestore để cả 2 bên hiển thị
-      await FirebaseFirestore.instance.collection('friend_requests').add({
+      // Sync sang Supabase để cả 2 bên hiển thị
+      await TXASupabaseService.instance.client.from('txa_friend_requests').insert({
         'from': _currentUser?.username ?? 'admin',
         'fromAvatar': _currentUser?.avatar ?? '👤',
         'fromAvatarColor': _currentUser?.avatarBgColor ?? '0xFF607D8B',
@@ -1208,23 +1207,9 @@ class TXAAuthService extends ChangeNotifier {
 
     try {
       final myUsername = _currentUser?.username ?? 'admin';
-      final snap1 = await FirebaseFirestore.instance
-          .collection('friend_requests')
-          .where('from', isEqualTo: myUsername)
-          .where('to', isEqualTo: targetUsername)
-          .get();
-      for (final doc in snap1.docs) {
-        await doc.reference.delete();
-      }
-
-      final snap2 = await FirebaseFirestore.instance
-          .collection('friend_requests')
-          .where('from', isEqualTo: targetUsername)
-          .where('to', isEqualTo: myUsername)
-          .get();
-      for (final doc in snap2.docs) {
-        await doc.reference.delete();
-      }
+      final supabase = TXASupabaseService.instance.client;
+      await supabase.from('txa_friend_requests').delete().eq('from', myUsername).eq('to', targetUsername);
+      await supabase.from('txa_friend_requests').delete().eq('from', targetUsername).eq('to', myUsername);
     } catch (_) {}
 
     notifyListeners();
@@ -1377,12 +1362,12 @@ class TXAAuthService extends ChangeNotifier {
     notifyListeners();
 
     try {
-      await FirebaseFirestore.instance
-          .collection('users')
-          .doc(user.id)
+      await TXASupabaseService.instance.client
+          .from('txa_users')
           .update({
             'monthlyMemories': newMemories,
-          });
+          })
+          .eq('id', user.id);
     } catch (_) {}
   }
 
@@ -1392,38 +1377,32 @@ class TXAAuthService extends ChangeNotifier {
   Stream<List<Map<String, dynamic>>> listenIncomingLoveRequests() {
     final username = _currentUser?.username ?? '';
     if (username.isEmpty) return const Stream.empty();
-    return FirebaseFirestore.instance
-        .collection('love_invitations')
-        .where('receiver', isEqualTo: username)
-        .where('status', isEqualTo: 'pending')
-        .snapshots()
-        .map((snap) => snap.docs
-            .map((d) => {'id': d.id, ...d.data()})
-            .toList());
+    return TXASupabaseService.instance.client
+        .from('txa_love_invitations')
+        .stream(primaryKey: ['id'])
+        .eq('receiver', username)
+        .map((rows) => rows.where((row) => row['status'] == 'pending').toList());
   }
 
   /// Lắng nghe lời mời yêu đã gửi đi (realtime)
   Stream<List<Map<String, dynamic>>> listenSentLoveRequests() {
     final username = _currentUser?.username ?? '';
     if (username.isEmpty) return const Stream.empty();
-    return FirebaseFirestore.instance
-        .collection('love_invitations')
-        .where('sender', isEqualTo: username)
-        .where('status', isEqualTo: 'pending')
-        .snapshots()
-        .map((snap) => snap.docs
-            .map((d) => {'id': d.id, ...d.data()})
-            .toList());
+    return TXASupabaseService.instance.client
+        .from('txa_love_invitations')
+        .stream(primaryKey: ['id'])
+        .eq('sender', username)
+        .map((rows) => rows.where((row) => row['status'] == 'pending').toList());
   }
 
   /// Lắng nghe thông tin kết đôi (loves)
   Stream<Map<String, dynamic>?> listenToLoveConnection(String loveId) {
     if (loveId.isEmpty) return Stream.value(null);
-    return FirebaseFirestore.instance
-        .collection('loves')
-        .doc(loveId)
-        .snapshots()
-        .map((snap) => snap.exists ? snap.data() : null);
+    return TXASupabaseService.instance.client
+        .from('txa_loves')
+        .stream(primaryKey: ['id'])
+        .eq('id', loveId)
+        .map((rows) => rows.isNotEmpty ? rows.first : null);
   }
 
   /// Đồng bộ user từ database về local
@@ -1431,13 +1410,13 @@ class TXAAuthService extends ChangeNotifier {
     final user = _currentUser;
     if (user == null) return;
     try {
-      final snap = await FirebaseFirestore.instance.collection('users').doc(user.id).get();
-      if (snap.exists && snap.data() != null) {
-        final updated = UserModel.fromJson(snap.data()!);
+      final snap = await TXASupabaseService.instance.client.from('txa_users').select().eq('id', user.id).maybeSingle();
+      if (snap != null) {
+        final updated = UserModel.fromJson(snap);
         await _setActiveUser(updated);
       }
     } catch (e) {
-      debugPrint('syncCurrentUserFromFirestore error: $e');
+      debugPrint('syncCurrentUserFromSupabase error: $e');
     }
   }
 
@@ -1456,21 +1435,21 @@ class TXAAuthService extends ChangeNotifier {
     }
 
     try {
-      final firestore = FirebaseFirestore.instance;
+      final supabase = TXASupabaseService.instance.client;
 
       // 2. Kiểm tra xem có lời mời yêu pending nào khác liên quan đến mình không
-      final myPendingSent = await firestore
-          .collection('love_invitations')
-          .where('sender', isEqualTo: fromUsername)
-          .where('status', isEqualTo: 'pending')
-          .get();
-      final myPendingReceived = await firestore
-          .collection('love_invitations')
-          .where('receiver', isEqualTo: fromUsername)
-          .where('status', isEqualTo: 'pending')
-          .get();
+      final myPendingSent = await supabase
+          .from('txa_love_invitations')
+          .select()
+          .eq('sender', fromUsername)
+          .eq('status', 'pending');
+      final myPendingReceived = await supabase
+          .from('txa_love_invitations')
+          .select()
+          .eq('receiver', fromUsername)
+          .eq('status', 'pending');
 
-      if (myPendingSent.docs.isNotEmpty || myPendingReceived.docs.isNotEmpty) {
+      if (myPendingSent.isNotEmpty || myPendingReceived.isNotEmpty) {
         return {
           'success': false,
           'message': txaLang.getText('love_you_have_pending')
@@ -1478,21 +1457,20 @@ class TXAAuthService extends ChangeNotifier {
       }
 
       // 3. Kiểm tra user đối phương tồn tại
-      final userSnap = await firestore
-          .collection('users')
-          .where('username', isEqualTo: targetUsername)
-          .limit(1)
-          .get();
-      if (userSnap.docs.isEmpty) {
+      final userSnap = await supabase
+          .from('txa_users')
+          .select()
+          .eq('username', targetUsername)
+          .maybeSingle();
+      if (userSnap == null) {
         return {
           'success': false,
           'message': txaLang.getText('love_user_not_found').replaceFirst('%user%', targetUsername)
         };
       }
 
-      final targetUserMap = userSnap.docs.first.data();
-      final targetLoveId = targetUserMap['loveId'] as String?;
-      final targetLoverUsername = targetUserMap['loverUsername'] as String?;
+      final targetLoveId = userSnap['loveId'] as String?;
+      final targetLoverUsername = userSnap['loverUsername'] as String?;
 
       if (targetLoveId != null || targetLoverUsername != null) {
         return {
@@ -1502,18 +1480,18 @@ class TXAAuthService extends ChangeNotifier {
       }
 
       // 4. Kiểm tra đối phương có đang có lời mời yêu pending nào khác không
-      final targetPendingSent = await firestore
-          .collection('love_invitations')
-          .where('sender', isEqualTo: targetUsername)
-          .where('status', isEqualTo: 'pending')
-          .get();
-      final targetPendingReceived = await firestore
-          .collection('love_invitations')
-          .where('receiver', isEqualTo: targetUsername)
-          .where('status', isEqualTo: 'pending')
-          .get();
+      final targetPendingSent = await supabase
+          .from('txa_love_invitations')
+          .select()
+          .eq('sender', targetUsername)
+          .eq('status', 'pending');
+      final targetPendingReceived = await supabase
+          .from('txa_love_invitations')
+          .select()
+          .eq('receiver', targetUsername)
+          .eq('status', 'pending');
 
-      if (targetPendingSent.docs.isNotEmpty || targetPendingReceived.docs.isNotEmpty) {
+      if (targetPendingSent.isNotEmpty || targetPendingReceived.isNotEmpty) {
         return {
           'success': false,
           'message': txaLang.getText('love_user_has_pending').replaceFirst('%user%', targetUsername)
@@ -1521,7 +1499,7 @@ class TXAAuthService extends ChangeNotifier {
       }
 
       // 5. Thỏa mãn hết các điều kiện -> Tiến hành gửi lời mời yêu
-      await firestore.collection('love_invitations').add({
+      await supabase.from('txa_love_invitations').insert({
         'sender': fromUsername,
         'receiver': targetUsername,
         'status': 'pending',
@@ -1549,17 +1527,19 @@ class TXAAuthService extends ChangeNotifier {
     if (myUsername.isEmpty) return {'success': false, 'message': txaLang.getText('not_logged_in_error')};
 
     try {
-      final firestore = FirebaseFirestore.instance;
+      final supabase = TXASupabaseService.instance.client;
 
       // 1. Tạo ID kết đôi duy nhất (sắp xếp alphabet)
       final sortedUsernames = [myUsername, senderUsername]..sort();
       final loveId = 'love_${sortedUsernames[0]}_${sortedUsernames[1]}';
 
       // 2. Tạo document loves
-      await firestore.collection('loves').doc(loveId).set({
-        'partnerA': sortedUsernames[0],
-        'partnerB': sortedUsernames[1],
-        'anniversaryDate': startDate,
+      await supabase.from('txa_loves').upsert({
+        'id': loveId,
+        'user1': sortedUsernames[0],
+        'user2': sortedUsernames[1],
+        'startDate': startDate,
+        'createdTime': DateTime.now().toIso8601String(),
         'statusText': '',
         'bubblePositionX': 0.5,
         'bubblePositionY': 0.4, // Căn giữa phía trên
@@ -1567,41 +1547,40 @@ class TXAAuthService extends ChangeNotifier {
       });
 
       // 3. Cập nhật thông tin User hiện tại (mình)
-      await firestore.collection('users').doc(_currentUser!.id).update({
+      await supabase.from('txa_users').update({
         'loveId': loveId,
         'loverUsername': senderUsername,
-      });
+      }).eq('id', _currentUser!.id);
 
       // 4. Cập nhật thông tin đối phương (sender)
-      final senderSnap = await firestore
-          .collection('users')
-          .where('username', isEqualTo: senderUsername)
-          .limit(1)
-          .get();
-      if (senderSnap.docs.isNotEmpty) {
-        await firestore.collection('users').doc(senderSnap.docs.first.id).update({
+      final senderSnap = await supabase
+          .from('txa_users')
+          .select()
+          .eq('username', senderUsername)
+          .maybeSingle();
+      if (senderSnap != null) {
+        await supabase.from('txa_users').update({
           'loveId': loveId,
           'loverUsername': myUsername,
-        });
+        }).eq('id', senderSnap['id'] as String);
       }
 
       // 5. Cập nhật trạng thái của lời mời thành accepted
-      await firestore.collection('love_invitations').doc(invitationId).update({
+      await supabase.from('txa_love_invitations').update({
         'status': 'accepted',
-      });
+      }).eq('id', invitationId);
 
       // 6. Xóa/Từ chối các lời mời rác khác của cả 2 người (để làm sạch db)
-      final pendingInvites = await firestore
-          .collection('love_invitations')
-          .where('status', isEqualTo: 'pending')
-          .get();
+      final pendingInvites = await supabase
+          .from('txa_love_invitations')
+          .select()
+          .eq('status', 'pending');
 
-      for (var doc in pendingInvites.docs) {
-        final data = doc.data();
-        final s = data['sender'] as String?;
-        final r = data['receiver'] as String?;
+      for (var row in pendingInvites) {
+        final s = row['sender'] as String?;
+        final r = row['receiver'] as String?;
         if (s == myUsername || r == myUsername || s == senderUsername || r == senderUsername) {
-          await doc.reference.update({'status': 'declined'});
+          await supabase.from('txa_love_invitations').update({'status': 'declined'}).eq('id', row['id'] as String);
         }
       }
 
@@ -1621,10 +1600,10 @@ class TXAAuthService extends ChangeNotifier {
   /// Từ chối lời mời yêu
   Future<void> declineLoveInvitation(String invitationId) async {
     try {
-      await FirebaseFirestore.instance
-          .collection('love_invitations')
-          .doc(invitationId)
-          .update({'status': 'declined'});
+      await TXASupabaseService.instance.client
+          .from('txa_love_invitations')
+          .update({'status': 'declined'})
+          .eq('id', invitationId);
     } catch (e) {
       debugPrint('declineLoveInvitation error: $e');
     }
@@ -1633,12 +1612,12 @@ class TXAAuthService extends ChangeNotifier {
   /// Cập nhật vị trí bong bóng và status text của người yêu
   Future<void> updateBubblePosition(String loveId, double x, double y, String statusText) async {
     try {
-      await FirebaseFirestore.instance.collection('loves').doc(loveId).update({
+      await TXASupabaseService.instance.client.from('txa_loves').update({
         'bubblePositionX': x,
         'bubblePositionY': y,
         'statusText': statusText,
         'statusUpdatedTime': DateTime.now().toIso8601String(),
-      });
+      }).eq('id', loveId);
     } catch (e) {
       debugPrint('updateBubblePosition error: $e');
     }
@@ -1652,31 +1631,31 @@ class TXAAuthService extends ChangeNotifier {
     final lover = user.loverUsername;
 
     try {
-      final firestore = FirebaseFirestore.instance;
+      final supabase = TXASupabaseService.instance.client;
 
       // 1. Reset user hiện tại
-      await firestore.collection('users').doc(user.id).update({
-        'loveId': FieldValue.delete(),
-        'loverUsername': FieldValue.delete(),
-      });
+      await supabase.from('txa_users').update({
+        'loveId': null,
+        'loverUsername': null,
+      }).eq('id', user.id);
 
       // 2. Reset đối phương
       if (lover != null && lover.isNotEmpty) {
-        final partnerSnap = await firestore
-            .collection('users')
-            .where('username', isEqualTo: lover)
-            .limit(1)
-            .get();
-        if (partnerSnap.docs.isNotEmpty) {
-          await firestore.collection('users').doc(partnerSnap.docs.first.id).update({
-            'loveId': FieldValue.delete(),
-            'loverUsername': FieldValue.delete(),
-          });
+        final partnerSnap = await supabase
+            .from('txa_users')
+            .select()
+            .eq('username', lover)
+            .maybeSingle();
+        if (partnerSnap != null) {
+          await supabase.from('txa_users').update({
+            'loveId': null,
+            'loverUsername': null,
+          }).eq('id', partnerSnap['id'] as String);
         }
       }
 
       // 3. Xóa document loves
-      await firestore.collection('loves').doc(loveId).delete();
+      await supabase.from('txa_loves').delete().eq('id', loveId);
 
       // 4. Đồng bộ lại dữ liệu local của mình
       await syncCurrentUserFromFirestore();

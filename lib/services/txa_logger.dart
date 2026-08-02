@@ -3,7 +3,7 @@ import 'dart:convert';
 import 'dart:io';
 import 'package:flutter/foundation.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import 'package:cloud_firestore/cloud_firestore.dart';
+import 'txa_supabase_service.dart';
 import 'txa_version.dart';
 import 'txa_auth_service.dart';
 import 'txa_language.dart';
@@ -248,15 +248,24 @@ class TXALogger {
     };
   }
 
-  /// Submit Crash/Error Log directly to Firebase Firestore
+  /// Submit Crash/Error Log directly to Supabase txa_reports
   static Future<void> _submitToFirebase(Map<String, dynamic> logPayload) async {
     try {
-      final firestore = FirebaseFirestore.instance;
       final docId = logPayload['id'] as String? ?? 'crash_${DateTime.now().millisecondsSinceEpoch}';
-      await firestore.collection('crash_logs').doc(docId).set(logPayload);
-      debugPrint('🔥 [TXALogger] Successfully submitted Crash log to Firebase Firestore (crash_logs)!');
+      final username = logPayload['userSession'] is Map ? (logPayload['userSession']['username'] ?? 'anonymous') : 'anonymous';
+      await TXASupabaseService.instance.client.from('txa_reports').insert({
+        'id': docId,
+        'postId': null,
+        'postSender': username,
+        'reporter': 'TXALogger',
+        'status': 'pending',
+        'photoPath': '',
+        'caption': 'Type: ${logPayload['errorType']}\nMessage: ${logPayload['errorMessage']}\nStack: ${logPayload['stackTrace']}',
+        'createdTime': logPayload['timestamp'] ?? DateTime.now().toIso8601String(),
+      });
+      debugPrint('🔥 [TXALogger] Successfully submitted Crash log to Supabase!');
     } catch (e) {
-      debugPrint('❌ [TXALogger] Error submitting crash log to Firebase: $e');
+      debugPrint('❌ [TXALogger] Error submitting crash log to Supabase: $e');
       // Offline fallback: save to local queue
       try {
         final prefs = await SharedPreferences.getInstance();
@@ -267,20 +276,29 @@ class TXALogger {
     }
   }
 
-  /// Synchronize all pending offline logs to Firebase Firestore
+  /// Synchronize all pending offline logs to Supabase
   static Future<void> syncPendingLogs() async {
     try {
       final prefs = await SharedPreferences.getInstance();
       final list = prefs.getStringList(_keyCrashLogs) ?? [];
       if (list.isEmpty) return;
 
-      final firestore = FirebaseFirestore.instance;
       final List<String> succeeded = [];
       for (var item in list) {
         try {
           final payload = Map<String, dynamic>.from(jsonDecode(item));
           final docId = payload['id'] as String? ?? 'crash_${DateTime.now().millisecondsSinceEpoch}';
-          await firestore.collection('crash_logs').doc(docId).set(payload);
+          final username = payload['userSession'] is Map ? (payload['userSession']['username'] ?? 'anonymous') : 'anonymous';
+          await TXASupabaseService.instance.client.from('txa_reports').insert({
+            'id': docId,
+            'postId': null,
+            'postSender': username,
+            'reporter': 'TXALogger',
+            'status': 'pending',
+            'photoPath': '',
+            'caption': 'Type: ${payload['errorType']}\nMessage: ${payload['errorMessage']}\nStack: ${payload['stackTrace']}',
+            'createdTime': payload['timestamp'] ?? DateTime.now().toIso8601String(),
+          });
           succeeded.add(item);
         } catch (_) {
           break;
@@ -290,7 +308,7 @@ class TXALogger {
       if (succeeded.isNotEmpty) {
         final newQueue = list.where((item) => !succeeded.contains(item)).toList();
         await prefs.setStringList(_keyCrashLogs, newQueue);
-        debugPrint('🧹 [TXALogger] Synced and cleared ${succeeded.length} pending crash logs to Firestore.');
+        debugPrint('🧹 [TXALogger] Synced and cleared ${succeeded.length} pending crash logs to Supabase.');
       }
     } catch (_) {}
   }

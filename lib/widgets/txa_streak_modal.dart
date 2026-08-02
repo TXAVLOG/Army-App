@@ -110,9 +110,6 @@ class TXAStreakModal {
                 : 1.0;
 
             final currentUser = TXAAuthService.instance.currentUser;
-            final userAvatar = currentUser?.avatar ?? '👤';
-            final avatarColorVal = int.tryParse(currentUser?.avatarBgColor ?? '0xFFF57C00') ?? 0xFFF57C00;
-
             return SafeArea(
               child: Container(
                 padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
@@ -214,11 +211,11 @@ class TXAStreakModal {
                                       child: Opacity(
                                         opacity: isUnlocked ? 1.0 : 0.45,
                                         child: Container(
-                                          color: Color(avatarColorVal),
-                                          child: Center(
+                                          color: const Color(0xFF2C2C35),
+                                          child: const Center(
                                             child: Text(
-                                              userAvatar,
-                                              style: const TextStyle(fontSize: 22),
+                                              '👤',
+                                              style: TextStyle(fontSize: 22),
                                             ),
                                           ),
                                         ),

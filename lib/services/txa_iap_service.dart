@@ -3,7 +3,7 @@ import 'dart:io';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:in_app_purchase/in_app_purchase.dart';
-import 'package:cloud_firestore/cloud_firestore.dart';
+import 'txa_supabase_service.dart';
 import 'txa_auth_service.dart';
 import '../widgets/txa_toast.dart';
 import 'txa_language.dart';
@@ -125,11 +125,11 @@ class TXAIAPService extends ChangeNotifier {
     if (user == null) return;
 
     try {
-      await FirebaseFirestore.instance.collection('users').doc(user.id).update({
+      await TXASupabaseService.instance.client.from('txa_users').update({
         'isVipActive': true,
         'vipPurchaseToken': purchase.purchaseID,
         'vipPurchaseDate': DateTime.now().toIso8601String(),
-      });
+      }).eq('id', user.id);
       await TXAAuthService.instance.syncUserFromFirestore();
     } catch (e) {
       debugPrint('Error updating VIP status: $e');

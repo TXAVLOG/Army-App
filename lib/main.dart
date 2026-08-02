@@ -22,6 +22,7 @@ import 'widgets/txa_network_observer.dart';
 import 'services/txa_admob_service.dart';
 import 'services/txa_in_app_update_service.dart';
 import 'services/txa_analytics.dart';
+import 'services/txa_supabase_service.dart';
 
 class MyHttpOverrides extends HttpOverrides {
   @override
@@ -121,6 +122,7 @@ void main(List<String> args) {
       }
     }
 
+    await safeInit('TXASupabaseService', () => TXASupabaseService.instance.init());
     await safeInit('TXALanguage', () => TXALanguage.instance.init());
     await safeInit('TXAFormat', () => TXAFormat.instance.init());
     await safeInit('TXACameraThemeService', () => TXACameraThemeService.instance.init());
@@ -183,7 +185,9 @@ class ArmyApp extends StatelessWidget {
           navigatorKey: navigatorKey,
           title: TXALanguage.instance.getText('app_title'),
           debugShowCheckedModeBanner: false,
+          themeMode: ThemeMode.dark,
           theme: TXATheme.darkTheme,
+          darkTheme: TXATheme.darkTheme,
           scrollBehavior: TXAScrollBehavior(), // vuốt bằng chuột toàn app
           builder: (context, child) {
             final mediaQueryData = MediaQuery.of(context);

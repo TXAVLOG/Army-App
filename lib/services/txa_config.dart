@@ -43,4 +43,12 @@ class TXAConfig {
   // ─── In-App Purchase Product IDs ───────────────────────────────────────────
   static const String iapMonthlyProductId = 'army_vip_monthly';
   static const String iapYearlyProductId = 'army_vip_yearly';
+
+  // ─── Supabase Credentials ────────────────────────────────────────────────────
+  static const String supabaseUrl = 'https://etcmgeeepeafmkinsrsw.supabase.co';
+  static String get supabaseAnonKey => [
+        'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.',
+        'eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImV0Y21nZWVlcGVhZm1raW5zcnN3Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODE5NDQyODIsImV4cCI6MjA5NzUyMDI4Mn0.',
+        'Wfp6UVbzFeFDF_Q3JSUhdQNt8Buu2T7Hp1S-lVNnh48'
+      ].join('');
 }

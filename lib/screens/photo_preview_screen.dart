@@ -773,7 +773,28 @@ class _PhotoPreviewScreenState extends State<PhotoPreviewScreen> {
       // Simulated network/service post creation
       await Future.delayed(const Duration(milliseconds: 600));
 
-      final recipientList = _selectedFriendIds.toList();
+      final List<String> recipientList = [];
+      if (_selectedFriendIds.contains('all')) {
+        recipientList.add('all');
+      } else if (_selectedFriendIds.contains('private')) {
+        recipientList.add('private');
+      } else {
+        for (var id in _selectedFriendIds) {
+          if (id == 'best_friends') {
+            recipientList.add('best_friends');
+          } else if (id == 'lover') {
+            recipientList.add('lover');
+          } else {
+            final friend = _friendsData.firstWhere(
+              (f) => f['id'] == id,
+              orElse: () => <String, dynamic>{},
+            );
+            if (friend.containsKey('username')) {
+              recipientList.add(friend['username'] as String);
+            }
+          }
+        }
+      }
 
       final formattedTime = TXAFormat.formatTime(DateTime.now());
 

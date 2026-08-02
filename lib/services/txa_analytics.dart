@@ -1,7 +1,7 @@
 import 'dart:io';
-import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/foundation.dart';
 import 'package:firebase_analytics/firebase_analytics.dart';
+import 'txa_supabase_service.dart';
 
 class TXAAnalytics {
   static bool get _isSupported {
@@ -12,12 +12,18 @@ class TXAAnalytics {
   static Future<void> logEvent(String eventName, {Map<String, Object>? parameters}) async {
     // 1. Log to Firestore statistics
     try {
-      final docRef = FirebaseFirestore.instance.collection('statistics').doc('global');
-      await docRef.set({
-        eventName: FieldValue.increment(1),
+      final supabase = TXASupabaseService.instance.client;
+      final doc = await supabase.from('txa_statistics').select().eq('id', 'global').maybeSingle();
+      final Map<String, dynamic> data = doc != null ? Map<String, dynamic>.from(doc['data'] ?? {}) : {};
+      final int currentCount = data[eventName] as int? ?? 0;
+      data[eventName] = currentCount + 1;
+
+      await supabase.from('txa_statistics').upsert({
+        'id': 'global',
+        'data': data,
         'lastUpdated': DateTime.now().toIso8601String(),
-      }, SetOptions(merge: true));
-      debugPrint('📊 [Analytics] Logged event: $eventName');
+      });
+      debugPrint('📊 [Analytics] Logged event to Supabase: $eventName');
     } catch (e) {
       debugPrint('Error logging analytics event: $e');
     }

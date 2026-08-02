@@ -5,12 +5,41 @@ class TXAVersion extends ChangeNotifier {
   TXAVersion._internal();
 
   static const String appName = 'Army';
-  static const String currentVersion = '1.0.2';
-  static const int buildNumber = 3;
+  static const String currentVersion = '1.1.0';
+  static const int buildNumber = 4;
   static const String releaseDate = '02/08/2026';
-  static const String fullVersionString = 'Bản 1.0.2+3';
+  static const String fullVersionString = 'Bản 1.1.0+4';
 
   static const List<Map<String, dynamic>> changelogData = [
+    {
+      'version': '1.1.0+4',
+      'date': '02/08/2026',
+      'title': 'Nâng Cấp Trải Nghiệm Siêu Tốc & Giao Diện Mới 🚀',
+      'subtitle': 'Cải tiến vượt trội hệ thống truyền tin, nâng cấp độ mượt và tối ưu hiển thị giao diện.',
+      'badge': 'TÍNH NĂNG MỚI',
+      'features': [
+        {
+          'icon': '⚡',
+          'title': 'Hệ thống truyền tải tin nhắn & ảnh siêu tốc',
+          'description': 'Nâng cấp toàn diện cơ sở kết nối giúp tin nhắn và hình ảnh được gửi nhận tức thì, tiết kiệm băng thông tối đa.',
+        },
+        {
+          'icon': '🌙',
+          'title': 'Bảo vệ mắt tối đa với Chế độ tối toàn diện',
+          'description': 'Cố định giao diện tối cao cấp trên mọi thiết bị, không lo bị chói mắt kể cả khi máy đang để chế độ sáng.',
+        },
+        {
+          'icon': '👥',
+          'title': 'Hiển thị bài viết bạn bè mượt mà',
+          'description': 'Khắc phục hoàn toàn lỗi ẩn bài viết bạn bè trên bảng tin, giúp bạn cập nhật khoảnh khắc của mọi người nhanh nhất.',
+        },
+        {
+          'icon': '👤',
+          'title': 'Cải tiến ảnh đại diện lịch sử chuỗi',
+          'description': 'Thay thế hình đại diện mặc định thân thiện, trực quan hơn trong danh sách mốc lịch sử chuỗi ngày.',
+        },
+      ],
+    },
     {
       'version': '1.0.2+3',
       'date': '02/08/2026',
@@ -31,7 +60,7 @@ class TXAVersion extends ChangeNotifier {
         {
           'icon': '👥',
           'title': 'Đồng bộ Bạn bè & Bạn thân Real-time',
-          'description': 'Đồng bộ trực tiếp danh sách bạn bè và trạng thái bạn thân từ Firestore theo thời gian thực thay vì lưu cục bộ.',
+          'description': 'Đồng bộ trực tiếp danh sách bạn bè và trạng thái bạn thân theo thời gian thực thay vì lưu cục bộ.',
         },
         {
           'icon': '🖼️',
