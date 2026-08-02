@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../theme/txa_theme.dart';
 import '../services/txa_language.dart';
 import '../services/txa_auth_service.dart';
+import '../services/txa_analytics.dart';
 import '../widgets/txa_toast.dart';
 import 'locket_main_screen.dart';
 
@@ -51,6 +52,7 @@ class _TXARegisterScreenState extends State<TXARegisterScreen> {
   @override
   void initState() {
     super.initState();
+    TXAAnalytics.logScreenView(screenName: TXAAnalytics.screenRegister);
     _displayNameController.addListener(_onDisplayNameChanged);
     _emailController.addListener(_onFieldChanged);
     _usernameController.addListener(_onFieldChanged);

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../theme/txa_theme.dart';
 import '../services/txa_language.dart';
+import '../services/txa_analytics.dart';
 import '../services/txa_iap_service.dart';
 import '../widgets/txa_toast.dart';
 import 'package:in_app_purchase/in_app_purchase.dart';
@@ -14,6 +15,12 @@ class TXAGoldPassPaywallScreen extends StatefulWidget {
 
 class _TXAGoldPassPaywallScreenState extends State<TXAGoldPassPaywallScreen> {
   bool _isYearlySelected = true;
+
+  @override
+  void initState() {
+    super.initState();
+    TXAAnalytics.logScreenView(screenName: TXAAnalytics.screenGoldPass);
+  }
 
   @override
   Widget build(BuildContext context) {

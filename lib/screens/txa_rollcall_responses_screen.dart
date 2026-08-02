@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../theme/txa_theme.dart';
 import '../services/txa_language.dart';
 import '../services/txa_format.dart';
+import '../services/txa_analytics.dart';
 import '../services/txa_auth_service.dart';
 import '../services/txa_feed_service.dart';
 import '../widgets/txa_network_image.dart';
@@ -18,6 +19,12 @@ class TXARollcallResponsesScreen extends StatefulWidget {
 }
 
 class _TXARollcallResponsesScreenState extends State<TXARollcallResponsesScreen> {
+  @override
+  void initState() {
+    super.initState();
+    TXAAnalytics.logScreenView(screenName: TXAAnalytics.screenRollcall);
+  }
+
   @override
   Widget build(BuildContext context) {
     final txaLang = TXALanguage.instance;

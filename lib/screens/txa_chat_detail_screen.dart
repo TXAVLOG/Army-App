@@ -4,6 +4,7 @@ import 'package:flutter/services.dart';
 import '../theme/txa_theme.dart';
 import '../services/txa_language.dart';
 import '../services/txa_format.dart';
+import '../services/txa_analytics.dart';
 import '../services/txa_auth_service.dart';
 import '../services/txa_chat_service.dart';
 import '../widgets/txa_toast.dart';
@@ -30,6 +31,7 @@ class _TXAChatDetailScreenState extends State<TXAChatDetailScreen> {
   @override
   void initState() {
     super.initState();
+    TXAAnalytics.logScreenView(screenName: TXAAnalytics.screenChatDetail);
     final currentUser = TXAAuthService.instance.currentUser;
     final fUser = widget.friend['username'] as String;
     if (currentUser != null) {

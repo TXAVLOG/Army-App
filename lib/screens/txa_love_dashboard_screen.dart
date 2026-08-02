@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../theme/txa_theme.dart';
 import '../services/txa_language.dart';
+import '../services/txa_analytics.dart';
 import '../services/txa_auth_service.dart';
 import '../widgets/txa_toast.dart';
 import 'txa_love_feed_screen.dart';
@@ -21,6 +22,7 @@ class _TXALoveDashboardScreenState extends State<TXALoveDashboardScreen> {
   @override
   void initState() {
     super.initState();
+    TXAAnalytics.logScreenView(screenName: TXAAnalytics.screenLoveDashboard);
     _fetchPartnerDetails();
   }
 

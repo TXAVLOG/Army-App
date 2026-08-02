@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../theme/txa_theme.dart';
 import '../services/txa_language.dart';
+import '../services/txa_analytics.dart';
 import '../services/txa_auth_service.dart';
 import '../widgets/txa_toast.dart';
 import '../widgets/txa_network_image.dart';
@@ -31,6 +32,7 @@ class _TXALoveInvitationScreenState extends State<TXALoveInvitationScreen>
   @override
   void initState() {
     super.initState();
+    TXAAnalytics.logScreenView(screenName: TXAAnalytics.screenLoveInvitation);
     _pulseController = AnimationController(
       vsync: this,
       duration: const Duration(milliseconds: 1000),

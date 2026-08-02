@@ -3,6 +3,7 @@ import '../theme/txa_theme.dart';
 import '../services/txa_language.dart';
 import '../services/txa_auth_service.dart';
 import '../services/txa_google_play_services.dart';
+import '../services/txa_analytics.dart';
 import '../widgets/txa_toast.dart';
 import 'txa_register_screen.dart';
 import 'locket_main_screen.dart';
@@ -30,6 +31,7 @@ class _TXALoginScreenState extends State<TXALoginScreen> {
   @override
   void initState() {
     super.initState();
+    TXAAnalytics.logScreenView(screenName: TXAAnalytics.screenLogin);
     _identityController.addListener(_onFieldChanged);
     _passwordController.addListener(_onFieldChanged);
 

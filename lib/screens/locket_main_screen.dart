@@ -9,6 +9,7 @@ import '../theme/txa_theme.dart';
 import '../services/txa_language.dart';
 import '../services/txa_format.dart';
 import '../services/txa_auth_service.dart';
+import '../services/txa_analytics.dart';
 import '../services/txa_chat_service.dart';
 import '../services/txa_battery_service.dart';
 import 'package:image_picker/image_picker.dart';
@@ -299,6 +300,7 @@ class _LocketMainScreenState extends State<LocketMainScreen> with WidgetsBinding
   @override
   void initState() {
     super.initState();
+    TXAAnalytics.logScreenView(screenName: TXAAnalytics.screenMain);
     WidgetsBinding.instance.addObserver(this);
     _initCamera();
     WidgetsBinding.instance.addPostFrameCallback((_) async {

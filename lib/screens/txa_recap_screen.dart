@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import '../theme/txa_theme.dart';
 import '../services/txa_language.dart';
+import '../services/txa_analytics.dart';
 import '../services/txa_format.dart';
 import '../services/txa_auth_service.dart';
 import '../services/txa_feed_service.dart';
@@ -40,6 +41,7 @@ class _TXARecapScreenState extends State<TXARecapScreen> {
   @override
   void initState() {
     super.initState();
+    TXAAnalytics.logScreenView(screenName: TXAAnalytics.screenRecap);
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _focusNode.requestFocus();
     });

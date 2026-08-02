@@ -14,6 +14,7 @@ import 'package:emoji_picker_flutter/emoji_picker_flutter.dart';
 import '../theme/txa_theme.dart';
 import '../services/txa_language.dart';
 import '../services/txa_format.dart';
+import '../services/txa_analytics.dart';
 import '../services/txa_badword.dart';
 import '../services/txa_auth_service.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -58,7 +59,11 @@ class _PhotoPreviewScreenState extends State<PhotoPreviewScreen> {
   Color? _selectedStickerTextColor;
   bool _isUploading = false;
 
-
+  @override
+  void initState() {
+    super.initState();
+    TXAAnalytics.logScreenView(screenName: TXAAnalytics.screenPhotoPreview);
+  }
 
   List<Map<String, dynamic>> get _customizationSections {
     final isVi = TXALanguage.instance.currentLanguage == 'vi';

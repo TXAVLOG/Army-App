@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../theme/txa_theme.dart';
 import '../services/txa_language.dart';
+import '../services/txa_analytics.dart';
 import '../services/txa_auth_service.dart';
 import '../services/txa_chat_service.dart';
 import 'txa_chat_detail_screen.dart';
@@ -17,6 +18,7 @@ class _TXAChatListScreenState extends State<TXAChatListScreen> {
   @override
   void initState() {
     super.initState();
+    TXAAnalytics.logScreenView(screenName: TXAAnalytics.screenChatList);
     final currentUser = TXAAuthService.instance.currentUser;
     if (currentUser != null) {
       TXAChatService.instance.init(currentUser.username);

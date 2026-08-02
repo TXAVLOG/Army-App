@@ -212,6 +212,7 @@ class _LocketFeedScreenState extends State<LocketFeedScreen> {
   @override
   void initState() {
     super.initState();
+    TXAAnalytics.logScreenView(screenName: TXAAnalytics.screenFeed);
     _currentIndex = widget.initialIndex;
     _pageController = PageController(initialPage: widget.initialIndex);
     _feedAudioPlayer = AudioPlayer();

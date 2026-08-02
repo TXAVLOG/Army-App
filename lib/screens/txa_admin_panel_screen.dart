@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import '../theme/txa_theme.dart';
 import '../services/txa_auth_service.dart';
+import '../services/txa_analytics.dart';
 import '../services/txa_feed_service.dart';
 import '../services/txa_streak_service.dart';
 import '../services/txa_language.dart';
@@ -24,6 +25,7 @@ class _TXAAdminPanelScreenState extends State<TXAAdminPanelScreen> with SingleTi
   @override
   void initState() {
     super.initState();
+    TXAAnalytics.logScreenView(screenName: TXAAnalytics.screenAdminPanel);
     _tabController = TabController(length: 5, vsync: this);
     _loadData();
   }

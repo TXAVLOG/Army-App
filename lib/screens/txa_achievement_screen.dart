@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../models/txa_achievement.dart';
 import '../services/txa_achievement_service.dart';
+import '../services/txa_analytics.dart';
 import '../services/txa_language.dart';
 import '../theme/txa_theme.dart';
 import '../widgets/txa_achievement_badge_widget.dart';
@@ -19,6 +20,7 @@ class _TXAAchievementScreenState extends State<TXAAchievementScreen> {
   @override
   void initState() {
     super.initState();
+    TXAAnalytics.logScreenView(screenName: TXAAnalytics.screenAchievement);
     TXAAchievementService.instance.init();
   }
 
