@@ -75,6 +75,13 @@ class _PhotoPreviewScreenState extends State<PhotoPreviewScreen> {
           _weatherData = weather;
           _isFetchingWeather = false;
         });
+        if (force) {
+          TXAToast.show(
+            context,
+            TXALanguage.instance.getText('weather_updated_toast'),
+            icon: Icons.thermostat_rounded,
+          );
+        }
       }
     } catch (e) {
       if (mounted) {
@@ -552,7 +559,6 @@ class _PhotoPreviewScreenState extends State<PhotoPreviewScreen> {
   // Location state (GMS Services)
   bool _isLocationPermissionGranted = false;
   bool _isFetchingLocation = false;
-  String? _fetchedLocationName;
 
   // Multi-select recipient selection state
   Set<String> _selectedFriendIds = {'all'};
@@ -792,7 +798,6 @@ class _PhotoPreviewScreenState extends State<PhotoPreviewScreen> {
     if (mounted) {
       setState(() {
         _isFetchingLocation = false;
-        _fetchedLocationName = locationResult;
 
         if (applyAsSticker) {
           _selectedCustomSticker = locationResult;
@@ -2258,16 +2263,7 @@ class _PhotoPreviewScreenState extends State<PhotoPreviewScreen> {
 
                                       return Center(
                                         child: GestureDetector(
-                                          onTap: () async {
-                                            await _getWeather(force: true);
-                                            if (mounted) {
-                                              TXAToast.show(
-                                                context,
-                                                txaLang.getText('weather_updated_toast'),
-                                                icon: Icons.thermostat_rounded,
-                                              );
-                                            }
-                                          },
+                                          onTap: () => _getWeather(force: true),
                                           child: AnimatedContainer(
                                             duration: const Duration(milliseconds: 300),
                                             padding: const EdgeInsets.symmetric(horizontal: 22, vertical: 12),
