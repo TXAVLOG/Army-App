@@ -152,11 +152,17 @@ class TXAIAPService extends ChangeNotifier {
 
       await TXASupabaseService.instance.client.from('txa_users').update({
         'isVipActive': true,
+        'isvipactive': true,
         'vipProductId': purchase.productID,
+        'vipproductid': purchase.productID,
         'vipPurchaseToken': purchase.purchaseID,
+        'vippurchasetoken': purchase.purchaseID,
         'vipPurchaseDate': DateTime.now().toIso8601String(),
+        'vippurchasedate': DateTime.now().toIso8601String(),
         'vipExpiryDate': expiryDate.toIso8601String(),
+        'vipexpirydate': expiryDate.toIso8601String(),
         'vipGoogleEmail': googleEmail,
+        'vipgoogleemail': googleEmail,
       }).eq('id', user.id);
 
       await TXAAuthService.instance.syncUserFromFirestore();

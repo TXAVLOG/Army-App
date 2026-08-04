@@ -5,12 +5,41 @@ class TXAVersion extends ChangeNotifier {
   TXAVersion._internal();
 
   static const String appName = 'Army';
-  static const String currentVersion = '1.1.0';
-  static const int buildNumber = 4;
-  static const String releaseDate = '02/08/2026';
-  static const String fullVersionString = 'Bản 1.1.0+4';
+  static const String currentVersion = '1.2.0';
+  static const int buildNumber = 5;
+  static const String releaseDate = '05/08/2026';
+  static const String fullVersionString = 'Bản 1.2.0+5';
 
   static const List<Map<String, dynamic>> changelogData = [
+    {
+      'version': '1.2.0+5',
+      'date': '05/08/2026',
+      'title': 'Nâng Cấp Giao Diện Locket Mới & Trải Nghiệm Siêu Mượt ✨',
+      'subtitle': 'Trải nghiệm chụp ảnh Locket đỉnh cao với tông màu tối sang trọng, gửi tin nhắn siêu tốc và giao diện được tối ưu hoàn hảo cho bạn.',
+      'badge': 'TÍNH NĂNG MỚI',
+      'features': [
+        {
+          'icon': '📸',
+          'title': 'Giao diện Locket Widget Pitch Black Sang Trọng',
+          'description': 'Khung camera bo góc mềm mại, tông nền đen tối mịn bảo vệ mắt và các nút bấm màu vàng ánh kim phong cách Locket hiện đại.',
+        },
+        {
+          'icon': '⚡',
+          'title': 'Đăng bài & Gửi tin nhắn siêu tốc',
+          'description': 'Tốc độ tải ảnh Locket, gửi lời nhắn và thả biểu cảm cảm xúc được nâng cấp nhanh tức thì, không bị trễ hay gián đoạn.',
+        },
+        {
+          'icon': '💛',
+          'title': 'Kết nối bạn bè & Người yêu mượt mà',
+          'description': 'Dễ dàng kết nối bạn bè, chụp ảnh khoảnh khắc đôi và cập nhật chuỗi lửa ngày liên tục với độ ổn định cao nhất.',
+        },
+        {
+          'icon': '📱',
+          'title': 'Giao diện thông báo mới vừa vặn màn hình',
+          'description': 'Bảng thông tin phiên bản mới được thiết kế rộng rãi, bo góc đẹp mắt và tự động căn chỉnh không bị che bởi phím điều hướng hệ thống.',
+        },
+      ],
+    },
     {
       'version': '1.1.0+4',
       'date': '02/08/2026',

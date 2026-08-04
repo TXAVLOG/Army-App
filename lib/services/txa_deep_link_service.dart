@@ -4,7 +4,7 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:app_links/app_links.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import 'package:cloud_firestore/cloud_firestore.dart';
+import 'txa_supabase_service.dart';
 import 'txa_auth_service.dart';
 import 'txa_language.dart';
 import '../widgets/txa_toast.dart';
@@ -275,34 +275,32 @@ class _InviteDialogState extends State<_InviteDialog> {
 
     if (fromUser.isNotEmpty) {
       // 1. Listen to outgoing pending request
-      _subOutgoing = FirebaseFirestore.instance
-          .collection('friend_requests')
-          .where('from', isEqualTo: fromUser)
-          .where('to', isEqualTo: toUser)
-          .where('status', isEqualTo: 'pending')
-          .snapshots()
-          .listen((snap) {
+      _subOutgoing = TXASupabaseService.instance.client
+          .from('txa_friend_requests')
+          .stream(primaryKey: ['id'])
+          .eq('from', fromUser)
+          .listen((dataList) {
         if (mounted) {
+          final pending = dataList.where((d) => d['to'] == toUser && d['status'] == 'pending').toList();
           setState(() {
-            _isOutgoingPending = snap.docs.isNotEmpty;
+            _isOutgoingPending = pending.isNotEmpty;
           });
         }
       });
 
       // 2. Listen to incoming pending request
-      _subIncoming = FirebaseFirestore.instance
-          .collection('friend_requests')
-          .where('from', isEqualTo: toUser)
-          .where('to', isEqualTo: fromUser)
-          .where('status', isEqualTo: 'pending')
-          .snapshots()
-          .listen((snap) {
+      _subIncoming = TXASupabaseService.instance.client
+          .from('txa_friend_requests')
+          .stream(primaryKey: ['id'])
+          .eq('to', fromUser)
+          .listen((dataList) {
         if (mounted) {
+          final pending = dataList.where((d) => d['from'] == toUser && d['status'] == 'pending').toList();
           setState(() {
-            _isIncomingPending = snap.docs.isNotEmpty;
+            _isIncomingPending = pending.isNotEmpty;
             if (_isIncomingPending) {
-              _incomingRequestId = snap.docs.first.id;
-              _incomingRequestData = snap.docs.first.data();
+              _incomingRequestId = pending.first['id'] as String;
+              _incomingRequestData = pending.first;
             } else {
               _incomingRequestId = null;
               _incomingRequestData = null;

@@ -4,7 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter/gestures.dart';
 import 'package:camera/camera.dart';
-import 'package:cloud_firestore/cloud_firestore.dart';
+import '../services/txa_supabase_service.dart';
 import '../theme/txa_theme.dart';
 import '../services/txa_language.dart';
 import '../services/txa_format.dart';
@@ -405,47 +405,46 @@ class _LocketMainScreenState extends State<LocketMainScreen> with WidgetsBinding
       }
     });
 
-    // 2. Lắng nghe thông báo khi đối phương chấp nhận lời mời của mình
-    _acceptedReqSub = FirebaseFirestore.instance
-        .collection('friend_requests')
-        .where('to', isEqualTo: currentUser.username)
-        .where('status', isEqualTo: 'accepted_auto')
-        .snapshots()
-        .listen((snap) {
+    _acceptedReqSub = TXASupabaseService.instance.client
+        .from('txa_friend_requests')
+        .stream(primaryKey: ['id'])
+        .eq('to', currentUser.username)
+        .listen((dataList) async {
           if (!mounted) return;
-          for (final doc in snap.docs) {
-            final docId = doc.id;
-            final data = doc.data();
-            final fromUser = data['from'] as String;
+          for (final data in dataList) {
+            final status = data['status'] as String?;
+            if (status == 'accepted_auto') {
+              final docId = data['id'] as String;
+              final fromUser = data['from'] as String;
 
-            if (!_notifiedAcceptedIds.contains(docId)) {
-              _notifiedAcceptedIds.add(docId);
+              if (!_notifiedAcceptedIds.contains(docId)) {
+                _notifiedAcceptedIds.add(docId);
 
-              // Hiện banner thông báo đối phương đã đồng ý
-              TXAToast.showFriendAcceptedNotification(
-                context,
-                name: fromUser,
-                avatar: data['fromAvatar'] as String? ?? '👤',
-                avatarColor: data['fromAvatarColor'] as String? ?? '0xFF607D8B',
-                onTap: () {
-                  _showFriendsModal(context);
-                },
-              );
+                TXAToast.showFriendAcceptedNotification(
+                  context,
+                  name: fromUser,
+                  avatar: data['fromAvatar'] ?? data['fromavatar'] ?? '👤',
+                  avatarColor: data['fromAvatarColor'] ?? data['fromavatarcolor'] ?? '0xFF607D8B',
+                  onTap: () {
+                    _showFriendsModal(context);
+                  },
+                );
 
-              // Đánh dấu đã đọc/xác nhận
-              FirebaseFirestore.instance
-                  .collection('friend_requests')
-                  .doc(docId)
-                  .update({'status': 'accepted_acknowledged'});
+                await TXASupabaseService.instance.client
+                    .from('txa_friend_requests')
+                    .update({'status': 'accepted_acknowledged'})
+                    .eq('id', docId);
 
-              // Thêm đối phương vào danh sách bạn bè local của mình
-              txaAuth.addFriendLocally(
-                username: fromUser,
-                avatar: data['fromAvatar'] as String? ?? '👤',
-                avatarColor: data['fromAvatarColor'] as String? ?? '0xFF607D8B',
-              );
+                txaAuth.addFriendLocally(
+                  username: fromUser,
+                  avatar: data['fromAvatar'] ?? data['fromavatar'] ?? '👤',
+                  avatarColor: data['fromAvatarColor'] ?? data['fromavatarcolor'] ?? '0xFF607D8B',
+                );
+              }
             }
           }
+        }, onError: (err) {
+          debugPrint('acceptedReqSub Supabase error: $err');
         });
   }
 
@@ -2599,20 +2598,20 @@ void _showFriendsModal(BuildContext context) {
             // Fetch sent/incoming requests initially
             Future<void> fetchRequestStatus() async {
               try {
-                final sentSnap = await FirebaseFirestore.instance
-                    .collection('friend_requests')
-                    .where('from', isEqualTo: currentUser.username)
-                    .where('status', isEqualTo: 'pending')
-                    .get();
-                final incomingSnap = await FirebaseFirestore.instance
-                    .collection('friend_requests')
-                    .where('to', isEqualTo: currentUser.username)
-                    .where('status', isEqualTo: 'pending')
-                    .get();
+                final sentSnap = await TXASupabaseService.instance.client
+                    .from('txa_friend_requests')
+                    .select('to')
+                    .eq('from', currentUser.username)
+                    .eq('status', 'pending');
+                final incomingSnap = await TXASupabaseService.instance.client
+                    .from('txa_friend_requests')
+                    .select('from')
+                    .eq('to', currentUser.username)
+                    .eq('status', 'pending');
 
                 setModalState(() {
-                  sentUsernames = sentSnap.docs.map((d) => d.data()['to'] as String).toSet();
-                  incomingUsernames = incomingSnap.docs.map((d) => d.data()['from'] as String).toSet();
+                  sentUsernames = (sentSnap as List).map((d) => d['to'] as String).toSet();
+                  incomingUsernames = (incomingSnap as List).map((d) => d['from'] as String).toSet();
                 });
               } catch (_) {}
             }
@@ -2683,21 +2682,17 @@ void _showFriendsModal(BuildContext context) {
                             });
 
                             try {
-                              final querySnapshot = await FirebaseFirestore.instance
-                                  .collection('users')
-                                  .limit(100)
-                                  .get();
+                              final querySnapshot = await TXASupabaseService.instance.client
+                                  .from('txa_users')
+                                  .select()
+                                  .limit(100);
 
                               final cleanQ = q.toLowerCase().replaceAll('@', '');
-                              final matched = querySnapshot.docs.map((doc) {
-                                final data = doc.data();
-                                data['id'] = doc.id;
-                                return data;
-                              }).where((u) {
+                              final matched = (querySnapshot as List).where((u) {
                                 final email = (u['email'] ?? '').toString().toLowerCase();
-                                final username = (u['username'] ?? '').toString().toLowerCase().replaceAll('@', '');
+                                final username = (u['username'] ?? u['user_name'] ?? '').toString().toLowerCase().replaceAll('@', '');
                                 return email.contains(cleanQ) || username.contains(cleanQ);
-                              }).take(10).toList();
+                              }).take(10).toList().cast<Map<String, dynamic>>();
 
                               setModalState(() {
                                 searchResults = matched;
@@ -2733,21 +2728,17 @@ void _showFriendsModal(BuildContext context) {
                                   isSearching = true;
                                 });
                                 try {
-                                  final querySnapshot = await FirebaseFirestore.instance
-                                      .collection('users')
-                                      .limit(100)
-                                      .get();
+                                  final querySnapshot = await TXASupabaseService.instance.client
+                                      .from('txa_users')
+                                      .select()
+                                      .limit(100);
 
                                   final cleanQ = q.toLowerCase().replaceAll('@', '');
-                                  final matched = querySnapshot.docs.map((doc) {
-                                    final data = doc.data();
-                                    data['id'] = doc.id;
-                                    return data;
-                                  }).where((u) {
+                                  final matched = (querySnapshot as List).where((u) {
                                     final email = (u['email'] ?? '').toString().toLowerCase();
-                                    final username = (u['username'] ?? '').toString().toLowerCase().replaceAll('@', '');
+                                    final username = (u['username'] ?? u['user_name'] ?? '').toString().toLowerCase().replaceAll('@', '');
                                     return email.contains(cleanQ) || username.contains(cleanQ);
-                                  }).take(10).toList();
+                                  }).take(10).toList().cast<Map<String, dynamic>>();
 
                                   setModalState(() {
                                     searchResults = matched;

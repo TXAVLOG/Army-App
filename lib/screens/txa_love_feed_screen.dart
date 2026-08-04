@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:cloud_firestore/cloud_firestore.dart';
+import '../services/txa_supabase_service.dart';
 import '../theme/txa_theme.dart';
 import '../services/txa_language.dart';
 import '../services/txa_analytics.dart';
@@ -98,10 +98,13 @@ class _TXALoveFeedScreenState extends State<TXALoveFeedScreen> {
               Navigator.pop(ctx);
               
               // Get current positions to preserve them
-              final loveDoc = await FirebaseFirestore.instance.collection('loves').doc(loveId).get();
-              final data = loveDoc.data();
-              final double x = data?['bubblePositionX'] as double? ?? 0.5;
-              final double y = data?['bubblePositionY'] as double? ?? 0.4;
+              final loveDoc = await TXASupabaseService.instance.client
+                  .from('txa_loves')
+                  .select('bubblePositionX, bubblePositionY, bubblepositionx, bubblepositiony')
+                  .eq('id', loveId)
+                  .maybeSingle();
+              final double x = (loveDoc?['bubblePositionX'] ?? loveDoc?['bubblepositionx']) as double? ?? 0.5;
+              final double y = (loveDoc?['bubblePositionY'] ?? loveDoc?['bubblepositiony']) as double? ?? 0.4;
               
               await TXAAuthService.instance.updateBubblePosition(loveId, x, y, newStatus);
               

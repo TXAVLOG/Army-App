@@ -439,8 +439,11 @@ class TXAStreakService extends ChangeNotifier {
         await TXASupabaseService.instance.client.from('txa_users').update({
           'streak': saved,
           'lastPostTime': _lastPostDates[username]!.toIso8601String(),
+          'lastposttime': _lastPostDates[username]!.toIso8601String(),
           'isFreeMonthlyRestoreUsed': _isFreeMonthlyRestoreUsed[username] ?? false,
+          'isfreemonthlyrestoreused': _isFreeMonthlyRestoreUsed[username] ?? false,
           'restorationCredits': _restorationCredits[username] ?? 0,
+          'restorationcredits': _restorationCredits[username] ?? 0,
         }).eq('id', user.id);
         await TXAAuthService.instance.syncUserFromFirestore();
       }

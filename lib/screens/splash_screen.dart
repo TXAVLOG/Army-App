@@ -1,7 +1,7 @@
 import 'dart:io' as io;
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import 'package:cloud_firestore/cloud_firestore.dart';
+import '../services/txa_supabase_service.dart';
 import '../theme/txa_theme.dart';
 import '../services/txa_language.dart';
 import '../services/txa_network_monitor.dart';
@@ -369,18 +369,21 @@ class _SplashScreenState extends State<SplashScreen> with TickerProviderStateMix
 
   Future<void> _fixBrokenImages() async {
     try {
-      final querySnapshot = await FirebaseFirestore.instance
-          .collection('posts')
-          .get();
+      final querySnapshot = await TXASupabaseService.instance.client
+          .from('txa_posts')
+          .select('id, photoPath, photopath');
 
       int count = 0;
-      for (var doc in querySnapshot.docs) {
-        final data = doc.data();
-        final String photoPath = data['photoPath'] ?? '';
+      for (var row in querySnapshot) {
+        final String photoPath = row['photoPath'] ?? row['photopath'] ?? '';
         if (photoPath.contains('photo-1472214222541-d510753a4707') || photoPath.contains('404')) {
-          await doc.reference.update({
-            'photoPath': 'https://images.unsplash.com/photo-1501854140801-50d01698950b?w=600',
-          });
+          await TXASupabaseService.instance.client
+              .from('txa_posts')
+              .update({
+                'photoPath': 'https://images.unsplash.com/photo-1501854140801-50d01698950b?w=600',
+                'photopath': 'https://images.unsplash.com/photo-1501854140801-50d01698950b?w=600',
+              })
+              .eq('id', row['id']);
           count++;
         }
       }

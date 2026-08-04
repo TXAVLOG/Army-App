@@ -136,6 +136,8 @@ class TXANotificationService extends ChangeNotifier {
           );
         }
       }
+    }, onError: (e) {
+      debugPrint('Realtime notifications stream error: $e');
     });
   }
 

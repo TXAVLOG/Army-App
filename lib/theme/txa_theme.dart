@@ -3,9 +3,9 @@ import '../services/txa_camera_theme_service.dart';
 
 class TXATheme {
   // ─── Static const fallbacks (dùng khi chưa có theme) ───────────
-  static const Color _defaultBackground = Color(0xFF151419);
-  static const Color _defaultCardBg     = Color(0xFF212026);
-  static const Color _defaultCardBorder = Color(0xFF2F2D3A);
+  static const Color _defaultBackground = Color(0xFF0A0A0E);
+  static const Color _defaultCardBg     = Color(0xFF16161C);
+  static const Color _defaultCardBorder = Color(0xFF272732);
 
   static const Color primaryYellow = Color(0xFFFFC72C);
   static const Color actionBlue    = Color(0xFF2F80ED);

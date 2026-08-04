@@ -90,7 +90,7 @@ class LocketPostModel {
 
     List<String> parsedReadBy = [];
     try {
-      final rawRead = json['readBy'];
+      final rawRead = json['readBy'] ?? json['readby'];
       if (rawRead is List) {
         parsedReadBy = rawRead.map((e) => e.toString()).toList();
       }
@@ -114,34 +114,34 @@ class LocketPostModel {
 
     List<String> parsedQuickEmojis = ['❤️', '🔥', '😮', '😂', '😢', '👍'];
     try {
-      final rawEmojis = json['quickEmojisOrder'];
+      final rawEmojis = json['quickEmojisOrder'] ?? json['quickemojisorder'];
       if (rawEmojis is List && rawEmojis.isNotEmpty) {
         parsedQuickEmojis = rawEmojis.map((e) => e.toString()).toList();
       }
     } catch (_) {}
 
     return LocketPostModel(
-      id: json['id'] ?? '',
-      senderUsername: json['senderUsername'] ?? '@user',
-      senderAvatar: json['senderAvatar'] ?? '🦊',
-      senderAvatarColor: json['senderAvatarColor'] ?? '0xFFF57C00',
-      photoPath: json['photoPath'] ?? '',
-      voicePath: json['voicePath'],
-      voiceDuration: json['voiceDuration'] as int?,
-      caption: json['caption'] ?? '',
-      moodEmoji: json['moodEmoji'] ?? '😊',
-      stickerBgColor: json['stickerBgColor'] as String?,
-      stickerGradient: json['stickerGradient'] as String?,
-      stickerTextColor: json['stickerTextColor'] as String?,
-      aspectRatio: json['aspectRatio'] ?? '1:1',
-      timestampText: json['timestampText'] ?? 'Vừa xong',
+      id: json['id']?.toString() ?? '',
+      senderUsername: (json['senderUsername'] ?? json['senderusername'])?.toString() ?? '@user',
+      senderAvatar: (json['senderAvatar'] ?? json['senderavatar'])?.toString() ?? '🦊',
+      senderAvatarColor: (json['senderAvatarColor'] ?? json['senderavatarcolor'])?.toString() ?? '0xFFF57C00',
+      photoPath: (json['photoPath'] ?? json['photopath'])?.toString() ?? '',
+      voicePath: (json['voicePath'] ?? json['voicepath'])?.toString(),
+      voiceDuration: (json['voiceDuration'] ?? json['voiceduration']) as int?,
+      caption: json['caption']?.toString() ?? '',
+      moodEmoji: (json['moodEmoji'] ?? json['moodemoji'])?.toString() ?? '😊',
+      stickerBgColor: (json['stickerBgColor'] ?? json['stickerbgcolor'])?.toString(),
+      stickerGradient: (json['stickerGradient'] ?? json['stickergradient'])?.toString(),
+      stickerTextColor: (json['stickerTextColor'] ?? json['stickertextcolor'])?.toString(),
+      aspectRatio: (json['aspectRatio'] ?? json['aspectratio'])?.toString() ?? '1:1',
+      timestampText: (json['timestampText'] ?? json['timestamptext'])?.toString() ?? 'Vừa xong',
       recipients: parsedRecipients,
       readBy: parsedReadBy,
       reactions: parsedReactions,
       quickEmojisOrder: parsedQuickEmojis,
-      createdTime: json['createdTime'] ?? '',
-      isBlurOverlay: json['isBlurOverlay'] == true,
-      isRollcall: json['isRollcall'] == true,
+      createdTime: (json['createdTime'] ?? json['createdtime'])?.toString() ?? '',
+      isBlurOverlay: json['isBlurOverlay'] == true || json['isbluroverlay'] == true,
+      isRollcall: json['isRollcall'] == true || json['isrollcall'] == true,
     );
   }
 }
@@ -351,26 +351,44 @@ class TXAFeedService extends ChangeNotifier {
     }
 
     // 3. Write document to Supabase
+    final nowIso = DateTime.now().toIso8601String();
     await TXASupabaseService.instance.client.from('txa_posts').insert({
       'senderUsername': senderUsername,
+      'senderusername': senderUsername,
       'senderAvatar': senderAvatar,
+      'senderavatar': senderAvatar,
       'senderAvatarColor': senderAvatarColor,
+      'senderavatarcolor': senderAvatarColor,
       'photoPath': finalPhotoUrl,
+      'photopath': finalPhotoUrl,
       'voicePath': finalVoiceUrl,
+      'voicepath': finalVoiceUrl,
       'voiceDuration': voiceDuration,
+      'voiceduration': voiceDuration,
       'caption': caption,
       'moodEmoji': moodEmoji,
+      'moodemoji': moodEmoji,
       'stickerBgColor': stickerBgColor,
+      'stickerbgcolor': stickerBgColor,
       'stickerGradient': stickerGradient,
+      'stickergradient': stickerGradient,
       'stickerTextColor': stickerTextColor,
+      'stickertextcolor': stickerTextColor,
       'aspectRatio': aspectRatio,
+      'aspectratio': aspectRatio,
       'timestampText': timestampText,
+      'timestamptext': timestampText,
       'recipients': recipients,
       'readBy': [senderUsername],
+      'readby': [senderUsername],
       'reactions': [],
-      'createdTime': DateTime.now().toIso8601String(),
+      'quickemojisorder': ['❤️', '🔥', '😮', '😂', '😢', '👍'],
+      'createdTime': nowIso,
+      'createdtime': nowIso,
       'isBlurOverlay': isBlurOverlay,
+      'isbluroverlay': isBlurOverlay,
       'isRollcall': isRollcall,
+      'isrollcall': isRollcall,
     });
 
     // Ghi nhận tính toán Streak cho tác giả

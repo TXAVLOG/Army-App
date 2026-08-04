@@ -93,7 +93,7 @@ class TXALogger {
       };
 
       _localErrorLogs.insert(0, logPayload);
-      await _submitToFirebase(logPayload);
+      await _submitToSupabase(logPayload);
       return logPayload;
     } catch (e) {
       debugPrint('TXALogger checkAndSubmitNativeCrash error: $e');
@@ -210,7 +210,7 @@ class TXALogger {
     // Submit Log Payload to Firebase Firestore (skip RenderFlex overflow errors)
     final isOverflowError = errorMessage.contains('overflowed') || errorMessage.contains('RenderFlex');
     if (!isOverflowError) {
-      await _submitToFirebase(logPayload);
+      await _submitToSupabase(logPayload);
     } else {
       debugPrint('ℹ️ [TXALogger] RenderFlex overflow log skipped from Firebase queue submission.');
     }
@@ -249,19 +249,23 @@ class TXALogger {
   }
 
   /// Submit Crash/Error Log directly to Supabase txa_reports
-  static Future<void> _submitToFirebase(Map<String, dynamic> logPayload) async {
+  static Future<void> _submitToSupabase(Map<String, dynamic> logPayload) async {
     try {
       final docId = logPayload['id'] as String? ?? 'crash_${DateTime.now().millisecondsSinceEpoch}';
       final username = logPayload['userSession'] is Map ? (logPayload['userSession']['username'] ?? 'anonymous') : 'anonymous';
       await TXASupabaseService.instance.client.from('txa_reports').insert({
         'id': docId,
         'postId': null,
+        'postid': null,
         'postSender': username,
+        'postsender': username,
         'reporter': 'TXALogger',
         'status': 'pending',
         'photoPath': '',
+        'photopath': '',
         'caption': 'Type: ${logPayload['errorType']}\nMessage: ${logPayload['errorMessage']}\nStack: ${logPayload['stackTrace']}',
         'createdTime': logPayload['timestamp'] ?? DateTime.now().toIso8601String(),
+        'createdtime': logPayload['timestamp'] ?? DateTime.now().toIso8601String(),
       });
       debugPrint('🔥 [TXALogger] Successfully submitted Crash log to Supabase!');
     } catch (e) {
@@ -292,12 +296,16 @@ class TXALogger {
           await TXASupabaseService.instance.client.from('txa_reports').insert({
             'id': docId,
             'postId': null,
+            'postid': null,
             'postSender': username,
+            'postsender': username,
             'reporter': 'TXALogger',
             'status': 'pending',
             'photoPath': '',
+            'photopath': '',
             'caption': 'Type: ${payload['errorType']}\nMessage: ${payload['errorMessage']}\nStack: ${payload['stackTrace']}',
             'createdTime': payload['timestamp'] ?? DateTime.now().toIso8601String(),
+            'createdtime': payload['timestamp'] ?? DateTime.now().toIso8601String(),
           });
           succeeded.add(item);
         } catch (_) {

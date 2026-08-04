@@ -105,7 +105,7 @@ class UserModel {
   factory UserModel.fromJson(Map<String, dynamic> json) {
     final Map<String, String> memories = {};
     try {
-      final rawMemories = json['monthlyMemories'];
+      final rawMemories = json['monthlyMemories'] ?? json['monthlymemories'];
       if (rawMemories is Map) {
         rawMemories.forEach((k, v) {
           memories[k.toString()] = v.toString();
@@ -114,27 +114,27 @@ class UserModel {
     } catch (_) {}
 
     return UserModel(
-      id: json['id'] ?? '',
-      email: json['email'] ?? '',
-      username: json['username'] ?? '',
-      dob: json['dob'] ?? '',
-      avatar: json['avatar'] ?? '🦊',
-      avatarBgColor: json['avatarBgColor'] ?? '0xFFF57C00',
-      googlePhotoUrl: json['googlePhotoUrl'],
-      isGoogleAccount: json['isGoogleAccount'] ?? false,
-      createdTime: json['createdTime'] ?? '',
-      role: json['role'] ?? 'user',
-      lastActive: json['lastActive'] as String?,
+      id: json['id']?.toString() ?? '',
+      email: json['email']?.toString() ?? '',
+      username: json['username']?.toString() ?? '',
+      dob: json['dob']?.toString() ?? '',
+      avatar: json['avatar']?.toString() ?? '🦊',
+      avatarBgColor: (json['avatarBgColor'] ?? json['avatarbgcolor'])?.toString() ?? '0xFFF57C00',
+      googlePhotoUrl: (json['googlePhotoUrl'] ?? json['googlephotourl'])?.toString(),
+      isGoogleAccount: json['isGoogleAccount'] == true || json['isgoogleaccount'] == true,
+      createdTime: (json['createdTime'] ?? json['createdtime'])?.toString() ?? '',
+      role: json['role']?.toString() ?? 'user',
+      lastActive: (json['lastActive'] ?? json['lastactive'])?.toString(),
       monthlyMemories: memories,
-      loveId: json['loveId'] as String?,
-      loverUsername: json['loverUsername'] as String?,
-      isVipActive: json['isVipActive'] ?? false,
-      vipProductId: json['vipProductId'] as String?,
-      vipExpiryDate: json['vipExpiryDate'] as String?,
-      vipGoogleEmail: json['vipGoogleEmail'] as String?,
-      displayName: json['displayName'] as String?,
-      isOnline: json['isOnline'] ?? false,
-      fcmToken: json['fcmToken'] as String?,
+      loveId: (json['loveId'] ?? json['loveid'])?.toString(),
+      loverUsername: (json['loverUsername'] ?? json['loverusername'])?.toString(),
+      isVipActive: json['isVipActive'] == true || json['isvipactive'] == true,
+      vipProductId: (json['vipProductId'] ?? json['vipproductid'])?.toString(),
+      vipExpiryDate: (json['vipExpiryDate'] ?? json['vipexpirydate'])?.toString(),
+      vipGoogleEmail: (json['vipGoogleEmail'] ?? json['vipgoogleemail'])?.toString(),
+      displayName: (json['displayName'] ?? json['displayname'])?.toString(),
+      isOnline: json['isOnline'] == true || json['isonline'] == true,
+      fcmToken: (json['fcmToken'] ?? json['fcmtoken'])?.toString(),
     );
   }
 }
@@ -405,8 +405,21 @@ class TXAAuthService extends ChangeNotifier {
       );
 
       // Save to Supabase
+      final userJson = newUser.toJson();
       await supabase.from('txa_users').insert({
-        ...newUser.toJson(),
+        ...userJson,
+        'avatarbgcolor': avatarBgColor,
+        'googlephotourl': userJson['googlePhotoUrl'],
+        'isgoogleaccount': userJson['isGoogleAccount'],
+        'createdtime': newUser.createdTime,
+        'lastactive': userJson['lastActive'],
+        'monthlymemories': userJson['monthlyMemories'],
+        'loveid': userJson['loveId'],
+        'loverusername': userJson['loverUsername'],
+        'isvipactive': userJson['isVipActive'],
+        'displayname': displayName,
+        'isonline': userJson['isOnline'],
+        'fcmtoken': userJson['fcmToken'],
         'password': password,
       });
 
@@ -632,8 +645,14 @@ class TXAAuthService extends ChangeNotifier {
           displayName: displayName,
         );
 
+        final gUserJson = googleUserAccount.toJson();
         await supabase.from('txa_users').insert({
-          ...googleUserAccount.toJson(),
+          ...gUserJson,
+          'avatarbgcolor': '0xFFF57C00',
+          'googlephotourl': photoUrl ?? 'https://lh3.googleusercontent.com/a/default-user',
+          'isgoogleaccount': true,
+          'createdtime': googleUserAccount.createdTime,
+          'displayname': displayName,
           'password': 'google_oauth_bypass',
         });
       }
@@ -713,6 +732,7 @@ class TXAAuthService extends ChangeNotifier {
       await TXASupabaseService.instance.client.from('txa_users').update({
         'avatar': newAvatar,
         'avatarBgColor': newColorHex,
+        'avatarbgcolor': newColorHex,
       }).eq('id', _currentUser!.id);
 
       // Update local accounts fallback
@@ -751,8 +771,11 @@ class TXAAuthService extends ChangeNotifier {
     try {
       await TXASupabaseService.instance.client.from('txa_users').update({
         'isVipActive': false,
+        'isvipactive': false,
         'vipProductId': null,
+        'vipproductid': null,
         'vipExpiryDate': null,
+        'vipexpirydate': null,
       }).eq('id', user.id);
 
       await syncUserFromFirestore();
@@ -795,7 +818,9 @@ class TXAAuthService extends ChangeNotifier {
     try {
       await TXASupabaseService.instance.client.from('txa_users').update({
         'isOnline': online,
+        'isonline': online,
         'lastActive': nowStr,
+        'lastactive': nowStr,
       }).eq('id', _currentUser!.id);
     } catch (e) {
       debugPrint('updateOnlineStatus Supabase error: $e');
@@ -846,6 +871,8 @@ class TXAAuthService extends ChangeNotifier {
         // Rebuild friends list when user doc changes (e.g. bestFriends list updated)
         _rebuildFriendsListRealtime();
       }
+    }, onError: (e) {
+      debugPrint('Realtime user stream error: $e');
     });
   }
 
@@ -972,6 +999,8 @@ class TXAAuthService extends ChangeNotifier {
         .eq('from', username)
         .listen((snap) {
       _rebuildFriendsListRealtime();
+    }, onError: (e) {
+      debugPrint('Realtime sent friends stream error: $e');
     });
 
     _receivedFriendsSub = supabase
@@ -980,6 +1009,8 @@ class TXAAuthService extends ChangeNotifier {
         .eq('to', username)
         .listen((snap) {
       _rebuildFriendsListRealtime();
+    }, onError: (e) {
+      debugPrint('Realtime received friends stream error: $e');
     });
   }
 
@@ -1109,11 +1140,15 @@ class TXAAuthService extends ChangeNotifier {
     await supabase.from('txa_friend_requests').insert({
       'from': fromUsername,
       'fromAvatar': _currentUser?.avatar ?? '👤',
+      'fromavatar': _currentUser?.avatar ?? '👤',
       'fromAvatarColor': _currentUser?.avatarBgColor ?? '0xFF607D8B',
+      'fromavatarcolor': _currentUser?.avatarBgColor ?? '0xFF607D8B',
       'to': toUsername,
       'toAvatar': userSnap['avatar'] ?? '👤',
+      'toavatar': userSnap['avatar'] ?? '👤',
       'status': 'pending',
       'createdTime': DateTime.now().toIso8601String(),
+      'createdtime': DateTime.now().toIso8601String(),
     });
     return {'success': true, 'message': txaLang.getText('friend_request_sent_to').replaceFirst('%user%', toUsername)};
   }

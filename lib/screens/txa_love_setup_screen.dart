@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:cloud_firestore/cloud_firestore.dart';
+import '../services/txa_supabase_service.dart';
 import '../theme/txa_theme.dart';
 import '../services/txa_language.dart';
 import '../services/txa_analytics.dart';
@@ -181,7 +181,7 @@ class _TXALoveSetupScreenState extends State<TXALoveSetupScreen> {
                       child: ElevatedButton.icon(
                         onPressed: () async {
                           final inviteId = mySentInvite['id'] as String;
-                          await FirebaseFirestore.instance.collection('love_invitations').doc(inviteId).delete();
+                          await TXASupabaseService.instance.client.from('txa_love_invitations').delete().eq('id', inviteId);
                           if (context.mounted) {
                             TXAToast.show(
                               context,
