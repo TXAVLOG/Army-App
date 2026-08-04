@@ -38,7 +38,7 @@ class TXAWeatherData {
         temperature: (json['temperature'] as num).toDouble(),
         tempString: json['tempString'] ?? '25°C',
         emoji: json['emoji'] ?? '☀️',
-        label: json['label'] ?? '25°C ☀️',
+        label: json['label'] ?? '☀️ 25°C',
         weatherCode: (json['weatherCode'] as num?)?.toInt() ?? 0,
         isDay: json['isDay'] ?? true,
         timestamp: DateTime.tryParse(json['timestamp'] ?? '') ?? DateTime.now(),
@@ -116,7 +116,7 @@ class TXAWeatherService {
 
           final emoji = _getWeatherEmoji(code, isDay);
           final tempString = '${temp.round()}°C';
-          final label = '$tempString $emoji';
+          final label = '$emoji $tempString';
 
           _cachedWeather = TXAWeatherData(
             temperature: temp,
@@ -146,7 +146,7 @@ class TXAWeatherService {
       temperature: 25.0,
       tempString: '25°C',
       emoji: '☀️',
-      label: '25°C ☀️',
+      label: '☀️ 25°C',
       weatherCode: 0,
       isDay: true,
       timestamp: DateTime.now(),

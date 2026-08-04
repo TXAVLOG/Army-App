@@ -635,6 +635,9 @@ class TXALanguage extends ChangeNotifier {
       'admin_event_create_post': 'Đăng khoảnh khắc (create_post) 📸',
       'admin_event_send_message': 'Gửi tin nhắn (send_message) 💬',
       'admin_event_add_reaction': 'Thả cảm xúc (add_reaction) ❤️',
+      'weather_loading': 'Đang tải nhiệt độ vị trí...',
+      'weather_updated_toast': '🌡️ Đã cập nhật nhiệt độ vị trí!',
+      'tap_to_refresh_weather': 'Bấm trực tiếp vào caption để cập nhật',
     },
     'en': {
       'app_title': 'Army',
@@ -1253,6 +1256,9 @@ class TXALanguage extends ChangeNotifier {
       'admin_event_create_post': 'Post Moment (create_post) 📸',
       'admin_event_send_message': 'Send Message (send_message) 💬',
       'admin_event_add_reaction': 'Add Reaction (add_reaction) ❤️',
+      'weather_loading': 'Fetching location weather...',
+      'weather_updated_toast': '🌡️ Location weather updated!',
+      'tap_to_refresh_weather': 'Tap directly to refresh',
     },
   };
 

@@ -87,45 +87,38 @@ class _PhotoPreviewScreenState extends State<PhotoPreviewScreen> {
 
   Map<String, dynamic> _getWeatherTheme(TXAWeatherData weather) {
     final code = weather.weatherCode;
-    final isDay = weather.isDay;
 
     if (code == 0 || code == 1) {
       return {
-        'title': isDay ? 'Trời nắng ☀️' : 'Đêm quang 🌙',
         'gradient': [const Color(0xFFFF8F00), const Color(0xFFFFC107)],
         'textColor': Colors.black,
       };
     }
     if (code == 2 || code == 3 || code == 45 || code == 48) {
       return {
-        'title': 'Trời râm mát 🌤️',
         'gradient': [const Color(0xFF37474F), const Color(0xFF607D8B)],
         'textColor': Colors.white,
       };
     }
     if ((code >= 51 && code <= 67) || (code >= 80 && code <= 82)) {
       return {
-        'title': 'Có mưa 🌧️',
         'gradient': [const Color(0xFF1565C0), const Color(0xFF0288D1)],
         'textColor': Colors.white,
       };
     }
     if (code >= 95 && code <= 99) {
       return {
-        'title': 'Giông bão ⛈️',
         'gradient': [const Color(0xFF4A148C), const Color(0xFF7B1FA2)],
         'textColor': Colors.white,
       };
     }
     if ((code >= 71 && code <= 77) || code == 85 || code == 86) {
       return {
-        'title': 'Tuyết rơi ❄️',
         'gradient': [const Color(0xFF00838F), const Color(0xFF00ACC1)],
         'textColor': Colors.white,
       };
     }
     return {
-      'title': 'Thời tiết 🌡️',
       'gradient': [const Color(0xFFFF8F00), const Color(0xFFFFC107)],
       'textColor': Colors.black,
     };
@@ -2213,13 +2206,15 @@ class _PhotoPreviewScreenState extends State<PhotoPreviewScreen> {
                                       ),
                                     ),
 
-                                  // Weather Sticker Card & Refresh Button Overlay
+                                  // Weather Sticker Card Overlay (Directly Clickable to Refresh)
                                   Positioned(
                                     bottom: 24,
                                     left: 20,
                                     right: 20,
                                     child: Builder(builder: (context) {
                                       final weather = _weatherData;
+                                      final txaLang = TXALanguage.instance;
+
                                       if (_isFetchingWeather && weather == null) {
                                         return Container(
                                           padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
@@ -2228,19 +2223,19 @@ class _PhotoPreviewScreenState extends State<PhotoPreviewScreen> {
                                             borderRadius: BorderRadius.circular(24),
                                             border: Border.all(color: Colors.white24),
                                           ),
-                                          child: const Row(
+                                          child: Row(
                                             mainAxisAlignment: MainAxisAlignment.center,
                                             mainAxisSize: MainAxisSize.min,
                                             children: [
-                                              SizedBox(
+                                              const SizedBox(
                                                 width: 18,
                                                 height: 18,
                                                 child: CircularProgressIndicator(color: TXATheme.primaryYellow, strokeWidth: 2),
                                               ),
-                                              SizedBox(width: 10),
+                                              const SizedBox(width: 10),
                                               Text(
-                                                'Đang tải nhiệt độ vị trí...',
-                                                style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 13),
+                                                txaLang.getText('weather_loading'),
+                                                style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 13),
                                               ),
                                             ],
                                           ),
@@ -2251,7 +2246,7 @@ class _PhotoPreviewScreenState extends State<PhotoPreviewScreen> {
                                         temperature: 25.0,
                                         tempString: '25°C',
                                         emoji: '🌤️',
-                                        label: '25°C 🌤️',
+                                        label: '🌤️ 25°C',
                                         weatherCode: 2,
                                         isDay: true,
                                         timestamp: DateTime.now(),
@@ -2260,14 +2255,22 @@ class _PhotoPreviewScreenState extends State<PhotoPreviewScreen> {
                                       final theme = _getWeatherTheme(w);
                                       final List<Color> gradient = theme['gradient'];
                                       final Color textColor = theme['textColor'];
-                                      final String statusTitle = theme['title'];
 
-                                      return Column(
-                                        mainAxisSize: MainAxisSize.min,
-                                        children: [
-                                          // Weather Main Pill Card
-                                          Container(
-                                            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+                                      return Center(
+                                        child: GestureDetector(
+                                          onTap: () async {
+                                            await _getWeather(force: true);
+                                            if (mounted) {
+                                              TXAToast.show(
+                                                context,
+                                                txaLang.getText('weather_updated_toast'),
+                                                icon: Icons.thermostat_rounded,
+                                              );
+                                            }
+                                          },
+                                          child: AnimatedContainer(
+                                            duration: const Duration(milliseconds: 300),
+                                            padding: const EdgeInsets.symmetric(horizontal: 22, vertical: 12),
                                             decoration: BoxDecoration(
                                               gradient: LinearGradient(
                                                 colors: gradient,
@@ -2288,70 +2291,34 @@ class _PhotoPreviewScreenState extends State<PhotoPreviewScreen> {
                                               mainAxisAlignment: MainAxisAlignment.center,
                                               mainAxisSize: MainAxisSize.min,
                                               children: [
+                                                _isFetchingWeather
+                                                    ? Container(
+                                                        margin: const EdgeInsets.only(right: 8),
+                                                        width: 16,
+                                                        height: 16,
+                                                        child: CircularProgressIndicator(
+                                                          color: textColor,
+                                                          strokeWidth: 2,
+                                                        ),
+                                                      )
+                                                    : Text(
+                                                        w.emoji, // Icon đằng trước
+                                                        style: const TextStyle(fontSize: 22),
+                                                      ),
+                                                const SizedBox(width: 8),
                                                 Text(
-                                                  w.emoji,
-                                                  style: const TextStyle(fontSize: 28),
-                                                ),
-                                                const SizedBox(width: 12),
-                                                Column(
-                                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                                  mainAxisSize: MainAxisSize.min,
-                                                  children: [
-                                                    Text(
-                                                      w.tempString,
-                                                      style: TextStyle(
-                                                        color: textColor,
-                                                        fontSize: 22,
-                                                        fontWeight: FontWeight.w900,
-                                                        letterSpacing: -0.5,
-                                                      ),
-                                                    ),
-                                                    Text(
-                                                      statusTitle,
-                                                      style: TextStyle(
-                                                        color: textColor.withAlpha(210),
-                                                        fontSize: 11.5,
-                                                        fontWeight: FontWeight.bold,
-                                                      ),
-                                                    ),
-                                                  ],
+                                                  w.tempString, // Chỉ hiện nhiệt độ
+                                                  style: TextStyle(
+                                                    color: textColor,
+                                                    fontSize: 20,
+                                                    fontWeight: FontWeight.w900,
+                                                    letterSpacing: -0.5,
+                                                  ),
                                                 ),
                                               ],
                                             ),
                                           ),
-
-                                          const SizedBox(height: 10),
-
-                                          // Refresh Weather Button
-                                          GestureDetector(
-                                            onTap: () => _getWeather(force: true),
-                                            child: Container(
-                                              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
-                                              decoration: BoxDecoration(
-                                                color: Colors.black.withAlpha(150),
-                                                borderRadius: BorderRadius.circular(16),
-                                                border: Border.all(color: Colors.white24),
-                                              ),
-                                              child: Row(
-                                                mainAxisSize: MainAxisSize.min,
-                                                children: [
-                                                  _isFetchingWeather
-                                                      ? const SizedBox(
-                                                          width: 12,
-                                                          height: 12,
-                                                          child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2),
-                                                        )
-                                                      : const Icon(Icons.refresh_rounded, color: Colors.white70, size: 14),
-                                                  const SizedBox(width: 6),
-                                                  const Text(
-                                                    'Cập nhật nhiệt độ vị trí',
-                                                    style: TextStyle(color: Colors.white70, fontSize: 11, fontWeight: FontWeight.w600),
-                                                  ),
-                                                ],
-                                              ),
-                                            ),
-                                          ),
-                                        ],
+                                        ),
                                       );
                                     }),
                                   ),
