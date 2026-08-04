@@ -22,6 +22,7 @@ import '../services/txa_feed_service.dart';
 import '../services/txa_google_play_services.dart';
 import '../widgets/txa_toast.dart';
 import '../widgets/txa_network_image.dart';
+import '../services/txa_weather_service.dart';
 
 class AppMouseScrollBehavior extends MaterialScrollBehavior {
   @override
@@ -58,6 +59,77 @@ class _PhotoPreviewScreenState extends State<PhotoPreviewScreen> {
   List<Color>? _selectedStickerGradient;
   Color? _selectedStickerTextColor;
   bool _isUploading = false;
+
+  TXAWeatherData? _weatherData;
+  bool _isFetchingWeather = false;
+
+  Future<void> _getWeather({bool force = false}) async {
+    if (_isFetchingWeather) return;
+    setState(() {
+      _isFetchingWeather = true;
+    });
+    try {
+      final weather = await TXAWeatherService.instance.fetchCurrentWeather(forceRefresh: force);
+      if (mounted) {
+        setState(() {
+          _weatherData = weather;
+          _isFetchingWeather = false;
+        });
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() {
+          _isFetchingWeather = false;
+        });
+      }
+    }
+  }
+
+  Map<String, dynamic> _getWeatherTheme(TXAWeatherData weather) {
+    final code = weather.weatherCode;
+    final isDay = weather.isDay;
+
+    if (code == 0 || code == 1) {
+      return {
+        'title': isDay ? 'Trời nắng ☀️' : 'Đêm quang 🌙',
+        'gradient': [const Color(0xFFFF8F00), const Color(0xFFFFC107)],
+        'textColor': Colors.black,
+      };
+    }
+    if (code == 2 || code == 3 || code == 45 || code == 48) {
+      return {
+        'title': 'Trời râm mát 🌤️',
+        'gradient': [const Color(0xFF37474F), const Color(0xFF607D8B)],
+        'textColor': Colors.white,
+      };
+    }
+    if ((code >= 51 && code <= 67) || (code >= 80 && code <= 82)) {
+      return {
+        'title': 'Có mưa 🌧️',
+        'gradient': [const Color(0xFF1565C0), const Color(0xFF0288D1)],
+        'textColor': Colors.white,
+      };
+    }
+    if (code >= 95 && code <= 99) {
+      return {
+        'title': 'Giông bão ⛈️',
+        'gradient': [const Color(0xFF4A148C), const Color(0xFF7B1FA2)],
+        'textColor': Colors.white,
+      };
+    }
+    if ((code >= 71 && code <= 77) || code == 85 || code == 86) {
+      return {
+        'title': 'Tuyết rơi ❄️',
+        'gradient': [const Color(0xFF00838F), const Color(0xFF00ACC1)],
+        'textColor': Colors.white,
+      };
+    }
+    return {
+      'title': 'Thời tiết 🌡️',
+      'gradient': [const Color(0xFFFF8F00), const Color(0xFFFFC107)],
+      'textColor': Colors.black,
+    };
+  }
 
   List<Map<String, dynamic>> get _customizationSections {
     final isVi = TXALanguage.instance.currentLanguage == 'vi';
@@ -599,6 +671,7 @@ class _PhotoPreviewScreenState extends State<PhotoPreviewScreen> {
       setState(() {});
     });
     _checkAndAutoFetchLocation();
+    _getWeather();
   }
 
   void _checkAndAutoFetchLocation() async {
@@ -799,9 +872,34 @@ class _PhotoPreviewScreenState extends State<PhotoPreviewScreen> {
       final formattedTime = TXAFormat.formatTime(DateTime.now());
 
       int? voiceDuration;
-      if (_recordedVoicePath != null) {
+      if (_recordedVoicePath != null && _currentPage == 1) {
         voiceDuration = 15 - _voiceSeconds;
         if (voiceDuration < 1) voiceDuration = 1;
+      }
+
+      String finalCaption = caption;
+      String? finalMoodEmoji = _selectedCustomSticker == '__review__'
+          ? '__review_${_reviewRating}__'
+          : (_selectedMoodEmoji ?? _selectedCustomSticker ?? '😊');
+      Color? finalStickerColor = _selectedStickerColor;
+      List<Color>? finalStickerGradient = _selectedStickerGradient;
+      Color? finalStickerTextColor = _selectedStickerTextColor;
+
+      if (_currentPage == 2) {
+        final w = _weatherData ?? TXAWeatherData(
+          temperature: 25.0,
+          tempString: '25°C',
+          emoji: '🌤️',
+          label: '25°C 🌤️',
+          weatherCode: 2,
+          isDay: true,
+          timestamp: DateTime.now(),
+        );
+        final theme = _getWeatherTheme(w);
+        finalCaption = caption.isNotEmpty ? '${w.label} $caption' : w.label;
+        finalMoodEmoji = w.emoji;
+        finalStickerGradient = (theme['gradient'] as List<dynamic>).cast<Color>();
+        finalStickerTextColor = theme['textColor'] as Color;
       }
 
       await TXAFeedService.instance.createPost(
@@ -809,23 +907,21 @@ class _PhotoPreviewScreenState extends State<PhotoPreviewScreen> {
         senderAvatar: currentUser?.avatar ?? '🦊',
         senderAvatarColor: currentUser?.avatarBgColor ?? '0xFFF57C00',
         photoPath: widget.imagePath ?? '',
-        caption: caption,
-        moodEmoji: _selectedCustomSticker == '__review__'
-            ? '__review_${_reviewRating}__'
-            : (_selectedMoodEmoji ?? _selectedCustomSticker ?? '😊'),
-        stickerBgColor: _selectedStickerColor != null
-            ? '0x${_selectedStickerColor!.toARGB32().toRadixString(16).padLeft(8, '0').toUpperCase()}'
+        caption: finalCaption,
+        moodEmoji: finalMoodEmoji,
+        stickerBgColor: finalStickerColor != null
+            ? '0x${finalStickerColor.toARGB32().toRadixString(16).padLeft(8, '0').toUpperCase()}'
             : null,
-        stickerGradient: _selectedStickerGradient
+        stickerGradient: finalStickerGradient
             ?.map((c) => '0x${c.toARGB32().toRadixString(16).padLeft(8, '0').toUpperCase()}')
             .join(','),
-        stickerTextColor: _selectedStickerTextColor != null
-            ? '0x${_selectedStickerTextColor!.toARGB32().toRadixString(16).padLeft(8, '0').toUpperCase()}'
+        stickerTextColor: finalStickerTextColor != null
+            ? '0x${finalStickerTextColor.toARGB32().toRadixString(16).padLeft(8, '0').toUpperCase()}'
             : null,
         aspectRatio: txaFormat.aspectRatio,
         timestampText: formattedTime,
         recipients: recipientList,
-        voicePath: _recordedVoicePath,
+        voicePath: _currentPage == 1 ? _recordedVoicePath : null,
         voiceDuration: voiceDuration,
         isBlurOverlay: _isBlurOverlay,
         isRollcall: widget.isRollcall,
@@ -2117,28 +2213,74 @@ class _PhotoPreviewScreenState extends State<PhotoPreviewScreen> {
                                       ),
                                     ),
 
-                                  // Location Caption & GMS Button Overlay
+                                  // Weather Sticker Card & Refresh Button Overlay
                                   Positioned(
                                     bottom: 24,
                                     left: 20,
                                     right: 20,
-                                    child: Column(
-                                      mainAxisSize: MainAxisSize.min,
-                                      children: [
-                                        // Caption màu xám khi có vị trí
-                                        if (_fetchedLocationName != null)
+                                    child: Builder(builder: (context) {
+                                      final weather = _weatherData;
+                                      if (_isFetchingWeather && weather == null) {
+                                        return Container(
+                                          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
+                                          decoration: BoxDecoration(
+                                            color: Colors.black.withAlpha(180),
+                                            borderRadius: BorderRadius.circular(24),
+                                            border: Border.all(color: Colors.white24),
+                                          ),
+                                          child: const Row(
+                                            mainAxisAlignment: MainAxisAlignment.center,
+                                            mainAxisSize: MainAxisSize.min,
+                                            children: [
+                                              SizedBox(
+                                                width: 18,
+                                                height: 18,
+                                                child: CircularProgressIndicator(color: TXATheme.primaryYellow, strokeWidth: 2),
+                                              ),
+                                              SizedBox(width: 10),
+                                              Text(
+                                                'Đang tải nhiệt độ vị trí...',
+                                                style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 13),
+                                              ),
+                                            ],
+                                          ),
+                                        );
+                                      }
+
+                                      final w = weather ?? TXAWeatherData(
+                                        temperature: 25.0,
+                                        tempString: '25°C',
+                                        emoji: '🌤️',
+                                        label: '25°C 🌤️',
+                                        weatherCode: 2,
+                                        isDay: true,
+                                        timestamp: DateTime.now(),
+                                      );
+
+                                      final theme = _getWeatherTheme(w);
+                                      final List<Color> gradient = theme['gradient'];
+                                      final Color textColor = theme['textColor'];
+                                      final String statusTitle = theme['title'];
+
+                                      return Column(
+                                        mainAxisSize: MainAxisSize.min,
+                                        children: [
+                                          // Weather Main Pill Card
                                           Container(
-                                            margin: const EdgeInsets.only(bottom: 12),
-                                            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+                                            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
                                             decoration: BoxDecoration(
-                                              color: const Color(0xFF343238), // Grey background
-                                              borderRadius: BorderRadius.circular(24),
-                                              border: Border.all(color: Colors.white24, width: 1.0),
+                                              gradient: LinearGradient(
+                                                colors: gradient,
+                                                begin: Alignment.topLeft,
+                                                end: Alignment.bottomRight,
+                                              ),
+                                              borderRadius: BorderRadius.circular(26),
+                                              border: Border.all(color: Colors.white30, width: 1.2),
                                               boxShadow: [
                                                 BoxShadow(
-                                                  color: Colors.black.withAlpha(100),
-                                                  blurRadius: 10,
-                                                  offset: const Offset(0, 3),
+                                                  color: Colors.black.withAlpha(120),
+                                                  blurRadius: 12,
+                                                  offset: const Offset(0, 4),
                                                 ),
                                               ],
                                             ),
@@ -2146,78 +2288,72 @@ class _PhotoPreviewScreenState extends State<PhotoPreviewScreen> {
                                               mainAxisAlignment: MainAxisAlignment.center,
                                               mainAxisSize: MainAxisSize.min,
                                               children: [
-                                                const Icon(Icons.location_on_rounded, color: Color(0xFFD6D6D6), size: 18),
-                                                const SizedBox(width: 8),
-                                                Flexible(
-                                                  child: Text(
-                                                    _fetchedLocationName!,
-                                                    style: const TextStyle(
-                                                      color: Color(0xFFD6D6D6), // Grey caption
-                                                      fontSize: 14,
-                                                      fontWeight: FontWeight.bold,
+                                                Text(
+                                                  w.emoji,
+                                                  style: const TextStyle(fontSize: 28),
+                                                ),
+                                                const SizedBox(width: 12),
+                                                Column(
+                                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                                  mainAxisSize: MainAxisSize.min,
+                                                  children: [
+                                                    Text(
+                                                      w.tempString,
+                                                      style: TextStyle(
+                                                        color: textColor,
+                                                        fontSize: 22,
+                                                        fontWeight: FontWeight.w900,
+                                                        letterSpacing: -0.5,
+                                                      ),
                                                     ),
-                                                    textAlign: TextAlign.center,
-                                                  ),
+                                                    Text(
+                                                      statusTitle,
+                                                      style: TextStyle(
+                                                        color: textColor.withAlpha(210),
+                                                        fontSize: 11.5,
+                                                        fontWeight: FontWeight.bold,
+                                                      ),
+                                                    ),
+                                                  ],
                                                 ),
                                               ],
                                             ),
                                           ),
 
-                                        // Button lấy vị trí GMS
-                                        GestureDetector(
-                                          onTap: _getGMSLocation,
-                                          child: Container(
-                                            padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 10),
-                                            decoration: BoxDecoration(
-                                              color: _isFetchingLocation
-                                                  ? Colors.grey[800]?.withAlpha(220)
-                                                  : const Color(0xFF343238).withAlpha(220),
-                                              borderRadius: BorderRadius.circular(24),
-                                              border: Border.all(
-                                                color: const Color(0xFF8E8E93),
-                                                width: 1.5,
+                                          const SizedBox(height: 10),
+
+                                          // Refresh Weather Button
+                                          GestureDetector(
+                                            onTap: () => _getWeather(force: true),
+                                            child: Container(
+                                              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
+                                              decoration: BoxDecoration(
+                                                color: Colors.black.withAlpha(150),
+                                                borderRadius: BorderRadius.circular(16),
+                                                border: Border.all(color: Colors.white24),
                                               ),
-                                              boxShadow: [
-                                                BoxShadow(
-                                                  color: Colors.black.withAlpha(80),
-                                                  blurRadius: 10,
-                                                  offset: const Offset(0, 4),
-                                                ),
-                                              ],
-                                            ),
-                                            child: Row(
-                                              mainAxisSize: MainAxisSize.min,
-                                              children: [
-                                                _isFetchingLocation
-                                                    ? const SizedBox(
-                                                        width: 18,
-                                                        height: 18,
-                                                        child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2),
-                                                      )
-                                                    : const Icon(
-                                                        Icons.my_location_rounded,
-                                                        color: Color(0xFFD6D6D6),
-                                                        size: 20,
-                                                      ),
-                                                const SizedBox(width: 8),
-                                                Text(
-                                                  _isFetchingLocation
-                                                      ? txaLang.getText('getting_gms_location')
-                                                      : _fetchedLocationName != null
-                                                          ? txaLang.getText('refetch_location')
-                                                          : txaLang.getText('get_gms_location'),
-                                                  style: const TextStyle(
-                                                    color: Color(0xFFD6D6D6), // Grey text caption
-                                                    fontSize: 14,
-                                                    fontWeight: FontWeight.bold,
+                                              child: Row(
+                                                mainAxisSize: MainAxisSize.min,
+                                                children: [
+                                                  _isFetchingWeather
+                                                      ? const SizedBox(
+                                                          width: 12,
+                                                          height: 12,
+                                                          child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2),
+                                                        )
+                                                      : const Icon(Icons.refresh_rounded, color: Colors.white70, size: 14),
+                                                  const SizedBox(width: 6),
+                                                  const Text(
+                                                    'Cập nhật nhiệt độ vị trí',
+                                                    style: TextStyle(color: Colors.white70, fontSize: 11, fontWeight: FontWeight.w600),
                                                   ),
-                                                ),
-                                              ],
+                                                ],
+                                              ),
                                             ),
                                           ),
-                                        ),
-                                      ],
-                                    ),
+                                        ],
+                                      );
+                                    }),
                                   ),
                                 ],
                               ),
