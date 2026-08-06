@@ -5,12 +5,41 @@ class TXAVersion extends ChangeNotifier {
   TXAVersion._internal();
 
   static const String appName = 'Army';
-  static const String currentVersion = '1.3.0';
-  static const int buildNumber = 6;
+  static const String currentVersion = '1.3.1';
+  static const int buildNumber = 7;
   static const String releaseDate = '06/08/2026';
-  static const String fullVersionString = 'Bản 1.3.0+6';
+  static const String fullVersionString = 'Bản 1.3.1+7';
 
   static const List<Map<String, dynamic>> changelogData = [
+    {
+      'version': '1.3.1+7',
+      'date': '06/08/2026',
+      'title': 'Sửa Lỗi Quảng Cáo Feed & Nâng Cấp Khôi Phục Giao Dịch 🚀',
+      'subtitle': 'Xử lý dứt điểm lỗi đơ thanh tiến độ 25% ở quảng cáo, tích hợp hiệu ứng quay dò tìm & thông báo lỗi mạng khi khôi phục mua hàng.',
+      'badge': 'BẢN CẬP NHẬT',
+      'features': [
+        {
+          'icon': '📢',
+          'title': 'Sửa lỗi đơ thanh tiến độ quảng cáo 25%',
+          'description': 'Xử lý triệt để lỗi treo AdMob, bổ sung bộ đếm Safety Timeout 6 giây và giao diện thông báo lỗi thân thiện kèm nút Thử lại & Gold Pass.',
+        },
+        {
+          'icon': '💳',
+          'title': 'Trải nghiệm Khôi phục giao dịch thực tế',
+          'description': 'Thêm hiệu ứng quay loading màu vàng nhấp nháy ngay cạnh chữ Khôi Phục Giao Dịch, đồng bộ kết quả thực từ Google Play & App Store.',
+        },
+        {
+          'icon': '📡',
+          'title': 'Cảnh báo mất kết nối Internet',
+          'description': 'Tự động phát hiện và hiển thị cảnh báo lỗi mạng khi thiết bị bị ngắt kết nối Internet trong quá trình khôi phục giao dịch.',
+        },
+        {
+          'icon': '🌐',
+          'title': 'Chuẩn hóa Hệ thống Đa ngôn ngữ',
+          'description': 'Chuyển toàn bộ các nhãn thông báo và trạng thái sang hệ thống đa ngôn ngữ TXALanguage tập trung (Tiếng Việt & English).',
+        },
+      ],
+    },
     {
       'version': '1.3.0+6',
       'date': '06/08/2026',

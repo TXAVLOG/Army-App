@@ -7,6 +7,7 @@ import '../services/txa_admob_service.dart';
 import '../services/txa_network_monitor.dart';
 import '../services/txa_language.dart';
 import '../services/txa_logger.dart';
+import '../screens/txa_gold_pass_paywall_screen.dart';
 
 class TXANativeAdFeedCard extends StatefulWidget {
   const TXANativeAdFeedCard({super.key});
@@ -18,8 +19,10 @@ class TXANativeAdFeedCard extends StatefulWidget {
 class _TXANativeAdFeedCardState extends State<TXANativeAdFeedCard> {
   NativeAd? _nativeAd;
   bool _adLoaded = false;
+  bool _adFailed = false;
   double _adLoadProgress = 0.0;
   Timer? _progressTimer;
+  Timer? _timeoutTimer;
 
   @override
   void initState() {
@@ -28,17 +31,47 @@ class _TXANativeAdFeedCardState extends State<TXANativeAdFeedCard> {
   }
 
   void _loadAd() {
+    _progressTimer?.cancel();
+    _timeoutTimer?.cancel();
+    _nativeAd?.dispose();
+    _nativeAd = null;
+
+    if (mounted) {
+      setState(() {
+        _adLoaded = false;
+        _adFailed = false;
+        _adLoadProgress = 0.0;
+      });
+    }
+
     if (kIsWeb || Platform.isWindows || !TXANetworkMonitor.instance.hasConnection) {
+      if (mounted) {
+        setState(() {
+          _adFailed = true;
+        });
+      }
       return;
     }
 
     // Giả lập thanh tiến độ ads chạy từ 0 đến 90% trong lúc đợi AdMob load
     _progressTimer = Timer.periodic(const Duration(milliseconds: 100), (timer) {
-      if (mounted) {
+      if (mounted && !_adLoaded && !_adFailed) {
         setState(() {
           if (_adLoadProgress < 0.9) {
             _adLoadProgress += 0.05;
           }
+        });
+      }
+    });
+
+    // Safety timeout: 6 seconds max waiting for AdMob response
+    _timeoutTimer = Timer(const Duration(seconds: 6), () {
+      if (mounted && !_adLoaded && !_adFailed) {
+        _progressTimer?.cancel();
+        _nativeAd?.dispose();
+        _nativeAd = null;
+        setState(() {
+          _adFailed = true;
         });
       }
     });
@@ -49,17 +82,27 @@ class _TXANativeAdFeedCardState extends State<TXANativeAdFeedCard> {
       listener: NativeAdListener(
         onAdLoaded: (ad) {
           _progressTimer?.cancel();
+          _timeoutTimer?.cancel();
           if (mounted) {
             setState(() {
               _adLoadProgress = 1.0;
               _adLoaded = true;
+              _adFailed = false;
             });
           }
         },
         onAdFailedToLoad: (ad, error) {
           _progressTimer?.cancel();
+          _timeoutTimer?.cancel();
           TXALogger.logError(error, extraInfo: {'widget': 'TXANativeAdFeedCard', 'action': 'onAdFailedToLoad'});
           ad.dispose();
+          if (mounted) {
+            setState(() {
+              _nativeAd = null;
+              _adLoaded = false;
+              _adFailed = true;
+            });
+          }
         },
       ),
       nativeTemplateStyle: NativeTemplateStyle(
@@ -71,15 +114,23 @@ class _TXANativeAdFeedCardState extends State<TXANativeAdFeedCard> {
       _nativeAd!.load();
     } catch (e, stack) {
       _progressTimer?.cancel();
+      _timeoutTimer?.cancel();
       TXALogger.logError(e, stackTrace: stack, extraInfo: {'widget': 'TXANativeAdFeedCard', 'action': '_loadAd'});
       _nativeAd?.dispose();
       _nativeAd = null;
+      if (mounted) {
+        setState(() {
+          _adLoaded = false;
+          _adFailed = true;
+        });
+      }
     }
   }
 
   @override
   void dispose() {
     _progressTimer?.cancel();
+    _timeoutTimer?.cancel();
     _nativeAd?.dispose();
     super.dispose();
   }
@@ -127,7 +178,7 @@ class _TXANativeAdFeedCardState extends State<TXANativeAdFeedCard> {
                               child: AdWidget(ad: _nativeAd!),
                             ),
                           )
-                        : _buildPremiumPlaceholder(),
+                        : (_adFailed ? _buildErrorPlaceholder() : _buildPremiumPlaceholder()),
 
                     // Sponsored Label and Tooltip at Bottom Left
                     Positioned(
@@ -142,9 +193,7 @@ class _TXANativeAdFeedCardState extends State<TXANativeAdFeedCard> {
                           border: Border.all(color: Colors.white24),
                         ),
                         richMessage: TextSpan(
-                          text: txaLang.currentLanguage == 'vi'
-                              ? "Quảng cáo này giúp duy trì ứng dụng Army miễn phí cho tất cả mọi người. Đăng ký Army Gold Pass 🌟 để ẩn toàn bộ quảng cáo."
-                              : "This ad helps keep Army free for everyone. Subscribe to Army Gold Pass 🌟 to remove all ads.",
+                          text: txaLang.getText('ad_sponsored_tooltip'),
                           style: const TextStyle(color: Colors.white, fontSize: 12),
                         ),
                         child: Container(
@@ -158,7 +207,7 @@ class _TXANativeAdFeedCardState extends State<TXANativeAdFeedCard> {
                             mainAxisSize: MainAxisSize.min,
                             children: [
                               Text(
-                                txaLang.currentLanguage == 'vi' ? 'ⓘ Được tài trợ' : 'ⓘ Sponsored',
+                                txaLang.getText('ad_sponsored_label'),
                                 style: const TextStyle(
                                   color: Colors.white70,
                                   fontSize: 11,
@@ -180,6 +229,70 @@ class _TXANativeAdFeedCardState extends State<TXANativeAdFeedCard> {
     );
   }
 
+  Widget _buildErrorPlaceholder() {
+    final txaLang = TXALanguage.instance;
+
+    return Container(
+      color: const Color(0xFF13131A),
+      padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 20),
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Icon(Icons.workspace_premium_rounded, color: const Color(0xFFFFD700).withAlpha(120), size: 44),
+          const SizedBox(height: 12),
+          Text(
+            txaLang.getText('ad_failed_title'),
+            style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 14),
+          ),
+          const SizedBox(height: 4),
+          Text(
+            txaLang.getText('ad_failed_desc'),
+            style: const TextStyle(color: Colors.white54, fontSize: 11),
+            textAlign: TextAlign.center,
+          ),
+          const SizedBox(height: 16),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              OutlinedButton.icon(
+                onPressed: _loadAd,
+                icon: const Icon(Icons.refresh_rounded, size: 14, color: Colors.white),
+                label: Text(
+                  txaLang.getText('retry_btn_label'),
+                  style: const TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.bold),
+                ),
+                style: OutlinedButton.styleFrom(
+                  side: const BorderSide(color: Colors.white24),
+                  padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                ),
+              ),
+              const SizedBox(width: 10),
+              ElevatedButton.icon(
+                onPressed: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(builder: (_) => const TXAGoldPassPaywallScreen()),
+                  );
+                },
+                icon: const Icon(Icons.star_rounded, size: 14, color: Colors.black),
+                label: const Text(
+                  'Gold Pass 🌟',
+                  style: TextStyle(color: Colors.black, fontSize: 12, fontWeight: FontWeight.bold),
+                ),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: const Color(0xFFFFD700),
+                  padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
   Widget _buildPremiumPlaceholder() {
     final txaLang = TXALanguage.instance;
     return Container(
@@ -190,7 +303,7 @@ class _TXANativeAdFeedCardState extends State<TXANativeAdFeedCard> {
           Icon(Icons.workspace_premium_rounded, color: const Color(0xFFFFD700).withAlpha(200), size: 48),
           const SizedBox(height: 16),
           Text(
-            txaLang.currentLanguage == 'vi' ? 'Đang tải quảng cáo tài trợ...' : 'Loading sponsored content...',
+            txaLang.getText('ad_loading_text'),
             style: const TextStyle(color: Colors.white70, fontWeight: FontWeight.bold, fontSize: 13),
           ),
           const SizedBox(height: 16),

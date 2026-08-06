@@ -12,6 +12,7 @@ import 'txa_language.dart';
 import '../main.dart';
 import 'txa_logger.dart';
 import 'txa_config.dart';
+import 'txa_network_monitor.dart';
 
 class TXAIAPService extends ChangeNotifier {
   static final TXAIAPService instance = TXAIAPService._internal();
@@ -89,12 +90,74 @@ class TXAIAPService extends ChangeNotifier {
     }
   }
 
+  bool _isRestoring = false;
+  bool get isRestoring => _isRestoring;
+  bool _restoredPurchaseHandled = false;
+
   Future<void> restorePurchases() async {
-    if (kIsWeb || Platform.isWindows) return;
+    final context = navigatorKey.currentContext;
+    final txaLang = TXALanguage.instance;
+
+    if (kIsWeb || Platform.isWindows) {
+      if (context != null && context.mounted) {
+        TXAToast.show(
+          context,
+          txaLang.getText('restore_unsupported_platform'),
+          icon: Icons.info_outline_rounded,
+        );
+      }
+      return;
+    }
+
+    if (!TXANetworkMonitor.instance.hasConnection) {
+      if (context != null && context.mounted) {
+        TXAToast.show(
+          context,
+          txaLang.getText('restore_network_error'),
+          icon: Icons.wifi_off_rounded,
+        );
+      }
+      return;
+    }
+
+    if (_isRestoring) return;
+    _isRestoring = true;
+    _restoredPurchaseHandled = false;
+    notifyListeners();
+
+    if (context != null && context.mounted) {
+      TXAToast.show(
+        context,
+        txaLang.getText('restore_checking_toast'),
+        icon: Icons.sync_rounded,
+      );
+    }
+
     try {
       await _iap.restorePurchases();
+      await Future.delayed(const Duration(seconds: 3));
+
+      if (!_restoredPurchaseHandled) {
+        if (context != null && context.mounted) {
+          TXAToast.show(
+            context,
+            txaLang.getText('restore_no_purchase'),
+            icon: Icons.info_outline_rounded,
+          );
+        }
+      }
     } catch (e, stack) {
       TXALogger.logError(e, stackTrace: stack, extraInfo: {'service': 'TXAIAPService', 'action': 'restorePurchases'});
+      if (context != null && context.mounted) {
+        TXAToast.show(
+          context,
+          txaLang.getText('restore_connect_error'),
+          icon: Icons.error_outline_rounded,
+        );
+      }
+    } finally {
+      _isRestoring = false;
+      notifyListeners();
     }
   }
 
@@ -107,6 +170,7 @@ class TXAIAPService extends ChangeNotifier {
           debugPrint('Purchase error: ${purchaseDetails.error}');
         } else if (purchaseDetails.status == PurchaseStatus.purchased ||
             purchaseDetails.status == PurchaseStatus.restored) {
+          _restoredPurchaseHandled = true;
           await _verifyAndActivateVIP(purchaseDetails);
         }
         if (purchaseDetails.pendingCompletePurchase) {

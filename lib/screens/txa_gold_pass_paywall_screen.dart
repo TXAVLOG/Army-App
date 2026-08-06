@@ -3,7 +3,6 @@ import '../theme/txa_theme.dart';
 import '../services/txa_language.dart';
 import '../services/txa_analytics.dart';
 import '../services/txa_iap_service.dart';
-import '../widgets/txa_toast.dart';
 import 'package:in_app_purchase/in_app_purchase.dart';
 
 class TXAGoldPassPaywallScreen extends StatefulWidget {
@@ -20,6 +19,17 @@ class _TXAGoldPassPaywallScreenState extends State<TXAGoldPassPaywallScreen> {
   void initState() {
     super.initState();
     TXAAnalytics.logScreenView(screenName: TXAAnalytics.screenGoldPass);
+    TXAIAPService.instance.addListener(_onIapChanged);
+  }
+
+  void _onIapChanged() {
+    if (mounted) setState(() {});
+  }
+
+  @override
+  void dispose() {
+    TXAIAPService.instance.removeListener(_onIapChanged);
+    super.dispose();
   }
 
   @override
@@ -54,19 +64,31 @@ class _TXAGoldPassPaywallScreenState extends State<TXAGoldPassPaywallScreen> {
         ),
         actions: [
           TextButton(
-            onPressed: () async {
-              await iapService.restorePurchases();
-              if (context.mounted) {
-                TXAToast.show(
-                  context,
-                  txaLang.getText('purchase_restored_toast'),
-                  icon: Icons.restore_rounded,
-                );
-              }
-            },
-            child: Text(
-              txaLang.getText('restore_purchases'),
-              style: const TextStyle(color: Colors.white70, fontSize: 13),
+            onPressed: iapService.isRestoring
+                ? null
+                : () async {
+                    await iapService.restorePurchases();
+                  },
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                if (iapService.isRestoring) ...[
+                  const SizedBox(
+                    width: 13,
+                    height: 13,
+                    child: CircularProgressIndicator(strokeWidth: 2, color: Color(0xFFFFD700)),
+                  ),
+                  const SizedBox(width: 8),
+                ],
+                Text(
+                  txaLang.getText('restore_purchases'),
+                  style: TextStyle(
+                    color: iapService.isRestoring ? const Color(0xFFFFD700) : Colors.white70,
+                    fontSize: 13,
+                    fontWeight: iapService.isRestoring ? FontWeight.bold : FontWeight.normal,
+                  ),
+                ),
+              ],
             ),
           ),
         ],
