@@ -67,7 +67,7 @@ class _TXAGoldPassPaywallScreenState extends State<TXAGoldPassPaywallScreen> {
             onPressed: iapService.isRestoring
                 ? null
                 : () async {
-                    await iapService.restorePurchases();
+                    await iapService.restorePurchases(context);
                   },
             child: Row(
               mainAxisSize: MainAxisSize.min,

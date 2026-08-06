@@ -94,29 +94,36 @@ class TXAIAPService extends ChangeNotifier {
   bool get isRestoring => _isRestoring;
   bool _restoredPurchaseHandled = false;
 
-  Future<void> restorePurchases() async {
-    final context = navigatorKey.currentContext;
+  void _safeShowToast(BuildContext? context, String message, {IconData icon = Icons.info_outline_rounded}) {
+    final ctx = context ?? navigatorKey.currentContext;
+    if (ctx != null && ctx.mounted) {
+      try {
+        TXAToast.show(ctx, message, icon: icon);
+      } catch (e) {
+        debugPrint('Toast error in _safeShowToast: $e');
+      }
+    }
+  }
+
+  Future<void> restorePurchases([BuildContext? customContext]) async {
+    final context = customContext ?? navigatorKey.currentContext;
     final txaLang = TXALanguage.instance;
 
     if (kIsWeb || Platform.isWindows) {
-      if (context != null && context.mounted) {
-        TXAToast.show(
-          context,
-          txaLang.getText('restore_unsupported_platform'),
-          icon: Icons.info_outline_rounded,
-        );
-      }
+      _safeShowToast(
+        context,
+        txaLang.getText('restore_unsupported_platform'),
+        icon: Icons.info_outline_rounded,
+      );
       return;
     }
 
     if (!TXANetworkMonitor.instance.hasConnection) {
-      if (context != null && context.mounted) {
-        TXAToast.show(
-          context,
-          txaLang.getText('restore_network_error'),
-          icon: Icons.wifi_off_rounded,
-        );
-      }
+      _safeShowToast(
+        context,
+        txaLang.getText('restore_network_error'),
+        icon: Icons.wifi_off_rounded,
+      );
       return;
     }
 
@@ -125,31 +132,34 @@ class TXAIAPService extends ChangeNotifier {
     _restoredPurchaseHandled = false;
     notifyListeners();
 
-    if (context != null && context.mounted) {
-      TXAToast.show(
-        context,
-        txaLang.getText('restore_checking_toast'),
-        icon: Icons.sync_rounded,
-      );
-    }
+    _safeShowToast(
+      context,
+      txaLang.getText('restore_checking_toast'),
+      icon: Icons.sync_rounded,
+    );
 
     try {
-      await _iap.restorePurchases();
-      await Future.delayed(const Duration(seconds: 3));
+      await _iap.restorePurchases().timeout(
+        const Duration(seconds: 8),
+        onTimeout: () {
+          debugPrint('⚠️ restorePurchases timed out after 8 seconds');
+        },
+      );
+      await Future.delayed(const Duration(seconds: 2));
+
+      if (context != null && !context.mounted) return;
 
       if (!_restoredPurchaseHandled) {
-        if (context != null && context.mounted) {
-          TXAToast.show(
-            context,
-            txaLang.getText('restore_no_purchase'),
-            icon: Icons.info_outline_rounded,
-          );
-        }
+        _safeShowToast(
+          context,
+          txaLang.getText('restore_no_purchase'),
+          icon: Icons.info_outline_rounded,
+        );
       }
     } catch (e, stack) {
       TXALogger.logError(e, stackTrace: stack, extraInfo: {'service': 'TXAIAPService', 'action': 'restorePurchases'});
       if (context != null && context.mounted) {
-        TXAToast.show(
+        _safeShowToast(
           context,
           txaLang.getText('restore_connect_error'),
           icon: Icons.error_outline_rounded,
