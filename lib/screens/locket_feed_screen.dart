@@ -813,19 +813,37 @@ class _LocketFeedScreenState extends State<LocketFeedScreen> {
     return AnimatedBuilder(
       animation: Listenable.merge([TXAFeedService.instance, txaLang, txaAuth]),
       builder: (context, _) {
-        var visiblePosts = TXAFeedService.instance.getVisiblePostsForUser(username);
+        var visiblePosts = TXAFeedService.instance.getVisiblePostsForUser(
+          username,
+        );
 
         // Áp dụng bộ lọc dropdown
         if (_filterType == 'me') {
-          visiblePosts = visiblePosts.where((p) => p.senderUsername == username).toList();
+          visiblePosts = visiblePosts
+              .where((p) => p.senderUsername == username)
+              .toList();
         } else if (_filterType == 'best_friends') {
-          final bestFriendsUsernames = txaAuth.bestFriendsList.map((f) => f['username'] as String).toSet();
-          visiblePosts = visiblePosts.where((p) => bestFriendsUsernames.contains(p.senderUsername)).toList();
+          final bestFriendsUsernames = txaAuth.bestFriendsList
+              .map((f) => f['username'] as String)
+              .toSet();
+          visiblePosts = visiblePosts
+              .where((p) => bestFriendsUsernames.contains(p.senderUsername))
+              .toList();
         } else if (_filterType == 'friends') {
-          final friendUsernames = txaAuth.friendsList.map((f) => f['username'] as String).toSet();
-          visiblePosts = visiblePosts.where((p) => friendUsernames.contains(p.senderUsername) && p.senderUsername != username).toList();
+          final friendUsernames = txaAuth.friendsList
+              .map((f) => f['username'] as String)
+              .toSet();
+          visiblePosts = visiblePosts
+              .where(
+                (p) =>
+                    friendUsernames.contains(p.senderUsername) &&
+                    p.senderUsername != username,
+              )
+              .toList();
         } else if (_filterType != 'all') {
-          visiblePosts = visiblePosts.where((p) => p.senderUsername == _filterType).toList();
+          visiblePosts = visiblePosts
+              .where((p) => p.senderUsername == _filterType)
+              .toList();
         }
 
         final bool isVip = TXAIAPService.instance.isVipActive;
@@ -848,7 +866,6 @@ class _LocketFeedScreenState extends State<LocketFeedScreen> {
           }
         }
 
-
         // Widget tiêu đề bộ lọc dropdown
         Widget buildFilterDropdownPill() {
           String filterLabel = txaLang.getText('filter_everyone');
@@ -860,7 +877,9 @@ class _LocketFeedScreenState extends State<LocketFeedScreen> {
             filterLabel = txaLang.getText('filter_best_friends');
             filterIcon = Icons.star_rounded;
           } else if (_filterType == 'friends') {
-            filterLabel = txaLang.currentLanguage == 'vi' ? 'Bạn bè' : 'Friends';
+            filterLabel = txaLang.currentLanguage == 'vi'
+                ? 'Bạn bè'
+                : 'Friends';
             filterIcon = Icons.people_alt_rounded;
           } else if (_filterType != 'all') {
             filterLabel = _filterType;
@@ -879,18 +898,32 @@ class _LocketFeedScreenState extends State<LocketFeedScreen> {
               child: Row(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  Icon(filterIcon, color: _filterType == 'best_friends' ? Colors.amber : Colors.white70, size: 16),
+                  Icon(
+                    filterIcon,
+                    color: _filterType == 'best_friends'
+                        ? Colors.amber
+                        : Colors.white70,
+                    size: 16,
+                  ),
                   const SizedBox(width: 6),
                   Flexible(
                     child: Text(
                       filterLabel,
-                      style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 13),
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontWeight: FontWeight.bold,
+                        fontSize: 13,
+                      ),
                       overflow: TextOverflow.ellipsis,
                       maxLines: 1,
                     ),
                   ),
                   const SizedBox(width: 4),
-                  const Icon(Icons.keyboard_arrow_down_rounded, color: Colors.white54, size: 16),
+                  const Icon(
+                    Icons.keyboard_arrow_down_rounded,
+                    color: Colors.white54,
+                    size: 16,
+                  ),
                 ],
               ),
             ),
@@ -909,7 +942,10 @@ class _LocketFeedScreenState extends State<LocketFeedScreen> {
                     backgroundColor: Colors.transparent,
                     elevation: 0,
                     leading: IconButton(
-                      icon: const Icon(Icons.arrow_back_rounded, color: Colors.white),
+                      icon: const Icon(
+                        Icons.arrow_back_rounded,
+                        color: Colors.white,
+                      ),
                       onPressed: () => Navigator.pop(context),
                     ),
                     centerTitle: true,
@@ -922,11 +958,19 @@ class _LocketFeedScreenState extends State<LocketFeedScreen> {
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  const Icon(Icons.photo_library_outlined, size: 64, color: TXATheme.textMuted),
+                  const Icon(
+                    Icons.photo_library_outlined,
+                    size: 64,
+                    color: TXATheme.textMuted,
+                  ),
                   const SizedBox(height: 16),
                   Text(
                     txaLang.getText('no_posts_yet'),
-                    style: const TextStyle(color: TXATheme.textSecondary, fontSize: 16, fontWeight: FontWeight.bold),
+                    style: const TextStyle(
+                      color: TXATheme.textSecondary,
+                      fontSize: 16,
+                      fontWeight: FontWeight.bold,
+                    ),
                   ),
                 ],
               ),
@@ -949,7 +993,10 @@ class _LocketFeedScreenState extends State<LocketFeedScreen> {
                     backgroundColor: Colors.transparent,
                     elevation: 0,
                     leading: IconButton(
-                      icon: const Icon(Icons.arrow_back_rounded, color: Colors.white),
+                      icon: const Icon(
+                        Icons.arrow_back_rounded,
+                        color: Colors.white,
+                      ),
                       onPressed: () => setState(() => _isGridView = false),
                     ),
                     centerTitle: true,
@@ -962,7 +1009,10 @@ class _LocketFeedScreenState extends State<LocketFeedScreen> {
               children: [
                 Expanded(
                   child: GridView.builder(
-                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 12,
+                      vertical: 8,
+                    ),
                     gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
                       crossAxisCount: (() {
                         final w = MediaQuery.of(context).size.width;
@@ -984,7 +1034,9 @@ class _LocketFeedScreenState extends State<LocketFeedScreen> {
                         final String reactionEmoji = post.reactions.isNotEmpty
                             ? (post.reactions.last['emoji'] ?? '😊').toString()
                             : '😊';
-                        final avatarColor = Color(int.tryParse(post.senderAvatarColor) ?? 0xFF42A5F5);
+                        final avatarColor = Color(
+                          int.tryParse(post.senderAvatarColor) ?? 0xFF42A5F5,
+                        );
 
                         return GestureDetector(
                           onTap: () {
@@ -1014,7 +1066,10 @@ class _LocketFeedScreenState extends State<LocketFeedScreen> {
                                           fit: StackFit.expand,
                                           children: [
                                             // Ảnh post thật
-                                            _buildPostImage(post.photoPath, fit: BoxFit.cover),
+                                            _buildPostImage(
+                                              post.photoPath,
+                                              fit: BoxFit.cover,
+                                            ),
                                             // Gradient mờ phía dưới để caption dễ đọc
                                             if (post.caption.isNotEmpty)
                                               Positioned(
@@ -1024,16 +1079,25 @@ class _LocketFeedScreenState extends State<LocketFeedScreen> {
                                                 child: Container(
                                                   decoration: BoxDecoration(
                                                     gradient: LinearGradient(
-                                                      begin: Alignment.bottomCenter,
+                                                      begin: Alignment
+                                                          .bottomCenter,
                                                       end: Alignment.topCenter,
                                                       colors: [
-                                                        Colors.black.withValues(alpha: 0.75),
+                                                        Colors.black.withValues(
+                                                          alpha: 0.75,
+                                                        ),
                                                         Colors.transparent,
                                                       ],
                                                       stops: const [0.0, 1.0],
                                                     ),
                                                   ),
-                                                  padding: const EdgeInsets.fromLTRB(8, 16, 8, 8),
+                                                  padding:
+                                                      const EdgeInsets.fromLTRB(
+                                                        8,
+                                                        16,
+                                                        8,
+                                                        8,
+                                                      ),
                                                   child: Text(
                                                     post.caption.replaceAll(
                                                       RegExp(r'Còn\s+19[0-9]'),
@@ -1042,15 +1106,20 @@ class _LocketFeedScreenState extends State<LocketFeedScreen> {
                                                     style: const TextStyle(
                                                       color: Colors.white,
                                                       fontSize: 11,
-                                                      fontWeight: FontWeight.w700,
+                                                      fontWeight:
+                                                          FontWeight.w700,
                                                       height: 1.3,
                                                       shadows: [
-                                                        Shadow(color: Colors.black54, blurRadius: 4),
+                                                        Shadow(
+                                                          color: Colors.black54,
+                                                          blurRadius: 4,
+                                                        ),
                                                       ],
                                                     ),
                                                     textAlign: TextAlign.center,
                                                     maxLines: 3,
-                                                    overflow: TextOverflow.ellipsis,
+                                                    overflow:
+                                                        TextOverflow.ellipsis,
                                                   ),
                                                 ),
                                               ),
@@ -1086,11 +1155,16 @@ class _LocketFeedScreenState extends State<LocketFeedScreen> {
                                 child: Container(
                                   color: avatarColor.withValues(alpha: 0.2),
                                   child: post.senderAvatar.startsWith('http')
-                                      ? TXANetworkImage(url: post.senderAvatar, fit: BoxFit.cover)
+                                      ? TXANetworkImage(
+                                          url: post.senderAvatar,
+                                          fit: BoxFit.cover,
+                                        )
                                       : Center(
                                           child: Text(
                                             post.senderAvatar,
-                                            style: const TextStyle(fontSize: 18),
+                                            style: const TextStyle(
+                                              fontSize: 18,
+                                            ),
                                           ),
                                         ),
                                 ),
@@ -1140,7 +1214,8 @@ class _LocketFeedScreenState extends State<LocketFeedScreen> {
         // RENDER CHẾ ĐỘ VUỐT (Swipe View)
         final safeIndex = _currentIndex.clamp(0, visiblePosts.length - 1);
         final post = visiblePosts[safeIndex];
-        final avatarColorVal = int.tryParse(post.senderAvatarColor) ?? 0xFFF57C00;
+        final avatarColorVal =
+            int.tryParse(post.senderAvatarColor) ?? 0xFFF57C00;
 
         return Scaffold(
           backgroundColor: TXATheme.background,
@@ -1174,7 +1249,9 @@ class _LocketFeedScreenState extends State<LocketFeedScreen> {
                     padding: EdgeInsets.only(
                       left: 16,
                       right: 16,
-                      top: (MediaQuery.of(context).padding.top > 0 ? 8.0 : 12.0),
+                      top: (MediaQuery.of(context).padding.top > 0
+                          ? 8.0
+                          : 12.0),
                       bottom: 10.0,
                     ),
                     child: Row(
@@ -1185,7 +1262,9 @@ class _LocketFeedScreenState extends State<LocketFeedScreen> {
                           onTap: () async {
                             final result = await Navigator.push<String>(
                               context,
-                              MaterialPageRoute(builder: (_) => const TXAProfileScreen()),
+                              MaterialPageRoute(
+                                builder: (_) => const TXAProfileScreen(),
+                              ),
                             );
                             if (result == 'show_friends_modal') {
                               if (context.mounted) {
@@ -1195,15 +1274,29 @@ class _LocketFeedScreenState extends State<LocketFeedScreen> {
                           },
                           child: TXARealtimeStreakTooltip(
                             username: currentUser?.username ?? '@user',
-                            streakCount: TXAStreakService.instance.getStreak(currentUser?.username ?? ''),
+                            streakCount: TXAStreakService.instance.getStreak(
+                              currentUser?.username ?? '',
+                            ),
                             child: TXAAvatarFrame(
                               username: currentUser?.username ?? '@user',
                               radius: 18,
                               tier: _getFriendTier(currentUser?.username ?? ''),
                               child: Container(
-                                color: Color(int.tryParse(currentUser?.avatarBgColor ?? '0xFF42A5F5') ?? 0xFF42A5F5),
-                                child: (currentUser?.avatar ?? '🦊').startsWith('http')
-                                    ? TXANetworkImage(url: currentUser!.avatar, fit: BoxFit.cover)
+                                color: Color(
+                                  int.tryParse(
+                                        currentUser?.avatarBgColor ??
+                                            '0xFF42A5F5',
+                                      ) ??
+                                      0xFF42A5F5,
+                                ),
+                                child:
+                                    (currentUser?.avatar ?? '🦊').startsWith(
+                                      'http',
+                                    )
+                                    ? TXANetworkImage(
+                                        url: currentUser!.avatar,
+                                        fit: BoxFit.cover,
+                                      )
                                     : Center(
                                         child: Text(
                                           currentUser?.avatar ?? '🦊',
@@ -1218,11 +1311,17 @@ class _LocketFeedScreenState extends State<LocketFeedScreen> {
                         buildFilterDropdownPill(),
                         // Right: Tin nhắn (Icon chat)
                         IconButton(
-                          icon: const Icon(Icons.chat_bubble_outline_rounded, color: Colors.white, size: 26),
+                          icon: const Icon(
+                            Icons.chat_bubble_outline_rounded,
+                            color: Colors.white,
+                            size: 26,
+                          ),
                           onPressed: () {
                             Navigator.push(
                               context,
-                              MaterialPageRoute(builder: (_) => const TXAChatListScreen()),
+                              MaterialPageRoute(
+                                builder: (_) => const TXAChatListScreen(),
+                              ),
                             );
                           },
                         ),
@@ -1249,9 +1348,15 @@ class _LocketFeedScreenState extends State<LocketFeedScreen> {
                           return const TXANativeAdFeedCard();
                         }
                         final currentPost = item as LocketPostModel;
-                        final currentIsSquare = currentPost.aspectRatio == '1:1';
-                        final isSnow = currentPost.caption.toLowerCase().contains('snow') ||
-                            currentPost.moodEmoji.toLowerCase().contains('snow') ||
+                        final currentIsSquare =
+                            currentPost.aspectRatio == '1:1';
+                        final isSnow =
+                            currentPost.caption.toLowerCase().contains(
+                              'snow',
+                            ) ||
+                            currentPost.moodEmoji.toLowerCase().contains(
+                              'snow',
+                            ) ||
                             currentPost.caption.contains('❄️') ||
                             currentPost.moodEmoji.contains('❄️');
                         final Widget postItem = Column(
@@ -1262,49 +1367,85 @@ class _LocketFeedScreenState extends State<LocketFeedScreen> {
                               child: ConstrainedBox(
                                 constraints: BoxConstraints(
                                   maxWidth: 350,
-                                  maxHeight: MediaQuery.of(context).size.height * 0.55,
+                                  maxHeight:
+                                      MediaQuery.of(context).size.height * 0.55,
                                 ),
                                 child: AspectRatio(
                                   aspectRatio: currentIsSquare ? 1.0 : 3 / 4,
                                   child: Padding(
-                                    padding: const EdgeInsets.symmetric(horizontal: 20),
+                                    padding: const EdgeInsets.symmetric(
+                                      horizontal: 20,
+                                    ),
                                     child: ClipRRect(
                                       borderRadius: BorderRadius.circular(28),
                                       child: Stack(
                                         fit: StackFit.expand,
                                         children: [
                                           (() {
-                                            final Widget mainImageWidget = currentPost.photoPath.startsWith('assets/')
-                                                ? Image.asset(currentPost.photoPath, fit: BoxFit.cover)
-                                                : currentPost.photoPath.startsWith('http')
-                                                    ? TXANetworkImage(
-                                                        url: currentPost.photoPath,
-                                                        fit: BoxFit.cover,
-                                                        loadingBuilder: (ctx) {
-                                                          return Container(
-                                                            color: const Color(0xFF1E1E24),
-                                                            child: const Center(
-                                                              child: CircularProgressIndicator(color: Color(0xFF42A5F5)),
+                                            final Widget mainImageWidget =
+                                                currentPost.photoPath
+                                                    .startsWith('assets/')
+                                                ? Image.asset(
+                                                    currentPost.photoPath,
+                                                    fit: BoxFit.cover,
+                                                  )
+                                                : currentPost.photoPath
+                                                      .startsWith('http')
+                                                ? TXANetworkImage(
+                                                    url: currentPost.photoPath,
+                                                    fit: BoxFit.cover,
+                                                    loadingBuilder: (ctx) {
+                                                      return Container(
+                                                        color: const Color(
+                                                          0xFF1E1E24,
+                                                        ),
+                                                        child: const Center(
+                                                          child:
+                                                              CircularProgressIndicator(
+                                                                color: Color(
+                                                                  0xFF42A5F5,
+                                                                ),
+                                                              ),
+                                                        ),
+                                                      );
+                                                    },
+                                                    errorBuilder: (ctx, err, st) {
+                                                      debugPrint(
+                                                        '❌ TXANetworkImage Swipe View load error: $err',
+                                                      );
+                                                      return Container(
+                                                        color: const Color(
+                                                          0xFF1E1E24,
+                                                        ),
+                                                        child: const Center(
+                                                          child: Icon(
+                                                            Icons
+                                                                .broken_image_outlined,
+                                                            color: Color(
+                                                              0xFF42A5F5,
                                                             ),
-                                                          );
-                                                        },
-                                                        errorBuilder: (ctx, err, st) {
-                                                          debugPrint('❌ TXANetworkImage Swipe View load error: $err');
-                                                          return Container(
-                                                            color: const Color(0xFF1E1E24),
-                                                            child: const Center(
-                                                              child: Icon(Icons.broken_image_outlined, color: Color(0xFF42A5F5), size: 54),
-                                                            ),
-                                                          );
-                                                        },
-                                                      )
-                                                    : Image.file(File(currentPost.photoPath), fit: BoxFit.cover);
+                                                            size: 54,
+                                                          ),
+                                                        ),
+                                                      );
+                                                    },
+                                                  )
+                                                : Image.file(
+                                                    File(currentPost.photoPath),
+                                                    fit: BoxFit.cover,
+                                                  );
 
-                                            if (currentPost.isBlurOverlay == true && !_revealedPostIds.contains(currentPost.id)) {
+                                            if (currentPost.isBlurOverlay ==
+                                                    true &&
+                                                !_revealedPostIds.contains(
+                                                  currentPost.id,
+                                                )) {
                                               return GestureDetector(
                                                 onTap: () {
                                                   setState(() {
-                                                    _revealedPostIds.add(currentPost.id);
+                                                    _revealedPostIds.add(
+                                                      currentPost.id,
+                                                    );
                                                   });
                                                 },
                                                 child: TXABlurDotsOverlay(
@@ -1317,32 +1458,53 @@ class _LocketFeedScreenState extends State<LocketFeedScreen> {
                                           })(),
 
                                           // Pháo hoa Tết Đinh Mùi 2027
-                                          if (currentPost.moodEmoji == '__tet_lunar_2027__' ||
-                                              TXAFestivalManager.isMung1to5Tet(DateTime.tryParse(currentPost.createdTime) ?? DateTime.now()) ||
-                                              TXAFestivalManager.isMung1to5Tet(DateTime.now()))
+                                          if (currentPost.moodEmoji ==
+                                                  '__tet_lunar_2027__' ||
+                                              TXAFestivalManager.isMung1to5Tet(
+                                                DateTime.tryParse(
+                                                      currentPost.createdTime,
+                                                    ) ??
+                                                    DateTime.now(),
+                                              ) ||
+                                              TXAFestivalManager.isMung1to5Tet(
+                                                DateTime.now(),
+                                              ))
                                             Positioned.fill(
                                               child: TXAFireworks(
-                                                isPlaying: _currentIndex == index,
+                                                isPlaying:
+                                                    _currentIndex == index,
                                               ),
                                             ),
 
                                           // Reaction emoji đè góc trên phải ảnh (chỉ khi là emoji đơn, không phải sticker text)
-                                          if (currentPost.moodEmoji.length <= 4 &&
-                                              currentPost.stickerBgColor == null &&
-                                              currentPost.stickerGradient == null)
+                                          if (currentPost
+                                                  .moodEmoji
+                                                  .isNotEmpty &&
+                                              currentPost.moodEmoji.length <=
+                                                  4 &&
+                                              currentPost.stickerBgColor ==
+                                                  null &&
+                                              currentPost.stickerGradient ==
+                                                  null)
                                             Positioned(
                                               top: 14,
                                               right: 14,
                                               child: Container(
-                                                padding: const EdgeInsets.all(6),
+                                                padding: const EdgeInsets.all(
+                                                  6,
+                                                ),
                                                 decoration: BoxDecoration(
                                                   color: Colors.black45,
                                                   shape: BoxShape.circle,
-                                                  border: Border.all(color: Colors.white10),
+                                                  border: Border.all(
+                                                    color: Colors.white10,
+                                                  ),
                                                 ),
                                                 child: Text(
                                                   currentPost.moodEmoji,
-                                                  style: const TextStyle(fontSize: 16),
+                                                  style: const TextStyle(
+                                                    fontSize: 16,
+                                                  ),
                                                 ),
                                               ),
                                             ),
@@ -1353,78 +1515,179 @@ class _LocketFeedScreenState extends State<LocketFeedScreen> {
                                               bottom: 16,
                                               left: 16,
                                               child: GestureDetector(
-                                                onTap: () => _togglePlayFeedVoice(currentPost),
+                                                onTap: () =>
+                                                    _togglePlayFeedVoice(
+                                                      currentPost,
+                                                    ),
                                                 child: Container(
-                                                  padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+                                                  padding:
+                                                      const EdgeInsets.symmetric(
+                                                        horizontal: 14,
+                                                        vertical: 8,
+                                                      ),
                                                   decoration: BoxDecoration(
-                                                    color: _playingPostId == currentPost.id
-                                                        ? const Color(0xFF42A5F5).withAlpha(220)
-                                                        : Colors.black.withAlpha(190),
-                                                    borderRadius: BorderRadius.circular(20),
+                                                    color:
+                                                        _playingPostId ==
+                                                            currentPost.id
+                                                        ? const Color(
+                                                            0xFF42A5F5,
+                                                          ).withAlpha(220)
+                                                        : Colors.black
+                                                              .withAlpha(190),
+                                                    borderRadius:
+                                                        BorderRadius.circular(
+                                                          20,
+                                                        ),
                                                     border: Border.all(
-                                                      color: _playingPostId == currentPost.id ? const Color(0xFF42A5F5) : const Color(0xFF42A5F5),
+                                                      color:
+                                                          _playingPostId ==
+                                                              currentPost.id
+                                                          ? const Color(
+                                                              0xFF42A5F5,
+                                                            )
+                                                          : const Color(
+                                                              0xFF42A5F5,
+                                                            ),
                                                       width: 1.5,
                                                     ),
                                                   ),
                                                   child: Row(
                                                     children: [
                                                       Icon(
-                                                        _playingPostId == currentPost.id ? Icons.pause_rounded : Icons.play_arrow_rounded,
+                                                        _playingPostId ==
+                                                                currentPost.id
+                                                            ? Icons
+                                                                  .pause_rounded
+                                                            : Icons
+                                                                  .play_arrow_rounded,
                                                         color: Colors.white,
                                                         size: 20,
                                                       ),
                                                       const SizedBox(width: 6),
                                                       Text(
-                                                        _playingPostId == currentPost.id
-                                                            ? txaLang.getText('pause_voice')
-                                                            : txaLang.getText('play_voice').replaceAll('%sec%', '${currentPost.voiceDuration ?? 15}'),
-                                                        style: const TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.bold),
+                                                        _playingPostId ==
+                                                                currentPost.id
+                                                            ? txaLang.getText(
+                                                                'pause_voice',
+                                                              )
+                                                            : txaLang
+                                                                  .getText(
+                                                                    'play_voice',
+                                                                  )
+                                                                  .replaceAll(
+                                                                    '%sec%',
+                                                                    '${currentPost.voiceDuration ?? 15}',
+                                                                  ),
+                                                        style: const TextStyle(
+                                                          color: Colors.white,
+                                                          fontSize: 12,
+                                                          fontWeight:
+                                                              FontWeight.bold,
+                                                        ),
                                                       ),
                                                     ],
                                                   ),
                                                 ),
                                               ),
                                             ),
-                                          
+
                                           // Caption text bubble (chỉ hiện khi caption không rỗng VÀ không có sticker)
                                           if (currentPost.caption.isNotEmpty &&
-                                              currentPost.stickerBgColor == null &&
-                                              currentPost.stickerGradient == null &&
+                                              currentPost.stickerBgColor ==
+                                                  null &&
+                                              currentPost.stickerGradient ==
+                                                  null &&
                                               currentPost.moodEmoji.length <= 4)
                                             Positioned(
                                               bottom: 16,
                                               right: 16,
-                                              left: currentPost.voicePath != null ? 180 : 16,
+                                              left:
+                                                  currentPost.voicePath != null
+                                                  ? 180
+                                                  : 16,
                                               child: Builder(
                                                 builder: (_) {
-                                                  final isLoc = currentPost.caption.contains('📍') ||
-                                                      currentPost.caption.contains('Việt Nam') ||
-                                                      currentPost.caption.contains('Hà Nội') ||
-                                                      currentPost.caption.contains('Hồ Chí Minh') ||
-                                                      currentPost.caption.contains('Đà Nẵng') ||
-                                                      currentPost.caption.contains('GPS');
+                                                  final isLoc =
+                                                      currentPost.caption
+                                                          .contains('📍') ||
+                                                      currentPost.caption
+                                                          .contains(
+                                                            'Việt Nam',
+                                                          ) ||
+                                                      currentPost.caption
+                                                          .contains('Hà Nội') ||
+                                                      currentPost.caption
+                                                          .contains(
+                                                            'Hồ Chí Minh',
+                                                          ) ||
+                                                      currentPost.caption
+                                                          .contains(
+                                                            'Đà Nẵng',
+                                                          ) ||
+                                                      currentPost.caption
+                                                          .contains('GPS');
                                                   return GestureDetector(
-                                                    onTap: isLoc ? () => _openGoogleMaps(currentPost.caption) : null,
+                                                    onTap: isLoc
+                                                        ? () => _openGoogleMaps(
+                                                            currentPost.caption,
+                                                          )
+                                                        : null,
                                                     child: Container(
-                                                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                                                      padding:
+                                                          const EdgeInsets.symmetric(
+                                                            horizontal: 12,
+                                                            vertical: 6,
+                                                          ),
                                                       decoration: BoxDecoration(
-                                                        color: isLoc ? const Color(0xFF343238).withAlpha(230) : Colors.black54,
-                                                        borderRadius: BorderRadius.circular(16),
-                                                        border: isLoc ? Border.all(color: Colors.white30, width: 1.0) : null,
+                                                        color: isLoc
+                                                            ? const Color(
+                                                                0xFF343238,
+                                                              ).withAlpha(230)
+                                                            : Colors.black54,
+                                                        borderRadius:
+                                                            BorderRadius.circular(
+                                                              16,
+                                                            ),
+                                                        border: isLoc
+                                                            ? Border.all(
+                                                                color: Colors
+                                                                    .white30,
+                                                                width: 1.0,
+                                                              )
+                                                            : null,
                                                       ),
                                                       child: Row(
-                                                        mainAxisSize: MainAxisSize.min,
+                                                        mainAxisSize:
+                                                            MainAxisSize.min,
                                                         children: [
                                                           if (isLoc) ...[
-                                                            const Icon(Icons.map_rounded, color: Color(0xFF42A5F5), size: 14),
-                                                            const SizedBox(width: 6),
+                                                            const Icon(
+                                                              Icons.map_rounded,
+                                                              color: Color(
+                                                                0xFF42A5F5,
+                                                              ),
+                                                              size: 14,
+                                                            ),
+                                                            const SizedBox(
+                                                              width: 6,
+                                                            ),
                                                           ],
                                                           Flexible(
                                                             child: Text(
-                                                              currentPost.caption,
-                                                              style: const TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.w500),
+                                                              currentPost
+                                                                  .caption,
+                                                              style: const TextStyle(
+                                                                color: Colors
+                                                                    .white,
+                                                                fontSize: 12,
+                                                                fontWeight:
+                                                                    FontWeight
+                                                                        .w500,
+                                                              ),
                                                               maxLines: 2,
-                                                              overflow: TextOverflow.ellipsis,
+                                                              overflow:
+                                                                  TextOverflow
+                                                                      .ellipsis,
                                                             ),
                                                           ),
                                                         ],
@@ -1436,203 +1699,472 @@ class _LocketFeedScreenState extends State<LocketFeedScreen> {
                                             ),
 
                                           // Sticker pill: hiện khi có màu sticker HOẶC moodEmoji là text dài/review (bài cũ)
-                                          if (currentPost.stickerBgColor != null ||
-                                              currentPost.stickerGradient != null ||
-                                              currentPost.moodEmoji.length > 4 ||
-                                              currentPost.moodEmoji.startsWith('__review'))
+                                          if (currentPost.stickerBgColor !=
+                                                  null ||
+                                              currentPost.stickerGradient !=
+                                                  null ||
+                                              currentPost.moodEmoji.length >
+                                                  4 ||
+                                              currentPost.moodEmoji.startsWith(
+                                                '__review',
+                                              ))
                                             Positioned(
                                               bottom: 16,
                                               left: 16,
                                               right: 16,
                                               child: Builder(
                                                 builder: (_) {
-                                                  final postDate = DateTime.tryParse(currentPost.createdTime) ?? DateTime.now();
-                                                  final activeTet = TXAFestivalManager.getActiveTetDate(postDate);
-                                                  final tetName = TXAFestivalManager.getTetNameForDate(activeTet, txaLang.currentLanguage);
+                                                  final postDate =
+                                                      DateTime.tryParse(
+                                                        currentPost.createdTime,
+                                                      ) ??
+                                                      DateTime.now();
+                                                  final activeTet =
+                                                      TXAFestivalManager.getActiveTetDate(
+                                                        postDate,
+                                                      );
+                                                  final tetName =
+                                                      TXAFestivalManager.getTetNameForDate(
+                                                        activeTet,
+                                                        txaLang.currentLanguage,
+                                                      );
                                                   List<Color>? gradColors;
-                                                  Color bgColor = Colors.black.withAlpha(200);
+                                                  Color bgColor = Colors.black
+                                                      .withAlpha(200);
 
-                                                  if (currentPost.moodEmoji.startsWith('__zodiac_')) {
-                                                    final zKey = currentPost.moodEmoji.replaceAll('__', '').replaceFirst('zodiac_', '');
-                                                    final zInfo = TXAFestivalManager.getZodiacInfoByKey(zKey);
+                                                  if (currentPost.moodEmoji
+                                                      .startsWith(
+                                                        '__zodiac_',
+                                                      )) {
+                                                    final zKey = currentPost
+                                                        .moodEmoji
+                                                        .replaceAll('__', '')
+                                                        .replaceFirst(
+                                                          'zodiac_',
+                                                          '',
+                                                        );
+                                                    final zInfo =
+                                                        TXAFestivalManager.getZodiacInfoByKey(
+                                                          zKey,
+                                                        );
                                                     if (zInfo != null) {
                                                       bgColor = zInfo.baseColor;
-                                                      gradColors = zInfo.gradient;
+                                                      gradColors =
+                                                          zInfo.gradient;
                                                     }
                                                   }
 
-                                                  if (currentPost.moodEmoji.startsWith('__review')) {
-                                                    gradColors = [const Color(0xFFFF9100), const Color(0xFFFF3D00)];
+                                                  if (currentPost.moodEmoji
+                                                      .startsWith('__review')) {
+                                                    gradColors = [
+                                                      const Color(0xFFFF9100),
+                                                      const Color(0xFFFF3D00),
+                                                    ];
                                                   }
 
-                                                  if (currentPost.stickerGradient != null) {
-                                                    gradColors = currentPost.stickerGradient!.split(',').map((hex) {
-                                                      final val = int.tryParse(hex) ?? 0xFF000000;
-                                                      return Color(val);
-                                                    }).toList();
+                                                  if (currentPost
+                                                          .stickerGradient !=
+                                                      null) {
+                                                    gradColors = currentPost
+                                                        .stickerGradient!
+                                                        .split(',')
+                                                        .map((hex) {
+                                                          final val =
+                                                              int.tryParse(
+                                                                hex,
+                                                              ) ??
+                                                              0xFF000000;
+                                                          return Color(val);
+                                                        })
+                                                        .toList();
                                                   }
-                                                  if (currentPost.stickerBgColor != null) {
-                                                    final val = int.tryParse(currentPost.stickerBgColor!) ?? 0xFF000000;
+                                                  if (currentPost
+                                                          .stickerBgColor !=
+                                                      null) {
+                                                    final val =
+                                                        int.tryParse(
+                                                          currentPost
+                                                              .stickerBgColor!,
+                                                        ) ??
+                                                        0xFF000000;
                                                     bgColor = Color(val);
                                                   }
-                                                  Color textColor = Colors.white;
-                                                  if (currentPost.stickerTextColor != null) {
-                                                    final val = int.tryParse(currentPost.stickerTextColor!) ?? 0xFFFFFFFF;
+                                                  Color textColor =
+                                                      Colors.white;
+                                                  if (currentPost
+                                                          .stickerTextColor !=
+                                                      null) {
+                                                    final val =
+                                                        int.tryParse(
+                                                          currentPost
+                                                              .stickerTextColor!,
+                                                        ) ??
+                                                        0xFFFFFFFF;
                                                     textColor = Color(val);
                                                   }
-                                                  final isReview = currentPost.moodEmoji.startsWith('__review');
-                                                  final isLoc = currentPost.moodEmoji.contains('📍') ||
-                                                      currentPost.moodEmoji.contains('Việt Nam') ||
-                                                      currentPost.moodEmoji.contains('Hà Nội') ||
-                                                      currentPost.moodEmoji.contains('Hồ Chí Minh') ||
-                                                      currentPost.moodEmoji.contains('Đà Nẵng') ||
-                                                      currentPost.moodEmoji.contains('GPS') ||
-                                                      currentPost.caption.contains('📍') ||
-                                                      currentPost.caption.contains('Việt Nam') ||
-                                                      currentPost.caption.contains('Hà Nội') ||
-                                                      currentPost.caption.contains('Hồ Chí Minh');
+                                                  final isReview = currentPost
+                                                      .moodEmoji
+                                                      .startsWith('__review');
+                                                  final isLoc =
+                                                      currentPost.moodEmoji
+                                                          .contains('📍') ||
+                                                      currentPost.moodEmoji
+                                                          .contains(
+                                                            'Việt Nam',
+                                                          ) ||
+                                                      currentPost.moodEmoji
+                                                          .contains('Hà Nội') ||
+                                                      currentPost.moodEmoji
+                                                          .contains(
+                                                            'Hồ Chí Minh',
+                                                          ) ||
+                                                      currentPost.moodEmoji
+                                                          .contains(
+                                                            'Đà Nẵng',
+                                                          ) ||
+                                                      currentPost.moodEmoji
+                                                          .contains('GPS') ||
+                                                      currentPost.caption
+                                                          .contains('GPS') ||
+                                                      currentPost.caption
+                                                          .contains('📍') ||
+                                                      currentPost.caption
+                                                          .contains(
+                                                            'Việt Nam',
+                                                          ) ||
+                                                      currentPost.caption
+                                                          .contains('Hà Nội') ||
+                                                      currentPost.caption
+                                                          .contains(
+                                                            'Hồ Chí Minh',
+                                                          );
 
-                                                  final String locQuery = currentPost.moodEmoji.contains('Việt Nam') || currentPost.moodEmoji.contains('Hà Nội') || currentPost.moodEmoji.contains('Hồ Chí Minh')
+                                                  final String locQuery =
+                                                      currentPost.moodEmoji
+                                                              .contains(
+                                                                'Việt Nam',
+                                                              ) ||
+                                                          currentPost.moodEmoji
+                                                              .contains(
+                                                                'Hà Nội',
+                                                              ) ||
+                                                          currentPost.moodEmoji
+                                                              .contains(
+                                                                'Hồ Chí Minh',
+                                                              )
                                                       ? currentPost.moodEmoji
-                                                      : currentPost.caption.isNotEmpty
-                                                          ? currentPost.caption
-                                                          : currentPost.moodEmoji;
+                                                      : currentPost
+                                                            .caption
+                                                            .isNotEmpty
+                                                      ? currentPost.caption
+                                                      : currentPost.moodEmoji;
 
                                                   return GestureDetector(
-                                                    onTap: isLoc ? () => _openGoogleMaps(locQuery) : null,
-                                                    child: Container(
-                                                      width: double.infinity,
-                                                      padding: EdgeInsets.symmetric(horizontal: 18, vertical: isReview ? 13 : 11),
-                                                      decoration: BoxDecoration(
-                                                        color: gradColors == null ? bgColor : null,
-                                                        gradient: gradColors != null
-                                                            ? LinearGradient(
-                                                                colors: gradColors,
-                                                                begin: Alignment.topLeft,
-                                                                end: Alignment.bottomRight,
-                                                              )
-                                                            : null,
-                                                        borderRadius: BorderRadius.circular(24),
-                                                        border: Border.all(color: Colors.white24, width: isReview ? 1.2 : 1.0),
-                                                        boxShadow: [
-                                                          BoxShadow(
-                                                            color: Colors.black.withAlpha(90),
-                                                            blurRadius: 10,
-                                                            offset: const Offset(0, 3),
+                                                    onTap: isLoc
+                                                        ? () => _openGoogleMaps(
+                                                            locQuery,
+                                                          )
+                                                        : null,
+                                                    child: Center(
+                                                      child: Container(
+                                                        padding:
+                                                            EdgeInsets.symmetric(
+                                                              horizontal: 18,
+                                                              vertical: isReview
+                                                                  ? 13
+                                                                  : 11,
+                                                            ),
+                                                        decoration: BoxDecoration(
+                                                          color:
+                                                              gradColors == null
+                                                              ? bgColor
+                                                              : null,
+                                                          gradient:
+                                                              gradColors != null
+                                                              ? LinearGradient(
+                                                                  colors:
+                                                                      gradColors,
+                                                                  begin: Alignment
+                                                                      .topLeft,
+                                                                  end: Alignment
+                                                                      .bottomRight,
+                                                                )
+                                                              : null,
+                                                          borderRadius:
+                                                              BorderRadius.circular(
+                                                                24,
+                                                              ),
+                                                          border: Border.all(
+                                                            color:
+                                                                Colors.white24,
+                                                            width: isReview
+                                                                ? 1.2
+                                                                : 1.0,
                                                           ),
-                                                        ],
-                                                      ),
-                                                      child: Row(
-                                                        mainAxisAlignment: MainAxisAlignment.center,
-                                                        mainAxisSize: MainAxisSize.min,
-                                                        children: [
-                                                          if (isLoc) ...[
-                                                            Icon(Icons.map_rounded, color: textColor.withAlpha(200), size: 16),
-                                                            const SizedBox(width: 8),
+                                                          boxShadow: [
+                                                            BoxShadow(
+                                                              color: Colors
+                                                                  .black
+                                                                  .withAlpha(
+                                                                    90,
+                                                                  ),
+                                                              blurRadius: 10,
+                                                              offset:
+                                                                  const Offset(
+                                                                    0,
+                                                                    3,
+                                                                  ),
+                                                            ),
                                                           ],
-                                                          Flexible(
-                                                            child: (currentPost.moodEmoji == '__tet_lunar_2027__' ||
-                                                                    currentPost.moodEmoji.contains('đến Tết') ||
-                                                                    currentPost.moodEmoji.contains('Còn 190') ||
-                                                                    currentPost.moodEmoji.contains('Còn 189') ||
-                                                                    currentPost.moodEmoji.contains('Còn 19'))
-                                                                ? TXATetCountdownWidget(
-                                                                    style: TextStyle(
-                                                                      color: textColor,
-                                                                      fontSize: 14,
-                                                                      fontWeight: FontWeight.bold,
-                                                                      letterSpacing: -0.3,
+                                                        ),
+                                                        child: Row(
+                                                          mainAxisAlignment:
+                                                              MainAxisAlignment
+                                                                  .center,
+                                                          mainAxisSize:
+                                                              MainAxisSize.min,
+                                                          children: [
+                                                            if (isLoc) ...[
+                                                              Icon(
+                                                                Icons
+                                                                    .map_rounded,
+                                                                color: textColor
+                                                                    .withAlpha(
+                                                                      200,
                                                                     ),
-                                                                  )
-                                                                : currentPost.moodEmoji.startsWith('__tet_wish_')
-                                                                    ? TXAMarquee(
-                                                                        text: txaLang.getText(currentPost.moodEmoji.replaceAll('__', '')).replaceAll('%user%', currentPost.senderUsername).replaceAll('%name%', tetName),
-                                                                        style: TextStyle(
-                                                                          color: textColor,
-                                                                          fontSize: 14,
-                                                                          fontWeight: FontWeight.bold,
-                                                                          letterSpacing: -0.3,
-                                                                        ),
-                                                                      )
-                                                                    : currentPost.moodEmoji.startsWith('__zodiac_')
-                                                                        ? TXAMarquee(
-                                                                            text: txaLang.getText(currentPost.moodEmoji.replaceAll('__', '')).replaceAll('%user%', currentPost.senderUsername).replaceAll('%name%', tetName),
-                                                                            style: TextStyle(
-                                                                              color: textColor,
-                                                                              fontSize: 14,
-                                                                              fontWeight: FontWeight.bold,
-                                                                              letterSpacing: -0.3,
+                                                                size: 16,
+                                                              ),
+                                                              const SizedBox(
+                                                                width: 8,
+                                                              ),
+                                                            ],
+                                                            Flexible(
+                                                              child:
+                                                                  (currentPost.moodEmoji ==
+                                                                          '__tet_lunar_2027__' ||
+                                                                      currentPost
+                                                                          .moodEmoji
+                                                                          .contains(
+                                                                            'đến Tết',
+                                                                          ) ||
+                                                                      currentPost
+                                                                          .moodEmoji
+                                                                          .contains(
+                                                                            'Còn 190',
+                                                                          ) ||
+                                                                      currentPost
+                                                                          .moodEmoji
+                                                                          .contains(
+                                                                            'Còn 189',
+                                                                          ) ||
+                                                                      currentPost
+                                                                          .moodEmoji
+                                                                          .contains(
+                                                                            'Còn 19',
+                                                                          ))
+                                                                  ? TXATetCountdownWidget(
+                                                                      style: TextStyle(
+                                                                        color:
+                                                                            textColor,
+                                                                        fontSize:
+                                                                            14,
+                                                                        fontWeight:
+                                                                            FontWeight.bold,
+                                                                        letterSpacing:
+                                                                            -0.3,
+                                                                      ),
+                                                                    )
+                                                                  : currentPost
+                                                                        .moodEmoji
+                                                                        .startsWith(
+                                                                          '__tet_wish_',
+                                                                        )
+                                                                  ? TXAMarquee(
+                                                                      text: txaLang
+                                                                          .getText(
+                                                                            currentPost.moodEmoji.replaceAll(
+                                                                              '__',
+                                                                              '',
                                                                             ),
                                                                           )
-                                                                        : currentPost.moodEmoji.startsWith('__holiday_')
-                                                                            ? TXAMarquee(
-                                                                                text: TXAFestivalManager.getHolidayCaption(currentPost.moodEmoji, txaLang.currentLanguage),
+                                                                          .replaceAll(
+                                                                            '%user%',
+                                                                            currentPost.senderUsername,
+                                                                          )
+                                                                          .replaceAll(
+                                                                            '%name%',
+                                                                            tetName,
+                                                                          ),
+                                                                      style: TextStyle(
+                                                                        color:
+                                                                            textColor,
+                                                                        fontSize:
+                                                                            14,
+                                                                        fontWeight:
+                                                                            FontWeight.bold,
+                                                                        letterSpacing:
+                                                                            -0.3,
+                                                                      ),
+                                                                    )
+                                                                  : currentPost
+                                                                        .moodEmoji
+                                                                        .startsWith(
+                                                                          '__zodiac_',
+                                                                        )
+                                                                  ? TXAMarquee(
+                                                                      text: txaLang
+                                                                          .getText(
+                                                                            currentPost.moodEmoji.replaceAll(
+                                                                              '__',
+                                                                              '',
+                                                                            ),
+                                                                          )
+                                                                          .replaceAll(
+                                                                            '%user%',
+                                                                            currentPost.senderUsername,
+                                                                          )
+                                                                          .replaceAll(
+                                                                            '%name%',
+                                                                            tetName,
+                                                                          ),
+                                                                      style: TextStyle(
+                                                                        color:
+                                                                            textColor,
+                                                                        fontSize:
+                                                                            14,
+                                                                        fontWeight:
+                                                                            FontWeight.bold,
+                                                                        letterSpacing:
+                                                                            -0.3,
+                                                                      ),
+                                                                    )
+                                                                  : currentPost
+                                                                        .moodEmoji
+                                                                        .startsWith(
+                                                                          '__holiday_',
+                                                                        )
+                                                                  ? TXAMarquee(
+                                                                      text: TXAFestivalManager.getHolidayCaption(
+                                                                        currentPost
+                                                                            .moodEmoji,
+                                                                        txaLang
+                                                                            .currentLanguage,
+                                                                      ),
+                                                                      style: TextStyle(
+                                                                        color:
+                                                                            textColor,
+                                                                        fontSize:
+                                                                            14,
+                                                                        fontWeight:
+                                                                            FontWeight.bold,
+                                                                        letterSpacing:
+                                                                            -0.3,
+                                                                      ),
+                                                                    )
+                                                                  : currentPost
+                                                                        .moodEmoji
+                                                                        .startsWith(
+                                                                          '__review',
+                                                                        )
+                                                                  ? Builder(
+                                                                      builder: (_) {
+                                                                        final starsStr = currentPost.moodEmoji.replaceAll(
+                                                                          RegExp(
+                                                                            r'[^0-9]',
+                                                                          ),
+                                                                          '',
+                                                                        );
+                                                                        final stars =
+                                                                            int.tryParse(
+                                                                              starsStr,
+                                                                            ) ??
+                                                                            5;
+                                                                        return Column(
+                                                                          mainAxisSize:
+                                                                              MainAxisSize.min,
+                                                                          children: [
+                                                                            FittedBox(
+                                                                              fit: BoxFit.scaleDown,
+                                                                              child: Row(
+                                                                                mainAxisAlignment: MainAxisAlignment.center,
+                                                                                mainAxisSize: MainAxisSize.min,
+                                                                                children: List.generate(
+                                                                                  5,
+                                                                                  (
+                                                                                    starIdx,
+                                                                                  ) {
+                                                                                    final isFilled =
+                                                                                        starIdx <
+                                                                                        stars;
+                                                                                    return Padding(
+                                                                                      padding: const EdgeInsets.symmetric(
+                                                                                        horizontal: 3,
+                                                                                      ),
+                                                                                      child: Icon(
+                                                                                        isFilled
+                                                                                            ? Icons.star_rounded
+                                                                                            : Icons.star_border_rounded,
+                                                                                        color: isFilled
+                                                                                            ? const Color(
+                                                                                                0xFFFFD700,
+                                                                                              )
+                                                                                            : Colors.white60,
+                                                                                        size: 22,
+                                                                                      ),
+                                                                                    );
+                                                                                  },
+                                                                                ),
+                                                                              ),
+                                                                            ),
+                                                                            if (currentPost.caption.isNotEmpty) ...[
+                                                                              const SizedBox(
+                                                                                height: 6,
+                                                                              ),
+                                                                              Text(
+                                                                                currentPost.caption,
+                                                                                textAlign: TextAlign.center,
                                                                                 style: TextStyle(
                                                                                   color: textColor,
                                                                                   fontSize: 14,
                                                                                   fontWeight: FontWeight.bold,
                                                                                   letterSpacing: -0.3,
                                                                                 ),
-                                                                              )
-                                                                            : currentPost.moodEmoji.startsWith('__review')
-                                                                                ? Builder(
-                                                                                    builder: (_) {
-                                                                                      final starsStr = currentPost.moodEmoji.replaceAll(RegExp(r'[^0-9]'), '');
-                                                                                      final stars = int.tryParse(starsStr) ?? 5;
-                                                                                      return Column(
-                                                                                        mainAxisSize: MainAxisSize.min,
-                                                                                        children: [
-                                                                                          FittedBox(
-                                                                                            fit: BoxFit.scaleDown,
-                                                                                            child: Row(
-                                                                                              mainAxisAlignment: MainAxisAlignment.center,
-                                                                                              mainAxisSize: MainAxisSize.min,
-                                                                                              children: List.generate(5, (starIdx) {
-                                                                                                final isFilled = starIdx < stars;
-                                                                                                return Padding(
-                                                                                                  padding: const EdgeInsets.symmetric(horizontal: 3),
-                                                                                                  child: Icon(
-                                                                                                    isFilled ? Icons.star_rounded : Icons.star_border_rounded,
-                                                                                                    color: isFilled ? const Color(0xFFFFD700) : Colors.white60,
-                                                                                                    size: 22,
-                                                                                                  ),
-                                                                                                );
-                                                                                              }),
-                                                                                            ),
-                                                                                          ),
-                                                                                          if (currentPost.caption.isNotEmpty) ...[
-                                                                                            const SizedBox(height: 6),
-                                                                                            Text(
-                                                                                              currentPost.caption,
-                                                                                              textAlign: TextAlign.center,
-                                                                                              style: TextStyle(
-                                                                                                color: textColor,
-                                                                                                fontSize: 14,
-                                                                                                fontWeight: FontWeight.bold,
-                                                                                                letterSpacing: -0.3,
-                                                                                              ),
-                                                                                              maxLines: 3,
-                                                                                              overflow: TextOverflow.ellipsis,
-                                                                                            ),
-                                                                                          ],
-                                                                                        ],
-                                                                                      );
-                                                                                    },
-                                                                                  )
-                                                                                : Text(
-                                                                                    currentPost.moodEmoji,
-                                                                                    textAlign: TextAlign.center,
-                                                                                    style: TextStyle(
-                                                                                      color: textColor,
-                                                                                      fontSize: 14,
-                                                                                      fontWeight: FontWeight.bold,
-                                                                                      letterSpacing: -0.3,
-                                                                                    ),
-                                                                                    maxLines: 2,
-                                                                                    overflow: TextOverflow.ellipsis,
-                                                                                  ),
-                                                          ),
-                                                        ],
+                                                                                maxLines: 3,
+                                                                                overflow: TextOverflow.ellipsis,
+                                                                              ),
+                                                                            ],
+                                                                          ],
+                                                                        );
+                                                                      },
+                                                                    )
+                                                                  : Text(
+                                                                      currentPost
+                                                                              .caption
+                                                                              .isNotEmpty
+                                                                          ? currentPost.caption
+                                                                          : currentPost.moodEmoji,
+                                                                      textAlign:
+                                                                          TextAlign
+                                                                              .center,
+                                                                      style: TextStyle(
+                                                                        color:
+                                                                            textColor,
+                                                                        fontSize:
+                                                                            14,
+                                                                        fontWeight:
+                                                                            FontWeight.bold,
+                                                                        letterSpacing:
+                                                                            -0.3,
+                                                                      ),
+                                                                      maxLines:
+                                                                          2,
+                                                                      overflow:
+                                                                          TextOverflow
+                                                                              .ellipsis,
+                                                                    ),
+                                                            ),
+                                                          ],
+                                                        ),
                                                       ),
                                                     ),
                                                   );

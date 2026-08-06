@@ -878,24 +878,34 @@ class _PhotoPreviewScreenState extends State<PhotoPreviewScreen> {
       String finalCaption = caption;
       String? finalMoodEmoji = _selectedCustomSticker == '__review__'
           ? '__review_${_reviewRating}__'
-          : (_selectedMoodEmoji ?? _selectedCustomSticker ?? '😊');
+          : (_selectedMoodEmoji ?? _selectedCustomSticker ?? '');
       Color? finalStickerColor = _selectedStickerColor;
       List<Color>? finalStickerGradient = _selectedStickerGradient;
       Color? finalStickerTextColor = _selectedStickerTextColor;
 
       if (_currentPage == 2) {
+        final locText = (_selectedCustomSticker != null && _selectedCustomSticker!.startsWith('📍'))
+            ? _selectedCustomSticker!
+            : (txaLang.currentLanguage == 'vi' ? '📍 Hà Nội, Việt Nam' : '📍 Hanoi, Vietnam');
+        finalCaption = caption.isNotEmpty ? '$locText $caption' : locText;
+        finalMoodEmoji = locText;
+        finalStickerColor = const Color(0xFF343238);
+        finalStickerGradient = null;
+        finalStickerTextColor = const Color(0xFFD6D6D6);
+      } else if (_currentPage == 3) {
         final w = _weatherData ?? TXAWeatherData(
           temperature: 25.0,
           tempString: '25°C',
           emoji: '🌤️',
-          label: '25°C 🌤️',
+          label: '🌤️ 25°C',
           weatherCode: 2,
           isDay: true,
           timestamp: DateTime.now(),
         );
         final theme = _getWeatherTheme(w);
-        finalCaption = caption.isNotEmpty ? '${w.label} $caption' : w.label;
-        finalMoodEmoji = w.emoji;
+        final weatherLabel = '${w.emoji} ${w.tempString}';
+        finalCaption = caption.isNotEmpty ? '$weatherLabel • $caption' : weatherLabel;
+        finalMoodEmoji = weatherLabel;
         finalStickerGradient = (theme['gradient'] as List<dynamic>).cast<Color>();
         finalStickerTextColor = theme['textColor'] as Color;
       }
@@ -2217,6 +2227,164 @@ class _PhotoPreviewScreenState extends State<PhotoPreviewScreen> {
                                       ),
                                     ),
 
+                                  // Location Sticker Card Overlay (Clickable to fetch location)
+                                  Positioned(
+                                    bottom: 24,
+                                    left: 20,
+                                    right: 20,
+                                    child: Center(
+                                      child: GestureDetector(
+                                        onTap: () => _getGMSLocation(applyAsSticker: true),
+                                        child: AnimatedContainer(
+                                          duration: const Duration(milliseconds: 300),
+                                          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+                                          decoration: BoxDecoration(
+                                            color: const Color(0xFF343238).withAlpha(230),
+                                            borderRadius: BorderRadius.circular(26),
+                                            border: Border.all(color: Colors.white30, width: 1.2),
+                                            boxShadow: [
+                                              BoxShadow(
+                                                color: Colors.black.withAlpha(120),
+                                                blurRadius: 12,
+                                                offset: const Offset(0, 4),
+                                              ),
+                                            ],
+                                          ),
+                                          child: Row(
+                                            mainAxisAlignment: MainAxisAlignment.center,
+                                            mainAxisSize: MainAxisSize.min,
+                                            children: [
+                                              _isFetchingLocation
+                                                  ? const SizedBox(
+                                                      width: 18,
+                                                      height: 18,
+                                                      child: CircularProgressIndicator(color: TXATheme.primaryYellow, strokeWidth: 2),
+                                                    )
+                                                  : const Icon(
+                                                      Icons.location_on_rounded,
+                                                      color: Color(0xFF42A5F5),
+                                                      size: 22,
+                                                    ),
+                                              const SizedBox(width: 8),
+                                              Flexible(
+                                                child: Text(
+                                                  _selectedCustomSticker != null && _selectedCustomSticker!.startsWith('📍')
+                                                      ? _selectedCustomSticker!
+                                                      : (txaLang.currentLanguage == 'vi' ? '📍 Hà Nội, Việt Nam' : '📍 Hanoi, Vietnam'),
+                                                  style: const TextStyle(
+                                                    color: Colors.white,
+                                                    fontSize: 15,
+                                                    fontWeight: FontWeight.bold,
+                                                    letterSpacing: -0.3,
+                                                  ),
+                                                  maxLines: 1,
+                                                  overflow: TextOverflow.ellipsis,
+                                                ),
+                                              ),
+                                            ],
+                                          ),
+                                        ),
+                                      ),
+                                    ),
+                                  ),
+                                ],
+                              ),
+
+                              // --- PAGE 3: Weather View (Thời tiết - OpenMeteo) ---
+                              Stack(
+                                alignment: Alignment.center,
+                                fit: StackFit.expand,
+                                children: [
+                                  // Captured Image
+                                  (() {
+                                    final mainImage = widget.imagePath != null && File(widget.imagePath!).existsSync()
+                                        ? Image.file(File(widget.imagePath!), fit: BoxFit.cover)
+                                        : Container(
+                                            color: const Color(0xFF1C1C26),
+                                            child: const Center(
+                                              child: Column(
+                                                mainAxisAlignment: MainAxisAlignment.center,
+                                                children: [
+                                                  Icon(
+                                                    Icons.image_rounded,
+                                                    size: 64,
+                                                    color: TXATheme.primaryYellow,
+                                                  ),
+                                                  SizedBox(height: 10),
+                                                  Text(
+                                                    'Army Captured Photo',
+                                                    style: TextStyle(
+                                                      color: TXATheme.textSecondary,
+                                                      fontSize: 15,
+                                                      fontWeight: FontWeight.w600,
+                                                    ),
+                                                  ),
+                                                ],
+                                              ),
+                                            ),
+                                          );
+                                    if (_isBlurOverlay) {
+                                      return TXABlurDotsOverlay(
+                                        blur: 15.0,
+                                        child: mainImage,
+                                      );
+                                    }
+                                    return mainImage;
+                                  })(),
+
+                                  // Privacy Eye Toggle
+                                  Positioned(
+                                    top: 14,
+                                    right: 14,
+                                    child: GestureDetector(
+                                      onTap: () {
+                                        setState(() {
+                                          _isBlurOverlay = !_isBlurOverlay;
+                                        });
+                                        TXAToast.show(
+                                          context,
+                                          txaLang.getText(_isBlurOverlay ? 'blur_overlay_enabled' : 'blur_overlay_disabled'),
+                                          icon: _isBlurOverlay ? Icons.visibility_off_rounded : Icons.visibility_rounded,
+                                        );
+                                      },
+                                      child: Container(
+                                        width: 36,
+                                        height: 36,
+                                        decoration: BoxDecoration(
+                                          color: Colors.black.withAlpha(128),
+                                          shape: BoxShape.circle,
+                                        ),
+                                        child: Icon(
+                                          _isBlurOverlay ? Icons.visibility_off_rounded : Icons.visibility_rounded,
+                                          color: Colors.white,
+                                          size: 20,
+                                        ),
+                                      ),
+                                    ),
+                                  ),
+
+                                  // Timestamp Overlay
+                                  if (txaFormat.showTimestamp)
+                                    Positioned(
+                                      top: 14,
+                                      left: 14,
+                                      child: Container(
+                                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                                        decoration: BoxDecoration(
+                                          color: Colors.black.withAlpha(128),
+                                          borderRadius: BorderRadius.circular(12),
+                                        ),
+                                        child: Text(
+                                          formattedTime,
+                                          style: const TextStyle(
+                                            color: Colors.white,
+                                            fontSize: 11,
+                                            fontWeight: FontWeight.w600,
+                                          ),
+                                        ),
+                                      ),
+                                    ),
+
                                   // Weather Sticker Card Overlay (Directly Clickable to Refresh)
                                   Positioned(
                                     bottom: 24,
@@ -2309,7 +2477,7 @@ class _PhotoPreviewScreenState extends State<PhotoPreviewScreen> {
                                                       ),
                                                 const SizedBox(width: 8),
                                                 Text(
-                                                  w.tempString, // Chỉ hiện nhiệt độ
+                                                  w.tempString, // Hiện nhiệt độ
                                                   style: TextStyle(
                                                     color: textColor,
                                                     fontSize: 20,
@@ -2337,10 +2505,10 @@ class _PhotoPreviewScreenState extends State<PhotoPreviewScreen> {
 
                 const SizedBox(height: 10),
 
-                // Animated Page Indicators (Page 0: Text, Page 1: Voice, Page 2: Location)
+                // Animated Page Indicators (Page 0: Text, Page 1: Voice, Page 2: Location, Page 3: Weather)
                 Row(
                   mainAxisAlignment: MainAxisAlignment.center,
-                  children: List.generate(3, (index) {
+                  children: List.generate(4, (index) {
                     final isCurrent = _currentPage == index;
                     return AnimatedContainer(
                       duration: const Duration(milliseconds: 260),
