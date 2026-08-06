@@ -26,6 +26,8 @@ import 'package:shared_preferences/shared_preferences.dart';
 import '../widgets/txa_avatar_frame.dart';
 import '../services/txa_iap_service.dart';
 import 'txa_gold_pass_paywall_screen.dart';
+import 'txa_version_timeline_screen.dart';
+import '../services/txa_version.dart';
 
 class TXAProfileScreen extends StatefulWidget {
   const TXAProfileScreen({super.key});
@@ -2106,6 +2108,24 @@ class _TXAProfileScreenState extends State<TXAProfileScreen>
                           }
                         },
                       ),
+                      // ─── 6.1 Lịch sử nhật ký phiên bản (Version Release Timeline) ───
+                      ListTile(
+                        contentPadding: EdgeInsets.zero,
+                        leading: const Icon(Icons.timeline_rounded, color: Color(0xFFFFD700)),
+                        title: Text(
+                          txaLang.getText('version_timeline_menu_item'),
+                          style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+                        ),
+                        subtitle: Text(
+                          'Bản ${TXAVersion.currentVersion}+${TXAVersion.buildNumber} • ${TXAVersion.releaseDate}',
+                          style: TextStyle(color: TXATheme.textMuted, fontSize: 12),
+                        ),
+                        trailing: const Icon(Icons.arrow_forward_ios_rounded, color: Colors.white24, size: 16),
+                        onTap: () {
+                          Navigator.pop(context);
+                          Navigator.push(context, MaterialPageRoute(builder: (_) => const TXAVersionTimelineScreen()));
+                        },
+                      ),
                       Divider(color: TXATheme.cardBorder),
 
                       // ─── 6. Admin Panel ───────────────────────────────────
@@ -2393,18 +2413,21 @@ class _TXAProfileScreenState extends State<TXAProfileScreen>
           children: [
             Row(
               children: [
-                const Icon(Icons.workspace_premium_rounded, color: Color(0xFF5C4033), size: 28),
-                const SizedBox(width: 10),
+                const Icon(Icons.workspace_premium_rounded, color: Color(0xFF5C4033), size: 26),
+                const SizedBox(width: 8),
                 Expanded(
                   child: Text(
                     'Army Gold Pass 🌟',
                     style: const TextStyle(
                       color: Color(0xFF5C4033),
-                      fontSize: 18,
+                      fontSize: 17,
                       fontWeight: FontWeight.w900,
                     ),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
                   ),
                 ),
+                const SizedBox(width: 8),
                 Container(
                   padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                   decoration: BoxDecoration(
@@ -2427,9 +2450,11 @@ class _TXAProfileScreenState extends State<TXAProfileScreen>
                 fontWeight: FontWeight.w600,
               ),
             ),
-            const SizedBox(height: 16),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.end,
+            const SizedBox(height: 14),
+            Wrap(
+              alignment: WrapAlignment.end,
+              spacing: 8,
+              runSpacing: 6,
               children: [
                 TextButton(
                   onPressed: () async {
@@ -2437,14 +2462,13 @@ class _TXAProfileScreenState extends State<TXAProfileScreen>
                   },
                   style: TextButton.styleFrom(
                     foregroundColor: const Color(0xFF5C4033),
-                    padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                   ),
                   child: Text(
                     txaLang.getText('vip_cancel_renewal'),
-                    style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
+                    style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 12.5),
                   ),
                 ),
-                const SizedBox(width: 8),
                 ElevatedButton(
                   onPressed: () {
                     Navigator.push(
@@ -2458,12 +2482,12 @@ class _TXAProfileScreenState extends State<TXAProfileScreen>
                     backgroundColor: const Color(0xFF5C4033),
                     foregroundColor: Colors.white,
                     shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                    padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
                     elevation: 0,
                   ),
                   child: Text(
                     txaLang.getText('vip_upgrade_btn'),
-                    style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
+                    style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 12.5),
                   ),
                 ),
               ],
@@ -2483,57 +2507,55 @@ class _TXAProfileScreenState extends State<TXAProfileScreen>
             width: 1,
           ),
         ),
-        child: Row(
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Row(
-                    children: [
-                      const Icon(Icons.workspace_premium_rounded, color: Color(0xFFFFD700), size: 22),
-                      const SizedBox(width: 8),
-                      Text(
-                        'Army Gold Pass 🌟',
-                        style: const TextStyle(
-                          color: Colors.white,
-                          fontSize: 16,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 6),
-                  Text(
-                    txaLang.getText('gold_pass_paywall_subtitle'),
+            Row(
+              children: [
+                const Icon(Icons.workspace_premium_rounded, color: Color(0xFFFFD700), size: 22),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: Text(
+                    'Army Gold Pass 🌟',
                     style: const TextStyle(
-                      color: Colors.white70,
-                      fontSize: 12,
+                      color: Colors.white,
+                      fontSize: 16,
+                      fontWeight: FontWeight.bold,
                     ),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
                   ),
-                ],
-              ),
+                ),
+                const SizedBox(width: 8),
+                ElevatedButton(
+                  onPressed: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(builder: (_) => const TXAGoldPassPaywallScreen()),
+                    ).then((_) {
+                      setModalState(() {});
+                    });
+                  },
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: const Color(0xFFFFD700),
+                    foregroundColor: Colors.black,
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                    padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+                    elevation: 0,
+                  ),
+                  child: Text(
+                    txaLang.getText('vip_upgrade_btn'),
+                    style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
+                  ),
+                ),
+              ],
             ),
-            const SizedBox(width: 12),
-            ElevatedButton(
-              onPressed: () {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(builder: (_) => const TXAGoldPassPaywallScreen()),
-                ).then((_) {
-                  setModalState(() {});
-                });
-              },
-              style: ElevatedButton.styleFrom(
-                backgroundColor: const Color(0xFFFFD700),
-                foregroundColor: Colors.black,
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-                elevation: 0,
-              ),
-              child: Text(
-                txaLang.getText('vip_upgrade_btn'),
-                style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
+            const SizedBox(height: 6),
+            Text(
+              txaLang.getText('gold_pass_paywall_subtitle'),
+              style: const TextStyle(
+                color: Colors.white70,
+                fontSize: 12,
               ),
             ),
           ],

@@ -648,6 +648,11 @@ class TXALanguage extends ChangeNotifier {
       'restore_unsupported_platform': 'Tính năng khôi phục giao dịch không khả dụng trên thiết bị này.',
       'restore_connect_error': 'Không thể kết nối với cửa hàng để khôi phục giao dịch.',
       'restore_network_error': '⚠️ Không có kết nối mạng! Vui lòng kiểm tra lại Internet.',
+      'version_timeline_title': 'Lịch Sử Cập Nhật 🚀',
+      'version_timeline_subtitle': 'Sơ Đồ Hành Trình Phát Triển',
+      'version_timeline_latest_badge': 'MỚI NHẤT',
+      'version_timeline_released_date': 'Phát hành ngày %date% • Đã tối ưu',
+      'version_timeline_menu_item': 'Lịch sử nhật ký cập nhật 🚀',
     },
     'en': {
       'app_title': 'Army',
@@ -1279,6 +1284,11 @@ class TXALanguage extends ChangeNotifier {
       'restore_unsupported_platform': 'Restore purchases is not available on this device.',
       'restore_connect_error': 'Failed to connect to store for restore.',
       'restore_network_error': '⚠️ No network connection! Please check your Internet.',
+      'version_timeline_title': 'Release History 🚀',
+      'version_timeline_subtitle': 'Development Roadmap Timeline',
+      'version_timeline_latest_badge': 'LATEST',
+      'version_timeline_released_date': 'Released on %date% • Optimized',
+      'version_timeline_menu_item': 'Version Release Timeline 🚀',
     },
   };
 
