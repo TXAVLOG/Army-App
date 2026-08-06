@@ -1,5 +1,4 @@
 import 'dart:io';
-import 'dart:math';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
@@ -704,6 +703,15 @@ class _LocketFeedScreenState extends State<LocketFeedScreen> {
                         Navigator.pop(context);
                       },
                     ),
+                    ListTile(
+                      leading: const Icon(Icons.person_rounded, color: Color(0xFF42A5F5)),
+                      title: Text(txaLang.currentLanguage == 'vi' ? 'Tôi' : 'Me', style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+                      trailing: _filterType == 'me' ? const Icon(Icons.check_circle_rounded, color: Color(0xFF42A5F5)) : null,
+                      onTap: () {
+                        setState(() => _filterType = 'me');
+                        Navigator.pop(context);
+                      },
+                    ),
                     if (txaAuth.bestFriendsList.isNotEmpty)
                       ListTile(
                         leading: const Icon(Icons.star_rounded, color: Colors.amber),
@@ -715,8 +723,8 @@ class _LocketFeedScreenState extends State<LocketFeedScreen> {
                         },
                       ),
                     ListTile(
-                      leading: const Icon(Icons.person_pin_rounded, color: TXATheme.primaryYellow),
-                      title: Text(txaLang.getText('filter_friends'), style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+                      leading: const Icon(Icons.people_alt_rounded, color: TXATheme.primaryYellow),
+                      title: Text(txaLang.currentLanguage == 'vi' ? 'Bạn bè' : 'Friends', style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
                       trailing: _filterType == 'friends' ? const Icon(Icons.check_circle_rounded, color: Color(0xFF42A5F5)) : null,
                       onTap: () {
                         setState(() => _filterType = 'friends');
@@ -769,7 +777,11 @@ class _LocketFeedScreenState extends State<LocketFeedScreen> {
                             return ListTile(
                               leading: CircleAvatar(
                                 backgroundColor: Color(fColor),
-                                child: Text(fAvatar, style: const TextStyle(fontSize: 16)),
+                                child: ClipOval(
+                                  child: fAvatar.startsWith('http')
+                                      ? SizedBox(width: 40, height: 40, child: TXANetworkImage(url: fAvatar, fit: BoxFit.cover))
+                                      : Center(child: Text(fAvatar, style: const TextStyle(fontSize: 16))),
+                                ),
                               ),
                               title: Text(fUser, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
                               trailing: _filterType == fUser ? const Icon(Icons.check_circle_rounded, color: Color(0xFF42A5F5)) : null,
@@ -793,23 +805,27 @@ class _LocketFeedScreenState extends State<LocketFeedScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final txaFormat = TXAFormat.instance;
     final txaAuth = TXAAuthService.instance;
     final txaLang = TXALanguage.instance;
     final currentUser = txaAuth.currentUser;
     final username = currentUser?.username ?? '@user';
 
     return AnimatedBuilder(
-      animation: Listenable.merge([TXAFeedService.instance, txaFormat, txaLang, txaAuth]),
+      animation: Listenable.merge([TXAFeedService.instance, txaLang, txaAuth]),
       builder: (context, _) {
         var visiblePosts = TXAFeedService.instance.getVisiblePostsForUser(username);
 
         // Áp dụng bộ lọc dropdown
-        if (_filterType == 'best_friends') {
+        if (_filterType == 'me') {
+          visiblePosts = visiblePosts.where((p) => p.senderUsername == username).toList();
+        } else if (_filterType == 'best_friends') {
           final bestFriendsUsernames = txaAuth.bestFriendsList.map((f) => f['username'] as String).toSet();
           visiblePosts = visiblePosts.where((p) => bestFriendsUsernames.contains(p.senderUsername)).toList();
         } else if (_filterType == 'friends') {
-          visiblePosts = visiblePosts.where((p) => p.senderUsername == username).toList();
+          final friendUsernames = txaAuth.friendsList.map((f) => f['username'] as String).toSet();
+          visiblePosts = visiblePosts.where((p) => friendUsernames.contains(p.senderUsername) && p.senderUsername != username).toList();
+        } else if (_filterType != 'all') {
+          visiblePosts = visiblePosts.where((p) => p.senderUsername == _filterType).toList();
         }
 
         final bool isVip = TXAIAPService.instance.isVipActive;
@@ -817,17 +833,18 @@ class _LocketFeedScreenState extends State<LocketFeedScreen> {
         if (isVip) {
           feedItems.addAll(visiblePosts);
         } else {
-          final rand = Random();
-          int targetAdOffset = rand.nextInt(4) + 2; // Sinh ngẫu nhiên từ 2 đến 5
           int postCounter = 0;
           for (var post in visiblePosts) {
             feedItems.add(post);
             postCounter++;
-            if (postCounter == targetAdOffset) {
+            if (postCounter == 4) {
               feedItems.add('ad_slot');
               postCounter = 0;
-              targetAdOffset = rand.nextInt(4) + 2; // Sinh tiếp khoảng cách ngẫu nhiên cho ad kế
             }
+          }
+          // Nếu số bài đăng chưa đủ 4 (chưa có ad nào được chèn) và không phải VIP, bắt buộc chèn 1 ad_slot
+          if (visiblePosts.isNotEmpty && !feedItems.contains('ad_slot')) {
+            feedItems.add('ad_slot');
           }
         }
 
@@ -836,12 +853,15 @@ class _LocketFeedScreenState extends State<LocketFeedScreen> {
         Widget buildFilterDropdownPill() {
           String filterLabel = txaLang.getText('filter_everyone');
           IconData filterIcon = Icons.people_rounded;
-          if (_filterType == 'best_friends') {
+          if (_filterType == 'me') {
+            filterLabel = txaLang.currentLanguage == 'vi' ? 'Tôi' : 'Me';
+            filterIcon = Icons.person_rounded;
+          } else if (_filterType == 'best_friends') {
             filterLabel = txaLang.getText('filter_best_friends');
             filterIcon = Icons.star_rounded;
           } else if (_filterType == 'friends') {
-            filterLabel = txaLang.getText('filter_friends');
-            filterIcon = Icons.person_pin_rounded;
+            filterLabel = txaLang.currentLanguage == 'vi' ? 'Bạn bè' : 'Friends';
+            filterIcon = Icons.people_alt_rounded;
           } else if (_filterType != 'all') {
             filterLabel = _filterType;
             filterIcon = Icons.account_circle_rounded;

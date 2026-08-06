@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'txa_supabase_service.dart';
 import 'txa_notification_service.dart';
@@ -273,17 +274,39 @@ class TXAChatService extends ChangeNotifier {
   }
 
   /// Stream lấy danh sách tin nhắn của một cuộc hội thoại cụ thể
-  Stream<List<TXAChatMessageModel>> listenMessages(String sender, String receiver) {
+  Stream<List<TXAChatMessageModel>> listenMessages(String sender, String receiver) async* {
     final conversationId = getConversationId(sender, receiver);
-    return TXASupabaseService.instance.client
-        .from('txa_messages')
-        .stream(primaryKey: ['id'])
-        .eq('conversationId', conversationId)
-        .map((rows) {
-      final list = rows.map((row) => TXAChatMessageModel.fromJson(row)).toList();
+
+    List<TXAChatMessageModel> getFiltered() {
+      final list = _allUserMessages.where((m) {
+        if (m.conversationId == conversationId) return true;
+        return getConversationId(m.senderUsername, m.receiverUsername) == conversationId;
+      }).toList();
       list.sort((a, b) => a.timestamp.compareTo(b.timestamp));
       return list;
-    });
+    }
+
+    // 1. Emit current in-memory messages immediately
+    yield getFiltered();
+
+    // 2. Listen to real-time updates from TXAChatService
+    final controller = StreamController<List<TXAChatMessageModel>>();
+    void listener() {
+      if (!controller.isClosed) {
+        controller.add(getFiltered());
+      }
+    }
+
+    addListener(listener);
+
+    try {
+      await for (final msgs in controller.stream) {
+        yield msgs;
+      }
+    } finally {
+      removeListener(listener);
+      await controller.close();
+    }
   }
 
   /// Lấy tin nhắn cuối cùng với bạn bè (trả về null nếu chưa nhắn)

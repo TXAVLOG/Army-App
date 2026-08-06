@@ -5,12 +5,46 @@ class TXAVersion extends ChangeNotifier {
   TXAVersion._internal();
 
   static const String appName = 'Army';
-  static const String currentVersion = '1.2.0';
-  static const int buildNumber = 5;
-  static const String releaseDate = '05/08/2026';
-  static const String fullVersionString = 'Bản 1.2.0+5';
+  static const String currentVersion = '1.3.0';
+  static const int buildNumber = 6;
+  static const String releaseDate = '06/08/2026';
+  static const String fullVersionString = 'Bản 1.3.0+6';
 
   static const List<Map<String, dynamic>> changelogData = [
+    {
+      'version': '1.3.0+6',
+      'date': '06/08/2026',
+      'title': 'Bản Cập Nhật Tối Ưu Feed & Đồng Bộ Tin Nhắn Siêu Mượt 🚀',
+      'subtitle': 'Khắc phục hoàn toàn lỗi khung chat chi tiết, tối ưu khoảng cách quảng cáo 4 bài, mượt mà lướt feed và đồng bộ ảnh Google.',
+      'badge': 'BẢN CẬP NHẬT',
+      'features': [
+        {
+          'icon': '💬',
+          'title': 'Sửa lỗi xem tin nhắn chi tiết',
+          'description': 'Toàn bộ nội dung tin nhắn trong khung chat chi tiết giờ đây hiển thị đầy đủ và đồng bộ 100% với danh sách tin nhắn ngoài màn hình chat.',
+        },
+        {
+          'icon': '📢',
+          'title': 'Cân bằng hiển thị quảng cáo',
+          'description': 'Cố định hiển thị quảng cáo sau mỗi 4 bài viết và luôn giữ 1 quảng cáo hợp lý ở cuối danh sách feed cho tài khoản Free (tài khoản VIP hoàn toàn không có quảng cáo).',
+        },
+        {
+          'icon': '⚡',
+          'title': 'Lướt feed siêu mượt & Không giật lag',
+          'description': 'Tối ưu hóa tốc độ cuộn bảng tin Locket, giảm bớt tiến trình dựng lại giao diện giúp thao tác vuốt mượt mà và mượt pin.',
+        },
+        {
+          'icon': '👤',
+          'title': 'Đồng bộ Avatar Google & Bạn bè chuẩn xác',
+          'description': 'Đăng nhập Google hiển thị đúng ảnh đại diện thật từ Google. Ảnh đại diện trong danh sách bạn bè được cập nhật mới nhất từ tài khoản thực.',
+        },
+        {
+          'icon': '🔍',
+          'title': 'Bộ lọc bài viết hoạt động chuẩn xác',
+          'description': 'Bộ lọc Feed nâng cấp hoàn hảo: Dễ dàng xem tất cả, xem bài của Tôi (Me), Bạn thân, Bạn bè hoặc lọc riêng từng bạn bè cụ thể.',
+        },
+      ],
+    },
     {
       'version': '1.2.0+5',
       'date': '05/08/2026',

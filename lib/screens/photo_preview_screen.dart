@@ -900,9 +900,15 @@ class _PhotoPreviewScreenState extends State<PhotoPreviewScreen> {
         finalStickerTextColor = theme['textColor'] as Color;
       }
 
+      final String effectiveSenderAvatar = (currentUser?.avatar != null && currentUser!.avatar.startsWith('http'))
+          ? currentUser.avatar
+          : (currentUser?.googlePhotoUrl != null && currentUser!.googlePhotoUrl!.startsWith('http'))
+              ? currentUser.googlePhotoUrl!
+              : (currentUser?.avatar ?? '🦊');
+
       await TXAFeedService.instance.createPost(
         senderUsername: currentUser?.username ?? '@tienndaii19',
-        senderAvatar: currentUser?.avatar ?? '🦊',
+        senderAvatar: effectiveSenderAvatar,
         senderAvatarColor: currentUser?.avatarBgColor ?? '0xFFF57C00',
         photoPath: widget.imagePath ?? '',
         caption: finalCaption,

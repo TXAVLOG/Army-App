@@ -190,47 +190,57 @@ class TXAAuthService extends ChangeNotifier {
       final firebaseUser = FirebaseAuth.instance.currentUser;
       if (firebaseUser != null && firebaseUser.photoURL != null && firebaseUser.photoURL!.isNotEmpty) {
         final newPhotoUrl = firebaseUser.photoURL!;
-        if (_currentUser != null && _currentUser!.googlePhotoUrl != newPhotoUrl) {
-          final oldPhotoUrl = _currentUser!.googlePhotoUrl;
-          final shouldUpdateActiveAvatar = _currentUser!.avatar == oldPhotoUrl;
+        if (_currentUser != null) {
+          final isDefaultEmoji = _currentUser!.avatar == '🦊' || _currentUser!.avatar == '👤';
+          final shouldUpdateActiveAvatar = _currentUser!.avatar == _currentUser!.googlePhotoUrl || isDefaultEmoji || !_currentUser!.avatar.startsWith('http');
 
-          final updatedUser = UserModel(
-            id: _currentUser!.id,
-            email: _currentUser!.email,
-            username: _currentUser!.username,
-            dob: _currentUser!.dob,
-            avatar: shouldUpdateActiveAvatar ? newPhotoUrl : _currentUser!.avatar,
-            avatarBgColor: _currentUser!.avatarBgColor,
-            googlePhotoUrl: newPhotoUrl,
-            isGoogleAccount: true,
-            createdTime: _currentUser!.createdTime,
-            role: _currentUser!.role,
-          );
+          if (_currentUser!.googlePhotoUrl != newPhotoUrl || shouldUpdateActiveAvatar) {
+            final updatedUser = UserModel(
+              id: _currentUser!.id,
+              email: _currentUser!.email,
+              username: _currentUser!.username,
+              dob: _currentUser!.dob,
+              avatar: shouldUpdateActiveAvatar ? newPhotoUrl : _currentUser!.avatar,
+              avatarBgColor: _currentUser!.avatarBgColor,
+              googlePhotoUrl: newPhotoUrl,
+              isGoogleAccount: true,
+              createdTime: _currentUser!.createdTime,
+              role: _currentUser!.role,
+              monthlyMemories: _currentUser!.monthlyMemories,
+              loveId: _currentUser!.loveId,
+              loverUsername: _currentUser!.loverUsername,
+              isVipActive: _currentUser!.isVipActive,
+              displayName: _currentUser!.displayName,
+              isOnline: _currentUser!.isOnline,
+              fcmToken: _currentUser!.fcmToken,
+            );
 
-          // Update local cache
-          await _setActiveUser(updatedUser);
+            // Update local cache
+            await _setActiveUser(updatedUser);
 
-          // Update Supabase
-          final updates = <String, dynamic>{
-            'googlePhotoUrl': newPhotoUrl,
-          };
-          if (shouldUpdateActiveAvatar) {
-            updates['avatar'] = newPhotoUrl;
+            // Update Supabase
+            final updates = <String, dynamic>{
+              'googlePhotoUrl': newPhotoUrl,
+              'googlephotourl': newPhotoUrl,
+            };
+            if (shouldUpdateActiveAvatar) {
+              updates['avatar'] = newPhotoUrl;
+            }
+            await TXASupabaseService.instance.client
+                .from('txa_users')
+                .update(updates)
+                .eq('id', _currentUser!.id);
+
+            // Update local accounts fallback
+            final prefs = await SharedPreferences.getInstance();
+            final accountsMap = _getStoredAccounts(prefs);
+            if (accountsMap.containsKey(_currentUser!.id)) {
+              accountsMap[_currentUser!.id]!['user'] = updatedUser.toJson();
+              await prefs.setString(_keyAccounts, jsonEncode(accountsMap));
+            }
+
+            debugPrint('🔄 Synchronized Google photo URL: $newPhotoUrl');
           }
-          await TXASupabaseService.instance.client
-              .from('txa_users')
-              .update(updates)
-              .eq('id', _currentUser!.id);
-
-          // Update local accounts fallback
-          final prefs = await SharedPreferences.getInstance();
-          final accountsMap = _getStoredAccounts(prefs);
-          if (accountsMap.containsKey(_currentUser!.id)) {
-            accountsMap[_currentUser!.id]!['user'] = updatedUser.toJson();
-            await prefs.setString(_keyAccounts, jsonEncode(accountsMap));
-          }
-
-          debugPrint('🔄 Synchronized Google photo URL: $newPhotoUrl');
         }
       }
     } catch (e) {
@@ -293,6 +303,45 @@ class TXAAuthService extends ChangeNotifier {
           final fromAvatar = row['fromAvatar'] as String? ?? '👤';
           final fromAvatarColor = row['fromAvatarColor'] as String? ?? '0xFF607D8B';
           addFriendInfo(fromUser, fromAvatar, fromAvatarColor);
+        }
+      }
+
+      // Query latest actual user profile for each friend from txa_users table
+      if (friendUsernames.isNotEmpty) {
+        try {
+          final usersData = await supabase
+              .from('txa_users')
+              .select()
+              .inFilter('username', friendUsernames.toList());
+          
+          final Map<String, Map<String, dynamic>> userMap = {};
+          for (var u in usersData) {
+            final uName = u['username']?.toString();
+            if (uName != null) {
+              userMap[uName] = Map<String, dynamic>.from(u as Map);
+            }
+          }
+
+          for (var f in newFriends) {
+            final u = userMap[f['username']];
+            if (u != null) {
+              final String? gPhoto = (u['googlePhotoUrl'] ?? u['googlephotourl'])?.toString();
+              final String? av = u['avatar']?.toString();
+              final String? avBg = (u['avatarBgColor'] ?? u['avatarbgcolor'])?.toString();
+
+              final effectiveAv = (av != null && av.startsWith('http'))
+                  ? av
+                  : (gPhoto != null && gPhoto.startsWith('http'))
+                      ? gPhoto
+                      : (av ?? '👤');
+              f['avatar'] = effectiveAv;
+              if (avBg != null) {
+                f['bgColor'] = int.tryParse(avBg) ?? f['bgColor'];
+              }
+            }
+          }
+        } catch (e) {
+          debugPrint('Lookup friends profiles error: $e');
         }
       }
 
@@ -621,9 +670,17 @@ class TXAAuthService extends ChangeNotifier {
       UserModel googleUserAccount;
       if (docSnap != null) {
         googleUserAccount = UserModel.fromJson(docSnap);
-        // Cập nhật googlePhotoUrl và displayName nếu có thay đổi từ Google OAuth
+        final currentAv = googleUserAccount.avatar;
+        final bool isDefaultEmoji = currentAv == '🦊' || currentAv == '👤' || !currentAv.startsWith('http');
+        final effectiveAv = isDefaultEmoji
+            ? (photoUrl ?? googleUserAccount.googlePhotoUrl ?? '🦊')
+            : currentAv;
+
+        // Cập nhật googlePhotoUrl, avatar và displayName nếu có thay đổi từ Google OAuth
         await supabase.from('txa_users').update({
           'googlePhotoUrl': photoUrl ?? googleUserAccount.googlePhotoUrl ?? 'https://lh3.googleusercontent.com/a/default-user',
+          'googlephotourl': photoUrl ?? googleUserAccount.googlePhotoUrl ?? 'https://lh3.googleusercontent.com/a/default-user',
+          'avatar': effectiveAv,
           'displayName': displayName.isNotEmpty ? displayName : googleUserAccount.displayName,
         }).eq('id', googleUserAccount.id);
         // Tải lại để lấy dữ liệu mới nhất
@@ -631,12 +688,13 @@ class TXAAuthService extends ChangeNotifier {
         googleUserAccount = UserModel.fromJson(updatedDoc);
       } else {
         final cleanUsername = generateShortGoogleUsername(displayName, userEmail, googleId);
+        final initialAvatar = (photoUrl != null && photoUrl.isNotEmpty) ? photoUrl : '🦊';
         googleUserAccount = UserModel(
           id: 'user_google_$googleId',
           email: userEmail.isEmpty ? 'user@gmail.com' : userEmail,
           username: cleanUsername,
           dob: '19/10/2000',
-          avatar: '🦊',
+          avatar: initialAvatar,
           avatarBgColor: '0xFFF57C00',
           googlePhotoUrl: photoUrl ?? 'https://lh3.googleusercontent.com/a/default-user',
           isGoogleAccount: true,
@@ -648,6 +706,7 @@ class TXAAuthService extends ChangeNotifier {
         final gUserJson = googleUserAccount.toJson();
         await supabase.from('txa_users').insert({
           ...gUserJson,
+          'avatar': initialAvatar,
           'avatarbgcolor': '0xFFF57C00',
           'googlephotourl': photoUrl ?? 'https://lh3.googleusercontent.com/a/default-user',
           'isgoogleaccount': true,
