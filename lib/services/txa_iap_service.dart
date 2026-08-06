@@ -69,16 +69,15 @@ class TXAIAPService extends ChangeNotifier {
     notifyListeners();
   }
 
-  Future<void> buySubscription(ProductDetails product) async {
+  Future<void> buySubscription(ProductDetails product, [BuildContext? customContext]) async {
+    final txaLang = TXALanguage.instance;
+
     if (Platform.isIOS) {
-      final context = navigatorKey.currentContext;
-      if (context != null) {
-        TXAToast.show(
-          context,
-          TXALanguage.instance.getText('ios_iap_unsupported'),
-          icon: Icons.warning_amber_rounded,
-        );
-      }
+      _safeShowToast(
+        customContext,
+        txaLang.getText('ios_iap_unsupported'),
+        icon: Icons.warning_amber_rounded,
+      );
       return;
     }
 
@@ -87,6 +86,21 @@ class TXAIAPService extends ChangeNotifier {
       await _iap.buyNonConsumable(purchaseParam: purchaseParam);
     } catch (e, stack) {
       TXALogger.logError(e, stackTrace: stack, extraInfo: {'service': 'TXAIAPService', 'action': 'buySubscription'});
+      final errStr = e.toString().toLowerCase();
+      if (errStr.contains('canceled') || errStr.contains('cancelled')) {
+        _safeShowToast(
+          null,
+          txaLang.getText('purchase_canceled_toast'),
+          icon: Icons.cancel_outlined,
+        );
+      } else {
+        final msg = txaLang.getText('purchase_failed_toast').replaceAll('%error%', e.toString());
+        _safeShowToast(
+          null,
+          msg,
+          icon: Icons.error_outline_rounded,
+        );
+      }
     }
   }
 
@@ -95,7 +109,7 @@ class TXAIAPService extends ChangeNotifier {
   bool _restoredPurchaseHandled = false;
 
   void _safeShowToast(BuildContext? context, String message, {IconData icon = Icons.info_outline_rounded}) {
-    final ctx = context ?? navigatorKey.currentContext;
+    final ctx = (context != null && context.mounted) ? context : navigatorKey.currentContext;
     if (ctx != null && ctx.mounted) {
       try {
         TXAToast.show(ctx, message, icon: icon);
@@ -172,20 +186,68 @@ class TXAIAPService extends ChangeNotifier {
   }
 
   void _listenToPurchaseUpdated(List<PurchaseDetails> purchaseDetailsList) async {
+    final txaLang = TXALanguage.instance;
+
     for (final purchaseDetails in purchaseDetailsList) {
       if (purchaseDetails.status == PurchaseStatus.pending) {
-        // Handle pending state
-      } else {
-        if (purchaseDetails.status == PurchaseStatus.error) {
-          debugPrint('Purchase error: ${purchaseDetails.error}');
-        } else if (purchaseDetails.status == PurchaseStatus.purchased ||
-            purchaseDetails.status == PurchaseStatus.restored) {
-          _restoredPurchaseHandled = true;
-          await _verifyAndActivateVIP(purchaseDetails);
+        _safeShowToast(
+          null,
+          txaLang.getText('purchase_pending_toast'),
+          icon: Icons.hourglass_top_rounded,
+        );
+      } else if (purchaseDetails.status == PurchaseStatus.canceled) {
+        _safeShowToast(
+          null,
+          txaLang.getText('purchase_canceled_toast'),
+          icon: Icons.cancel_outlined,
+        );
+      } else if (purchaseDetails.status == PurchaseStatus.error) {
+        debugPrint('Purchase error: ${purchaseDetails.error}');
+        final err = purchaseDetails.error;
+        final errCode = (err?.code ?? '').toLowerCase();
+        final errMessage = (err?.message ?? '').toLowerCase();
+
+        if (errCode.contains('canceled') ||
+            errMessage.contains('canceled') ||
+            errCode.contains('user_canceled') ||
+            errMessage.contains('user canceled')) {
+          _safeShowToast(
+            null,
+            txaLang.getText('purchase_canceled_toast'),
+            icon: Icons.cancel_outlined,
+          );
+        } else if (errCode.contains('already_owned') ||
+            errMessage.contains('already owned') ||
+            errMessage.contains('already_owned')) {
+          _safeShowToast(
+            null,
+            txaLang.getText('purchase_already_owned_toast'),
+            icon: Icons.info_outline_rounded,
+          );
+        } else if (errCode.contains('unavailable') || errMessage.contains('unavailable')) {
+          _safeShowToast(
+            null,
+            txaLang.getText('purchase_unavailable_toast'),
+            icon: Icons.error_outline_rounded,
+          );
+        } else {
+          final msg = txaLang
+              .getText('purchase_failed_toast')
+              .replaceAll('%error%', err?.message ?? err?.code ?? 'Billing error');
+          _safeShowToast(
+            null,
+            msg,
+            icon: Icons.error_outline_rounded,
+          );
         }
-        if (purchaseDetails.pendingCompletePurchase) {
-          await _iap.completePurchase(purchaseDetails);
-        }
+      } else if (purchaseDetails.status == PurchaseStatus.purchased ||
+          purchaseDetails.status == PurchaseStatus.restored) {
+        _restoredPurchaseHandled = true;
+        await _verifyAndActivateVIP(purchaseDetails);
+      }
+
+      if (purchaseDetails.pendingCompletePurchase) {
+        await _iap.completePurchase(purchaseDetails);
       }
     }
   }

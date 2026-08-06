@@ -247,7 +247,7 @@ class _TXAGoldPassPaywallScreenState extends State<TXAGoldPassPaywallScreen> {
                 child: ElevatedButton(
                   onPressed: () async {
                     if (selectedProduct != null) {
-                      await iapService.buySubscription(selectedProduct);
+                      await iapService.buySubscription(selectedProduct, context);
                     } else {
                       // Trigger iOS/fallback notification
                       await iapService.buySubscription(
@@ -259,6 +259,7 @@ class _TXAGoldPassPaywallScreenState extends State<TXAGoldPassPaywallScreen> {
                           rawPrice: _isYearlySelected ? 6.99 : 0.99,
                           currencyCode: 'USD',
                         ),
+                        context,
                       );
                     }
                   },

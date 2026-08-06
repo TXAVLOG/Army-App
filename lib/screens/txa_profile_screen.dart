@@ -1937,14 +1937,21 @@ class _TXAProfileScreenState extends State<TXAProfileScreen>
 
         return StatefulBuilder(
           builder: (context, setModalState) {
-            return SafeArea(
-              child: Container(
-                padding: const EdgeInsets.all(20),
-                child: SingleChildScrollView(
-                  physics: const ClampingScrollPhysics(),
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
+            return DraggableScrollableSheet(
+              initialChildSize: 0.30,
+              minChildSize: 0.20,
+              maxChildSize: 0.90,
+              expand: false,
+              builder: (context, scrollController) {
+                return SafeArea(
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+                    child: SingleChildScrollView(
+                      controller: scrollController,
+                      physics: const ClampingScrollPhysics(),
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
                       // Header with Handle bar & Close Button (X) at far right corner
                       Row(
                         crossAxisAlignment: CrossAxisAlignment.start,
@@ -2233,15 +2240,17 @@ class _TXAProfileScreenState extends State<TXAProfileScreen>
                           ),
                         ),
                       ),
-                    ],
+                      ],
+                    ),
                   ),
                 ),
-              ),
-            );
-          },
-        );
-      },
-    ).whenComplete(() {
+              );
+            },
+          );
+        },
+      );
+    },
+  ).whenComplete(() {
       // Khi đóng modal → quay icon về ≡
       if (mounted) {
         _menuAnimCtrl.reverse();
