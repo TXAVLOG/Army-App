@@ -135,7 +135,7 @@ class _TXAAdminPanelScreenState extends State<TXAAdminPanelScreen> with SingleTi
   Widget _buildUsersTab() {
     final txaLang = TXALanguage.instance;
     if (_users.isEmpty) {
-      return Center(child: Text(txaLang.getText('admin_no_users'), style: const TextStyle(color: TXATheme.textMuted)));
+      return Center(child: Text(txaLang.getText('admin_no_users'), style: TextStyle(color: TXATheme.textMuted)));
     }
     return ListView.separated(
       padding: const EdgeInsets.all(16),
@@ -159,15 +159,15 @@ class _TXAAdminPanelScreenState extends State<TXAAdminPanelScreen> with SingleTi
           contentPadding: EdgeInsets.zero,
           leading: CircleAvatar(
             backgroundColor: Color(int.tryParse(user.avatarBgColor) ?? 0xFFF57C00),
-            child: Text(user.avatar, style: const TextStyle(fontSize: 20)),
+            child: Text(user.avatar, style: TextStyle(fontSize: 20)),
           ),
           title: Text(
             user.username,
-            style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 16),
+            style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 16),
           ),
           subtitle: Text(
             txaLang.getText('admin_role_created').replaceAll('%role%', roleLocalized).replaceAll('%date%', dateLocalized),
-            style: const TextStyle(color: TXATheme.textMuted, fontSize: 12),
+            style: TextStyle(color: TXATheme.textMuted, fontSize: 12),
           ),
           trailing: isMe
               ? Container(
@@ -200,7 +200,7 @@ class _TXAAdminPanelScreenState extends State<TXAAdminPanelScreen> with SingleTi
                       },
                     ),
                     IconButton(
-                      icon: const Icon(Icons.delete_outline_rounded, color: TXATheme.statusRed),
+                      icon: Icon(Icons.delete_outline_rounded, color: TXATheme.statusRed),
                       tooltip: txaLang.getText('admin_delete_user_title'),
                       onPressed: () => _handleDeleteUser(user),
                     ),
@@ -215,7 +215,7 @@ class _TXAAdminPanelScreenState extends State<TXAAdminPanelScreen> with SingleTi
     final txaLang = TXALanguage.instance;
     final posts = TXAFeedService.instance.posts;
     if (posts.isEmpty) {
-      return Center(child: Text(txaLang.getText('admin_no_posts'), style: const TextStyle(color: TXATheme.textMuted)));
+      return Center(child: Text(txaLang.getText('admin_no_posts'), style: TextStyle(color: TXATheme.textMuted)));
     }
     return GridView.builder(
       padding: const EdgeInsets.all(16),
@@ -260,14 +260,14 @@ class _TXAAdminPanelScreenState extends State<TXAAdminPanelScreen> with SingleTi
                   children: [
                     Text(
                       post.senderUsername,
-                      style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: Colors.white),
+                      style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: Colors.white),
                     ),
                     const SizedBox(height: 4),
                     Text(
                       post.caption.isNotEmpty ? post.caption : txaLang.getText('admin_no_caption'),
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
-                      style: const TextStyle(color: TXATheme.textMuted, fontSize: 11),
+                      style: TextStyle(color: TXATheme.textMuted, fontSize: 11),
                     ),
                     const SizedBox(height: 6),
                     Row(
@@ -318,7 +318,7 @@ class _TXAAdminPanelScreenState extends State<TXAAdminPanelScreen> with SingleTi
   Widget _buildReportsTab() {
     final txaLang = TXALanguage.instance;
     if (_reports.isEmpty) {
-      return Center(child: Text(txaLang.getText('admin_no_reports'), style: const TextStyle(color: TXATheme.textMuted)));
+      return Center(child: Text(txaLang.getText('admin_no_reports'), style: TextStyle(color: TXATheme.textMuted)));
     }
     return ListView.separated(
       padding: const EdgeInsets.all(16),
@@ -365,13 +365,13 @@ class _TXAAdminPanelScreenState extends State<TXAAdminPanelScreen> with SingleTi
               const SizedBox(height: 6),
               Text(
                 txaLang.getText('admin_report_target').replaceAll('%target%', r['postSender'] ?? '@user'),
-                style: const TextStyle(color: Colors.white70, fontSize: 12),
+                style: TextStyle(color: Colors.white70, fontSize: 12),
               ),
               if (r['caption'] != null && r['caption'].toString().isNotEmpty) ...[
                 const SizedBox(height: 6),
                 Text(
                   txaLang.getText('admin_report_content').replaceAll('%content%', r['caption'].toString()),
-                  style: const TextStyle(color: TXATheme.textMuted, fontSize: 12, fontStyle: FontStyle.italic),
+                  style: TextStyle(color: TXATheme.textMuted, fontSize: 12, fontStyle: FontStyle.italic),
                 ),
               ],
               const SizedBox(height: 12),
@@ -558,17 +558,17 @@ class _TXAAdminPanelScreenState extends State<TXAAdminPanelScreen> with SingleTi
                               CircleAvatar(
                                 radius: 18,
                                 backgroundColor: Color(int.tryParse(user.avatarBgColor) ?? 0xFF42A5F5),
-                                child: Text(user.avatar, style: const TextStyle(fontSize: 16)),
+                                child: Text(user.avatar, style: TextStyle(fontSize: 16)),
                               ),
                             ],
                           ),
                           title: Text(
                             user.username,
-                            style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 14),
+                            style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 14),
                           ),
                           subtitle: Text(
                             user.role == 'admin' ? '⭐ Admin' : 'User',
-                            style: const TextStyle(color: TXATheme.textMuted, fontSize: 11),
+                            style: TextStyle(color: TXATheme.textMuted, fontSize: 11),
                           ),
                           trailing: Container(
                             padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
@@ -648,14 +648,14 @@ class _TXAAdminPanelScreenState extends State<TXAAdminPanelScreen> with SingleTi
                                 backgroundColor: const Color(0xFF42A5F5),
                                 child: Text(
                                   posterName.isNotEmpty ? posterName[0].toUpperCase() : '👤',
-                                  style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 14),
+                                  style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 14),
                                 ),
                               ),
                             ],
                           ),
                           title: Text(
                             posterName,
-                            style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 14),
+                            style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 14),
                           ),
                           subtitle: Text(
                             countToday > 0 ? '+$countToday ✨' : '',
@@ -776,7 +776,7 @@ class _TXAAdminPanelScreenState extends State<TXAAdminPanelScreen> with SingleTi
               Flexible(
                 child: Text(
                   title,
-                  style: const TextStyle(color: TXATheme.textMuted, fontSize: 9, fontWeight: FontWeight.bold),
+                  style: TextStyle(color: TXATheme.textMuted, fontSize: 9, fontWeight: FontWeight.bold),
                   overflow: TextOverflow.ellipsis,
                 ),
               ),
@@ -804,10 +804,10 @@ class _TXAAdminPanelScreenState extends State<TXAAdminPanelScreen> with SingleTi
           .stream(primaryKey: ['id']),
       builder: (context, snapshot) {
         if (snapshot.connectionState == ConnectionState.waiting) {
-          return const Center(child: CircularProgressIndicator(color: TXATheme.primaryYellow));
+          return Center(child: CircularProgressIndicator(color: TXATheme.primaryYellow));
         }
         if (!snapshot.hasData || snapshot.data!.isEmpty) {
-          return Center(child: Text(txaLang.getText('admin_no_users'), style: const TextStyle(color: TXATheme.textMuted)));
+          return Center(child: Text(txaLang.getText('admin_no_users'), style: TextStyle(color: TXATheme.textMuted)));
         }
         final docs = snapshot.data!;
         return ListView.separated(
@@ -832,21 +832,21 @@ class _TXAAdminPanelScreenState extends State<TXAAdminPanelScreen> with SingleTi
               contentPadding: EdgeInsets.zero,
               leading: CircleAvatar(
                 backgroundColor: avatarBg,
-                child: Text(avatar, style: const TextStyle(fontSize: 20)),
+                child: Text(avatar, style: TextStyle(fontSize: 20)),
               ),
               title: Row(
                 children: [
-                  Text(username, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+                  Text(username, style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
                   const SizedBox(width: 6),
                   if (isVip)
-                    const Icon(Icons.stars_rounded, color: TXATheme.primaryYellow, size: 16)
+                    Icon(Icons.stars_rounded, color: TXATheme.primaryYellow, size: 16)
                   else
-                    const Icon(Icons.star_border_rounded, color: Colors.white38, size: 16),
+                    Icon(Icons.star_border_rounded, color: Colors.white38, size: 16),
                 ],
               ),
               subtitle: Text(
                 '$goldPassStatus | $restoreCreditsStatus | $monthlyRestoreStatus',
-                style: const TextStyle(color: TXATheme.textMuted, fontSize: 12),
+                style: TextStyle(color: TXATheme.textMuted, fontSize: 12),
               ),
               trailing: Row(
                 mainAxisSize: MainAxisSize.min,

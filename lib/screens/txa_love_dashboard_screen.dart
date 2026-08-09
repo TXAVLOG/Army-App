@@ -63,11 +63,11 @@ class _TXALoveDashboardScreenState extends State<TXALoveDashboardScreen> {
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
         title: Text(
           txaLang.getText('break_up_confirm_title'),
-          style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+          style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
         ),
         content: Text(
           txaLang.getText('break_up_confirm_desc'),
-          style: const TextStyle(color: TXATheme.textMuted),
+          style: TextStyle(color: TXATheme.textMuted),
         ),
         actions: [
           TextButton(
@@ -143,7 +143,7 @@ class _TXALoveDashboardScreenState extends State<TXALoveDashboardScreen> {
         stream: txaAuth.listenToLoveConnection(widget.loveId),
         builder: (context, snapshot) {
           if (snapshot.connectionState == ConnectionState.waiting) {
-            return const Center(child: CircularProgressIndicator(color: Color(0xFFF43F5E)));
+            return Center(child: CircularProgressIndicator(color: Color(0xFFF43F5E)));
           }
 
           final loveData = snapshot.data;
@@ -151,7 +151,7 @@ class _TXALoveDashboardScreenState extends State<TXALoveDashboardScreen> {
             return Center(
               child: Text(
                 txaLang.getText('no_posts_yet'),
-                style: const TextStyle(color: TXATheme.textMuted),
+                style: TextStyle(color: TXATheme.textMuted),
               ),
             );
           }
@@ -263,7 +263,7 @@ class _TXALoveDashboardScreenState extends State<TXALoveDashboardScreen> {
                   ),
                    Text(
                     txaLang.getText('love_days_together_label'),
-                    style: const TextStyle(
+                    style: TextStyle(
                       color: Colors.white,
                       fontSize: 20,
                       fontWeight: FontWeight.bold,
@@ -277,7 +277,7 @@ class _TXALoveDashboardScreenState extends State<TXALoveDashboardScreen> {
                           ? '${anniversaryStr.substring(8, 10)}/${anniversaryStr.substring(5, 7)}/${anniversaryStr.substring(0, 4)}'
                           : '',
                     ),
-                    style: const TextStyle(
+                    style: TextStyle(
                       color: TXATheme.textMuted,
                       fontSize: 14,
                     ),

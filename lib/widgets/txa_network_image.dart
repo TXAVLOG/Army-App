@@ -1,6 +1,7 @@
 import 'dart:typed_data';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
+import '../services/txa_language.dart';
 
 class TXANetworkImage extends StatefulWidget {
   final String url;
@@ -111,6 +112,8 @@ class _TXANetworkImageState extends State<TXANetworkImage> {
 
   @override
   Widget build(BuildContext context) {
+    final txaLang = TXALanguage.instance;
+
     if (_imageBytes != null) {
       return Image.memory(
         _imageBytes!,
@@ -136,11 +139,68 @@ class _TXANetworkImageState extends State<TXANetworkImage> {
     }
 
     if (_error != null) {
-      if (widget.errorBuilder != null) {
-        return widget.errorBuilder!(context, _error!, null);
-      }
-      return const Center(
-        child: Icon(Icons.broken_image_outlined, color: Color(0xFF42A5F5), size: 40),
+      return GestureDetector(
+        onTap: _loadImage,
+        behavior: HitTestBehavior.opaque,
+        child: widget.errorBuilder != null
+            ? widget.errorBuilder!(context, _error!, null)
+            : Container(
+                color: const Color(0xFF1E1E24),
+                padding: const EdgeInsets.all(16),
+                child: Center(
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.all(12),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFF42A5F5).withAlpha(30),
+                          shape: BoxShape.circle,
+                        ),
+                        child: const Icon(
+                          Icons.signal_wifi_off_rounded,
+                          color: Color(0xFF42A5F5),
+                          size: 32,
+                        ),
+                      ),
+                      const SizedBox(height: 10),
+                      Text(
+                        txaLang.getText('image_load_failed'),
+                        style: const TextStyle(
+                          color: Colors.white70,
+                          fontSize: 13,
+                          fontWeight: FontWeight.w600,
+                        ),
+                        textAlign: TextAlign.center,
+                      ),
+                      const SizedBox(height: 12),
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFF42A5F5),
+                          borderRadius: BorderRadius.circular(20),
+                        ),
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            const Icon(Icons.refresh_rounded, color: Colors.black, size: 18),
+                            const SizedBox(width: 6),
+                            Text(
+                              txaLang.getText('retry_image_load'),
+                              style: const TextStyle(
+                                color: Colors.black,
+                                fontSize: 13,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
       );
     }
 

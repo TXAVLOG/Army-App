@@ -344,18 +344,18 @@ class _TXARegisterScreenState extends State<TXARegisterScreen> {
               // Display Name Field
               Text(
                 txaLang.getText('display_name_label'),
-                style: const TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: Colors.white70),
+                style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: Colors.white70),
               ),
               const SizedBox(height: 6),
               TextField(
                 controller: _displayNameController,
                 focusNode: _displayNameFocusNode,
-                style: const TextStyle(color: Colors.white, fontSize: 15),
+                style: TextStyle(color: Colors.white, fontSize: 15),
                 textCapitalization: TextCapitalization.words,
                 decoration: InputDecoration(
                   hintText: txaLang.getText('display_name_hint'),
-                  hintStyle: const TextStyle(color: TXATheme.textMuted),
-                  prefixIcon: const Icon(Icons.person_outline_rounded, color: TXATheme.textMuted),
+                  hintStyle: TextStyle(color: TXATheme.textMuted),
+                  prefixIcon: Icon(Icons.person_outline_rounded, color: TXATheme.textMuted),
                   filled: true,
                   fillColor: TXATheme.cardBg,
                   contentPadding: const EdgeInsets.symmetric(horizontal: 18, vertical: 16),
@@ -381,18 +381,18 @@ class _TXARegisterScreenState extends State<TXARegisterScreen> {
               // Email Field (Validates Gmail, iCloud, Microsoft)
               Text(
                 txaLang.getText('email_address_label'),
-                style: const TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: Colors.white70),
+                style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: Colors.white70),
               ),
               const SizedBox(height: 6),
               TextField(
                 controller: _emailController,
                 focusNode: _emailFocusNode,
                 keyboardType: TextInputType.emailAddress,
-                style: const TextStyle(color: Colors.white, fontSize: 15),
+                style: TextStyle(color: Colors.white, fontSize: 15),
                 decoration: InputDecoration(
                   hintText: txaLang.getText('email_domain_hint'),
-                  hintStyle: const TextStyle(color: TXATheme.textMuted),
-                  prefixIcon: const Icon(Icons.email_outlined, color: TXATheme.textMuted),
+                  hintStyle: TextStyle(color: TXATheme.textMuted),
+                  prefixIcon: Icon(Icons.email_outlined, color: TXATheme.textMuted),
                   filled: true,
                   fillColor: TXATheme.cardBg,
                   contentPadding: const EdgeInsets.symmetric(horizontal: 18, vertical: 16),
@@ -442,17 +442,17 @@ class _TXARegisterScreenState extends State<TXARegisterScreen> {
               // Username Field + Helper Notice
               Text(
                 txaLang.getText('username_label'),
-                style: const TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: Colors.white70),
+                style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: Colors.white70),
               ),
               const SizedBox(height: 6),
               TextField(
                 controller: _usernameController,
                 focusNode: _usernameFocusNode,
-                style: const TextStyle(color: Colors.white, fontSize: 15),
+                style: TextStyle(color: Colors.white, fontSize: 15),
                 decoration: InputDecoration(
                   hintText: txaLang.getText('username_hint'),
-                  hintStyle: const TextStyle(color: TXATheme.textMuted),
-                  prefixIcon: const Icon(Icons.alternate_email_rounded, color: TXATheme.textMuted),
+                  hintStyle: TextStyle(color: TXATheme.textMuted),
+                  prefixIcon: Icon(Icons.alternate_email_rounded, color: TXATheme.textMuted),
                   filled: true,
                   fillColor: TXATheme.cardBg,
                   contentPadding: const EdgeInsets.symmetric(horizontal: 18, vertical: 16),
@@ -501,7 +501,7 @@ class _TXARegisterScreenState extends State<TXARegisterScreen> {
               // Date of Birth Field
               Text(
                 txaLang.getText('dob_title'),
-                style: const TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: Colors.white70),
+                style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: Colors.white70),
               ),
               const SizedBox(height: 6),
               GestureDetector(
@@ -510,11 +510,11 @@ class _TXARegisterScreenState extends State<TXARegisterScreen> {
                   child: TextField(
                     controller: _dobController,
                     focusNode: _dobFocusNode,
-                    style: const TextStyle(color: Colors.white, fontSize: 15),
+                    style: TextStyle(color: Colors.white, fontSize: 15),
                     decoration: InputDecoration(
                       hintText: txaLang.getText('dob_hint'),
-                      hintStyle: const TextStyle(color: TXATheme.textMuted),
-                      prefixIcon: const Icon(Icons.cake_outlined, color: TXATheme.textMuted),
+                      hintStyle: TextStyle(color: TXATheme.textMuted),
+                      prefixIcon: Icon(Icons.cake_outlined, color: TXATheme.textMuted),
                       filled: true,
                       fillColor: TXATheme.cardBg,
                       contentPadding: const EdgeInsets.symmetric(horizontal: 18, vertical: 16),
@@ -532,18 +532,18 @@ class _TXARegisterScreenState extends State<TXARegisterScreen> {
               // Password Field
               Text(
                 txaLang.getText('password'),
-                style: const TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: Colors.white70),
+                style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: Colors.white70),
               ),
               const SizedBox(height: 6),
               TextField(
                 controller: _passwordController,
                 focusNode: _passwordFocusNode,
                 obscureText: !_isPasswordVisible,
-                style: const TextStyle(color: Colors.white, fontSize: 15),
+                style: TextStyle(color: Colors.white, fontSize: 15),
                 decoration: InputDecoration(
                   hintText: txaLang.getText('password_min_hint'),
-                  hintStyle: const TextStyle(color: TXATheme.textMuted),
-                  prefixIcon: const Icon(Icons.lock_outline_rounded, color: TXATheme.textMuted),
+                  hintStyle: TextStyle(color: TXATheme.textMuted),
+                  prefixIcon: Icon(Icons.lock_outline_rounded, color: TXATheme.textMuted),
                   suffixIcon: IconButton(
                     icon: Icon(
                       _isPasswordVisible ? Icons.visibility_off_rounded : Icons.visibility_rounded,
@@ -570,18 +570,18 @@ class _TXARegisterScreenState extends State<TXARegisterScreen> {
               // Confirm Password Field
               Text(
                 txaLang.getText('confirm_password'),
-                style: const TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: Colors.white70),
+                style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: Colors.white70),
               ),
               const SizedBox(height: 6),
               TextField(
                 controller: _confirmPasswordController,
                 focusNode: _confirmPasswordFocusNode,
                 obscureText: !_isConfirmPasswordVisible,
-                style: const TextStyle(color: Colors.white, fontSize: 15),
+                style: TextStyle(color: Colors.white, fontSize: 15),
                 decoration: InputDecoration(
                   hintText: txaLang.getText('confirm_password_hint'),
-                  hintStyle: const TextStyle(color: TXATheme.textMuted),
-                  prefixIcon: const Icon(Icons.lock_reset_rounded, color: TXATheme.textMuted),
+                  hintStyle: TextStyle(color: TXATheme.textMuted),
+                  prefixIcon: Icon(Icons.lock_reset_rounded, color: TXATheme.textMuted),
                   suffixIcon: IconButton(
                     icon: Icon(
                       _isConfirmPasswordVisible ? Icons.visibility_off_rounded : Icons.visibility_rounded,

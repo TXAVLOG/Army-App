@@ -186,7 +186,7 @@ class _TXALoveFeedScreenState extends State<TXALoveFeedScreen> {
                             padding: const EdgeInsets.all(32.0),
                             child: Text(
                               txaLang.getText('empty_love_feed'),
-                              style: const TextStyle(color: TXATheme.textMuted, fontSize: 15),
+                              style: TextStyle(color: TXATheme.textMuted, fontSize: 15),
                               textAlign: TextAlign.center,
                             ),
                           ),
@@ -236,7 +236,7 @@ class _TXALoveFeedScreenState extends State<TXALoveFeedScreen> {
                                         children: [
                                           Text(
                                             isOwnPost ? 'Bạn' : post.senderUsername,
-                                            style: const TextStyle(
+                                            style: TextStyle(
                                               color: Colors.white,
                                               fontWeight: FontWeight.bold,
                                               fontSize: 14,
@@ -244,7 +244,7 @@ class _TXALoveFeedScreenState extends State<TXALoveFeedScreen> {
                                           ),
                                           Text(
                                             TXAFormat.formatPostTime(post.createdTime.isNotEmpty ? post.createdTime : post.timestampText),
-                                            style: const TextStyle(
+                                            style: TextStyle(
                                               color: TXATheme.textMuted,
                                               fontSize: 11,
                                             ),

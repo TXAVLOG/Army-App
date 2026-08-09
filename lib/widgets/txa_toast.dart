@@ -227,7 +227,7 @@ class _FriendRequestBannerWidgetState extends State<_FriendRequestBannerWidget> 
                             children: [
                               Text(
                                 TXALanguage.instance.getText('add_friend'),
-                                style: const TextStyle(
+                                style: TextStyle(
                                   color: TXATheme.primaryYellow,
                                   fontSize: 12,
                                   fontWeight: FontWeight.bold,
@@ -237,7 +237,7 @@ class _FriendRequestBannerWidgetState extends State<_FriendRequestBannerWidget> 
                               const SizedBox(height: 2),
                               Text(
                                 '${widget.name} gửi lời mời kết bạn',
-                                style: const TextStyle(
+                                style: TextStyle(
                                   color: TXATheme.textPrimary,
                                   fontSize: 15,
                                   fontWeight: FontWeight.bold,
@@ -245,7 +245,7 @@ class _FriendRequestBannerWidgetState extends State<_FriendRequestBannerWidget> 
                               ),
                               Text(
                                 widget.username,
-                                style: const TextStyle(
+                                style: TextStyle(
                                   color: TXATheme.textMuted,
                                   fontSize: 12,
                                 ),
@@ -399,7 +399,7 @@ class _FriendAcceptedBannerWidgetState extends State<_FriendAcceptedBannerWidget
                       child: Center(
                         child: Text(
                           widget.avatar,
-                          style: const TextStyle(fontSize: 20),
+                          style: TextStyle(fontSize: 20),
                         ),
                       ),
                     ),
@@ -410,13 +410,13 @@ class _FriendAcceptedBannerWidgetState extends State<_FriendAcceptedBannerWidget
                         children: [
                           Text(
                             '${widget.name} đã chấp nhận lời mời!',
-                            style: const TextStyle(
+                            style: TextStyle(
                               color: TXATheme.textPrimary,
                               fontSize: 14,
                               fontWeight: FontWeight.bold,
                             ),
                           ),
-                          const Text(
+                          Text(
                             'Giờ các bạn đã có thể gửi ảnh cho nhau.',
                             style: TextStyle(
                               color: TXATheme.textMuted,
@@ -426,7 +426,7 @@ class _FriendAcceptedBannerWidgetState extends State<_FriendAcceptedBannerWidget
                         ],
                       ),
                     ),
-                    const Icon(Icons.chevron_right_rounded, color: TXATheme.textMuted),
+                    Icon(Icons.chevron_right_rounded, color: TXATheme.textMuted),
                   ],
                 ),
               ),
@@ -533,7 +533,7 @@ class _ToastWidgetState extends State<_ToastWidget> with SingleTickerProviderSta
                   Expanded(
                     child: Text(
                       widget.message,
-                      style: const TextStyle(
+                      style: TextStyle(
                         color: TXATheme.textPrimary,
                         fontSize: 14,
                         fontWeight: FontWeight.w600,

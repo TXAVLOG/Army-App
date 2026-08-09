@@ -254,7 +254,7 @@ class _TXALoveInvitationScreenState extends State<TXALoveInvitationScreen>
                 // Title & Description
                 Text(
                   txaLang.getText('love_invitation_title'),
-                  style: const TextStyle(
+                  style: TextStyle(
                     color: Colors.white,
                     fontSize: 22,
                     fontWeight: FontWeight.bold,
@@ -268,7 +268,7 @@ class _TXALoveInvitationScreenState extends State<TXALoveInvitationScreen>
                     txaLang.getText('love_invitation_desc')
                         .replaceFirst('%user%', widget.senderUsername)
                         .replaceFirst('%date%', formattedDate),
-                    style: const TextStyle(
+                    style: TextStyle(
                       color: TXATheme.textMuted,
                       fontSize: 15,
                       height: 1.5,
@@ -298,7 +298,7 @@ class _TXALoveInvitationScreenState extends State<TXALoveInvitationScreen>
                       ),
                       child: Text(
                         txaLang.getText('accept'),
-                        style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                        style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
                       ),
                     ),
                   ),

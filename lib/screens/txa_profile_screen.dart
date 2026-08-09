@@ -2031,8 +2031,8 @@ class _TXAProfileScreenState extends State<TXAProfileScreen>
                       // ─── 3. Chủ đề Camera ────────────────────────────────
                       ListTile(
                         contentPadding: EdgeInsets.zero,
-                        leading: const Icon(Icons.palette_rounded, color: Colors.white70),
-                        title: Text(txaLang.getText('camera_theme_title'), style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+                        leading: Icon(Icons.palette_rounded, color: Colors.white70),
+                        title: Text(txaLang.getText('camera_theme_title'), style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
                         subtitle: Text(txaLang.getText('camera_theme_subtitle'), style: TextStyle(color: TXATheme.textMuted, fontSize: 12)),
                         trailing: const Icon(Icons.arrow_forward_ios_rounded, color: Colors.white24, size: 16),
                         onTap: () => _showCameraThemeBottomSheet(context),
@@ -2043,7 +2043,7 @@ class _TXAProfileScreenState extends State<TXAProfileScreen>
                         contentPadding: EdgeInsets.zero,
                         leading: const Icon(Icons.crop_original_rounded, color: Colors.white70),
                         title: Text(txaLang.getText('change_app_icon'), style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
-                        trailing: const Icon(Icons.arrow_forward_ios_rounded, color: Colors.white24, size: 16),
+                        trailing: Icon(Icons.arrow_forward_ios_rounded, color: Colors.white24, size: 16),
                         onTap: () {
                           TXAToast.show(context, txaLang.getText('feature_coming_soon'));
                         },
@@ -2052,8 +2052,8 @@ class _TXAProfileScreenState extends State<TXAProfileScreen>
                       // ─── 4. Chế độ hiển thị Feed ─────────────────────────
                       ListTile(
                         contentPadding: EdgeInsets.zero,
-                        leading: const Icon(Icons.grid_view_rounded, color: Colors.white70),
-                        title: Text(txaLang.getText('feed_display_mode'), style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+                        leading: Icon(Icons.grid_view_rounded, color: Colors.white70),
+                        title: Text(txaLang.getText('feed_display_mode'), style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
                         subtitle: Text(
                           txaAuth.feedGridMode == 'thought_bubble'
                               ? txaLang.getText('thought_bubbles')
@@ -2118,10 +2118,10 @@ class _TXAProfileScreenState extends State<TXAProfileScreen>
                       // ─── 6.1 Lịch sử nhật ký phiên bản (Version Release Timeline) ───
                       ListTile(
                         contentPadding: EdgeInsets.zero,
-                        leading: const Icon(Icons.timeline_rounded, color: Color(0xFFFFD700)),
+                        leading: Icon(Icons.timeline_rounded, color: Color(0xFFFFD700)),
                         title: Text(
                           txaLang.getText('version_timeline_menu_item'),
-                          style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+                          style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
                         ),
                         subtitle: Text(
                           'Bản ${TXAVersion.currentVersion}+${TXAVersion.buildNumber} • ${TXAVersion.releaseDate}',
@@ -2171,7 +2171,7 @@ class _TXAProfileScreenState extends State<TXAProfileScreen>
                                 shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
                                 title: Text(
                                   txaLang.getText('logout_confirm_title'),
-                                  style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+                                  style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
                                 ),
                                 content: Text(
                                   txaLang.getText('logout_confirm_msg'),

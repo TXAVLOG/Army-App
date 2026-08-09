@@ -288,13 +288,7 @@ class _LocketFeedScreenState extends State<LocketFeedScreen> {
             child: const Center(child: CircularProgressIndicator(color: Color(0xFF42A5F5), strokeWidth: 2)),
           );
         },
-        errorBuilder: (ctx, err, st) {
-          debugPrint('❌ TXANetworkImage Grid/Thumbnail load error: $err');
-          return Container(
-            color: const Color(0xFF1E1E24),
-            child: const Center(child: Icon(Icons.broken_image_outlined, color: Color(0xFF42A5F5), size: 24)),
-          );
-        },
+        
       );
     }
     // Local file path (ảnh chụp từ thiết bị chưa upload xong)
@@ -354,7 +348,7 @@ class _LocketFeedScreenState extends State<LocketFeedScreen> {
                       ),
                       child: Text(
                         '${reactions.length}',
-                        style: const TextStyle(
+                        style: TextStyle(
                           color: TXATheme.primaryYellow,
                           fontSize: 13,
                           fontWeight: FontWeight.bold,
@@ -369,7 +363,7 @@ class _LocketFeedScreenState extends State<LocketFeedScreen> {
                     padding: const EdgeInsets.symmetric(vertical: 24),
                     child: Text(
                       txaLang.getText('no_reactions_yet'),
-                      style: const TextStyle(color: TXATheme.textMuted, fontSize: 14),
+                      style: TextStyle(color: TXATheme.textMuted, fontSize: 14),
                     ),
                   )
                 else
@@ -389,14 +383,14 @@ class _LocketFeedScreenState extends State<LocketFeedScreen> {
                             backgroundColor: TXATheme.actionBlue,
                             child: Text(
                               sender.isNotEmpty ? sender[0].toUpperCase() : '👤',
-                              style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+                              style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
                             ),
                           ),
                           title: Text(
                             sender,
-                            style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 15),
+                            style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 15),
                           ),
-                          subtitle: Text(txaLang.getText('reacted_status'), style: const TextStyle(color: TXATheme.textMuted, fontSize: 12)),
+                          subtitle: Text(txaLang.getText('reacted_status'), style: TextStyle(color: TXATheme.textMuted, fontSize: 12)),
                           trailing: Container(
                             padding: const EdgeInsets.all(8),
                             decoration: BoxDecoration(
@@ -542,7 +536,7 @@ class _LocketFeedScreenState extends State<LocketFeedScreen> {
                 const SizedBox(height: 16),
                 Text(
                   txaLang.getText('post_options_of').replaceAll('%user%', post.senderUsername),
-                  style: const TextStyle(
+                  style: TextStyle(
                     fontSize: 16,
                     fontWeight: FontWeight.bold,
                     color: TXATheme.textPrimary,
@@ -550,10 +544,10 @@ class _LocketFeedScreenState extends State<LocketFeedScreen> {
                 ),
                 const SizedBox(height: 16),
                 ListTile(
-                  leading: const Icon(Icons.download_rounded, color: Color(0xFF42A5F5)),
+                  leading: Icon(Icons.download_rounded, color: Color(0xFF42A5F5)),
                   title: Text(
                     txaLang.getText('download_photo'),
-                    style: const TextStyle(color: TXATheme.textPrimary, fontWeight: FontWeight.w600),
+                    style: TextStyle(color: TXATheme.textPrimary, fontWeight: FontWeight.w600),
                   ),
                   onTap: () {
                     Navigator.pop(context);
@@ -584,10 +578,10 @@ class _LocketFeedScreenState extends State<LocketFeedScreen> {
                     },
                   ),
                 ListTile(
-                  leading: const Icon(Icons.share_rounded, color: Color(0xFF42A5F5)),
+                  leading: Icon(Icons.share_rounded, color: Color(0xFF42A5F5)),
                   title: Text(
                     txaLang.getText('share_post'),
-                    style: const TextStyle(color: TXATheme.textPrimary, fontWeight: FontWeight.w600),
+                    style: TextStyle(color: TXATheme.textPrimary, fontWeight: FontWeight.w600),
                   ),
                   onTap: () {
                     Navigator.pop(context);
@@ -723,16 +717,16 @@ class _LocketFeedScreenState extends State<LocketFeedScreen> {
                         },
                       ),
                     ListTile(
-                      leading: const Icon(Icons.people_alt_rounded, color: TXATheme.primaryYellow),
-                      title: Text(txaLang.currentLanguage == 'vi' ? 'Bạn bè' : 'Friends', style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
-                      trailing: _filterType == 'friends' ? const Icon(Icons.check_circle_rounded, color: Color(0xFF42A5F5)) : null,
+                      leading: Icon(Icons.people_alt_rounded, color: TXATheme.primaryYellow),
+                      title: Text(txaLang.currentLanguage == 'vi' ? 'Bạn bè' : 'Friends', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+                      trailing: _filterType == 'friends' ? Icon(Icons.check_circle_rounded, color: Color(0xFF42A5F5)) : null,
                       onTap: () {
                         setState(() => _filterType = 'friends');
                         Navigator.pop(context);
                       },
                     ),
                     Divider(color: TXATheme.cardBorder),
-                    const Padding(
+                    Padding(
                       padding: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
                       child: Text('BẠN BÈ', style: TextStyle(color: TXATheme.textMuted, fontSize: 11, fontWeight: FontWeight.bold)),
                     ),
@@ -750,7 +744,7 @@ class _LocketFeedScreenState extends State<LocketFeedScreen> {
                             const SizedBox(width: 12),
                             Text(
                               txaLang.getText('loading_friends_list'),
-                              style: const TextStyle(color: TXATheme.textSecondary, fontSize: 13, fontWeight: FontWeight.w600),
+                              style: TextStyle(color: TXATheme.textSecondary, fontSize: 13, fontWeight: FontWeight.w600),
                             ),
                           ],
                         ),
@@ -760,7 +754,7 @@ class _LocketFeedScreenState extends State<LocketFeedScreen> {
                         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
                         child: Text(
                           txaLang.getText('no_friends_yet'),
-                          style: const TextStyle(color: TXATheme.textMuted, fontSize: 13),
+                          style: TextStyle(color: TXATheme.textMuted, fontSize: 13),
                         ),
                       )
                     else
@@ -958,7 +952,7 @@ class _LocketFeedScreenState extends State<LocketFeedScreen> {
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  const Icon(
+                  Icon(
                     Icons.photo_library_outlined,
                     size: 64,
                     color: TXATheme.textMuted,
@@ -966,7 +960,7 @@ class _LocketFeedScreenState extends State<LocketFeedScreen> {
                   const SizedBox(height: 16),
                   Text(
                     txaLang.getText('no_posts_yet'),
-                    style: const TextStyle(
+                    style: TextStyle(
                       color: TXATheme.textSecondary,
                       fontSize: 16,
                       fontWeight: FontWeight.bold,
@@ -1409,26 +1403,7 @@ class _LocketFeedScreenState extends State<LocketFeedScreen> {
                                                         ),
                                                       );
                                                     },
-                                                    errorBuilder: (ctx, err, st) {
-                                                      debugPrint(
-                                                        '❌ TXANetworkImage Swipe View load error: $err',
-                                                      );
-                                                      return Container(
-                                                        color: const Color(
-                                                          0xFF1E1E24,
-                                                        ),
-                                                        child: const Center(
-                                                          child: Icon(
-                                                            Icons
-                                                                .broken_image_outlined,
-                                                            color: Color(
-                                                              0xFF42A5F5,
-                                                            ),
-                                                            size: 54,
-                                                          ),
-                                                        ),
-                                                      );
-                                                    },
+                                                    
                                                   )
                                                 : Image.file(
                                                     File(currentPost.photoPath),
@@ -2365,12 +2340,12 @@ class _LocketFeedScreenState extends State<LocketFeedScreen> {
                                                               children: [
                                                                 Text(
                                                                   'Trả lời bài đăng của ${currentPost.senderUsername}',
-                                                                  style: const TextStyle(color: Colors.white70, fontSize: 12, fontWeight: FontWeight.bold),
+                                                                  style: TextStyle(color: Colors.white70, fontSize: 12, fontWeight: FontWeight.bold),
                                                                 ),
                                                                 if (currentPost.caption.isNotEmpty)
                                                                   Text(
                                                                     currentPost.caption,
-                                                                    style: const TextStyle(color: TXATheme.textMuted, fontSize: 11),
+                                                                    style: TextStyle(color: TXATheme.textMuted, fontSize: 11),
                                                                     maxLines: 1,
                                                                     overflow: TextOverflow.ellipsis,
                                                                   ),
@@ -2394,10 +2369,10 @@ class _LocketFeedScreenState extends State<LocketFeedScreen> {
                                                               child: TextField(
                                                                 controller: _commentController,
                                                                 autofocus: true,
-                                                                style: const TextStyle(color: Colors.white, fontSize: 14),
+                                                                style: TextStyle(color: Colors.white, fontSize: 14),
                                                                 decoration: InputDecoration(
                                                                   hintText: txaLang.getText('type_message_hint'),
-                                                                  hintStyle: const TextStyle(color: TXATheme.textMuted, fontSize: 14),
+                                                                  hintStyle: TextStyle(color: TXATheme.textMuted, fontSize: 14),
                                                                   border: InputBorder.none,
                                                                 ),
                                                               ),

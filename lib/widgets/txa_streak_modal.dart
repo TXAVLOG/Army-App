@@ -152,7 +152,7 @@ class TXAStreakModal {
                     // Subtitle: Current Streak & Keep Hint
                     Text(
                       txaLang.getText('streak_current_days').replaceAll('%count%', '$streakCount'),
-                      style: const TextStyle(
+                      style: TextStyle(
                         color: Colors.white,
                         fontSize: 15,
                         fontWeight: FontWeight.bold,
@@ -161,7 +161,7 @@ class TXAStreakModal {
                     const SizedBox(height: 4),
                     Text(
                       txaLang.getText('streak_keep_subtitle'),
-                      style: const TextStyle(
+                      style: TextStyle(
                         color: TXATheme.textMuted,
                         fontSize: 13,
                         height: 1.3,
@@ -259,7 +259,7 @@ class TXAStreakModal {
                                 // Days label
                                 Text(
                                   '${item.days}+',
-                                  style: const TextStyle(
+                                  style: TextStyle(
                                     color: TXATheme.textMuted,
                                     fontSize: 10,
                                   ),
@@ -331,7 +331,7 @@ class TXAStreakModal {
 
                             Text(
                               '$streakCount / ${nextMilestone.days}',
-                              style: const TextStyle(
+                              style: TextStyle(
                                 color: TXATheme.textMuted,
                                 fontSize: 11,
                               ),
@@ -472,17 +472,17 @@ class TXAStreakModal {
                                   ),
                                   title: Row(
                                     children: [
-                                      const Text('🎬', style: TextStyle(fontSize: 22)),
+                                      Text('🎬', style: TextStyle(fontSize: 22)),
                                       const SizedBox(width: 10),
                                       Text(
                                         txaLang.getText('watch_ad_to_restore_title'),
-                                        style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+                                        style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
                                       ),
                                     ],
                                   ),
                                   content: Text(
                                     txaLang.getText('watch_ad_to_restore_desc'),
-                                    style: const TextStyle(color: TXATheme.textMuted),
+                                    style: TextStyle(color: TXATheme.textMuted),
                                   ),
                                   actions: [
                                     TextButton(

@@ -242,7 +242,7 @@ class _TXAVersionTimelineScreenState extends State<TXAVersionTimelineScreen> {
                       ),
                       child: Text(
                         txaLang.getText('version_timeline_latest_badge'),
-                        style: const TextStyle(
+                        style: TextStyle(
                           color: Colors.black,
                           fontSize: 9,
                           fontWeight: FontWeight.w900,
@@ -254,7 +254,7 @@ class _TXAVersionTimelineScreenState extends State<TXAVersionTimelineScreen> {
                 const SizedBox(height: 4),
                 Text(
                   txaLang.getText('version_timeline_released_date').replaceAll('%date%', TXAVersion.releaseDate),
-                  style: const TextStyle(
+                  style: TextStyle(
                     color: TXATheme.textSecondary,
                     fontSize: 12,
                   ),
@@ -366,7 +366,7 @@ class _TXAVersionTimelineScreenState extends State<TXAVersionTimelineScreen> {
             const SizedBox(height: 4),
             Text(
               item['subtitle'] ?? '',
-              style: const TextStyle(
+              style: TextStyle(
                 color: TXATheme.textSecondary,
                 fontSize: 12,
                 height: 1.35,

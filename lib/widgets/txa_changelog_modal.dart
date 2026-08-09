@@ -153,7 +153,7 @@ class TXAChangelogModal extends StatelessWidget {
               children: [
                 Text(
                   latestChangelog['title'] ?? '',
-                  style: const TextStyle(
+                  style: TextStyle(
                     color: Colors.white,
                     fontSize: 22,
                     fontWeight: FontWeight.w900,
@@ -164,7 +164,7 @@ class TXAChangelogModal extends StatelessWidget {
                 const SizedBox(height: 8),
                 Text(
                   latestChangelog['subtitle'] ?? '',
-                  style: const TextStyle(
+                  style: TextStyle(
                     color: TXATheme.textSecondary,
                     fontSize: 13.5,
                     height: 1.45,
@@ -226,7 +226,7 @@ class TXAChangelogModal extends StatelessWidget {
                             children: [
                               Text(
                                 feat['title'] ?? '',
-                                style: const TextStyle(
+                                style: TextStyle(
                                   color: Colors.white,
                                   fontSize: 15,
                                   fontWeight: FontWeight.bold,
@@ -235,7 +235,7 @@ class TXAChangelogModal extends StatelessWidget {
                               const SizedBox(height: 5),
                               Text(
                                 feat['description'] ?? '',
-                                style: const TextStyle(
+                                style: TextStyle(
                                   color: TXATheme.textSecondary,
                                   fontSize: 12.5,
                                   height: 1.4,

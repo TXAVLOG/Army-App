@@ -1717,7 +1717,7 @@ class _LocketMainScreenState extends State<LocketMainScreen> with WidgetsBinding
                           Expanded(
                             child: Row(
                               children: [
-                                const Text('📣', style: TextStyle(fontSize: 18)),
+                                Text('📣', style: TextStyle(fontSize: 18)),
                                 const SizedBox(width: 10),
                                 Expanded(
                                   child: Text(
@@ -2028,7 +2028,7 @@ void _showFriendsModal(BuildContext context) {
                                   Navigator.pop(context);
                                   _showAddFriendBottomSheet(context);
                                 },
-                                icon: const Icon(Icons.person_add_alt_1_rounded, color: Colors.white),
+                                icon: Icon(Icons.person_add_alt_1_rounded, color: Colors.white),
                               ),
                             ],
                           ),
@@ -2040,7 +2040,7 @@ void _showFriendsModal(BuildContext context) {
                                 searchQ = val;
                               });
                             },
-                            style: const TextStyle(color: Colors.white),
+                            style: TextStyle(color: Colors.white),
                             decoration: InputDecoration(
                               hintText: txaLang.getText('search_friend_placeholder'),
                               hintStyle: TextStyle(color: TXATheme.textMuted, fontSize: 14),
@@ -2930,14 +2930,14 @@ void _showFriendsModal(BuildContext context) {
         children: [
           CircleAvatar(
             backgroundColor: avatarColor.withAlpha(180),
-            child: Text(avatarEmoji, style: const TextStyle(fontSize: 20)),
+            child: Text(avatarEmoji, style: TextStyle(fontSize: 20)),
           ),
           const SizedBox(width: 12),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(name, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15)),
+                Text(name, style: TextStyle(fontWeight: FontWeight.bold, fontSize: 15)),
                 Text(username, style: TextStyle(color: TXATheme.textMuted, fontSize: 13)),
               ],
             ),
@@ -3182,14 +3182,14 @@ void _showFriendsModal(BuildContext context) {
         children: [
           CircleAvatar(
             backgroundColor: TXATheme.cardBorder,
-            child: Text(avatarEmoji, style: const TextStyle(fontSize: 20)),
+            child: Text(avatarEmoji, style: TextStyle(fontSize: 20)),
           ),
           const SizedBox(width: 12),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(toUsername, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15)),
+                Text(toUsername, style: TextStyle(fontWeight: FontWeight.bold, fontSize: 15)),
                 Row(
                   children: [
                     SizedBox(

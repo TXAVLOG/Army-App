@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../theme/txa_theme.dart';
 import '../services/txa_version.dart';
+import '../services/txa_language.dart';
 import 'txa_toast.dart';
 
 class TXAUpdateModal extends StatelessWidget {
@@ -17,16 +18,24 @@ class TXAUpdateModal extends StatelessWidget {
 
   static void show(
     BuildContext context, {
-    String newVersion = '1.2.0',
-    String updateNotes = 'Cập nhật thêm tính năng Love Feed, Sticker tâm trạng và tối ưu hóa tốc độ chụp ảnh.',
+    String? newVersion,
+    String? updateNotes,
     bool isForceUpdate = false,
   }) {
+    final txaLang = TXALanguage.instance;
+    final finalVersion = (newVersion != null && newVersion.isNotEmpty)
+        ? newVersion
+        : TXAVersion.currentVersion;
+    final finalNotes = (updateNotes != null && updateNotes.isNotEmpty)
+        ? updateNotes
+        : txaLang.getText('update_notes_default');
+
     showDialog(
       context: context,
       barrierDismissible: !isForceUpdate,
       builder: (ctx) => TXAUpdateModal(
-        newVersion: newVersion,
-        updateNotes: updateNotes,
+        newVersion: finalVersion,
+        updateNotes: finalNotes,
         isForceUpdate: isForceUpdate,
       ),
     );
@@ -34,6 +43,10 @@ class TXAUpdateModal extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final txaLang = TXALanguage.instance;
+    final currentVerText = txaLang.getText('update_current_ver').replaceAll('%version%', TXAVersion.currentVersion);
+    final newVerText = txaLang.getText('update_new_ver').replaceAll('%version%', newVersion);
+
     return Dialog(
       backgroundColor: Colors.transparent,
       insetPadding: const EdgeInsets.symmetric(horizontal: 24),
@@ -63,7 +76,7 @@ class TXAUpdateModal extends StatelessWidget {
                 shape: BoxShape.circle,
                 border: Border.all(color: TXATheme.primaryYellow, width: 2),
               ),
-              child: const Icon(
+              child: Icon(
                 Icons.system_update_rounded,
                 color: TXATheme.primaryYellow,
                 size: 32,
@@ -72,10 +85,10 @@ class TXAUpdateModal extends StatelessWidget {
             const SizedBox(height: 16),
 
             // Title
-            const Text(
-              'Có phiên bản mới!',
+            Text(
+              txaLang.getText('update_available_title'),
               style: TextStyle(
-                color: Colors.white,
+                color: TXATheme.textPrimary,
                 fontSize: 20,
                 fontWeight: FontWeight.bold,
               ),
@@ -87,11 +100,11 @@ class TXAUpdateModal extends StatelessWidget {
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
               decoration: BoxDecoration(
-                color: Colors.white.withAlpha(15),
+                color: TXATheme.primaryYellow.withAlpha(20),
                 borderRadius: BorderRadius.circular(10),
               ),
               child: Text(
-                'Phiên bản hiện tại: ${TXAVersion.currentVersion}  ➔  Mới: $newVersion',
+                '$currentVerText  ➔  $newVerText',
                 style: const TextStyle(
                   color: TXATheme.primaryYellow,
                   fontSize: 12,
@@ -105,13 +118,13 @@ class TXAUpdateModal extends StatelessWidget {
             Container(
               padding: const EdgeInsets.all(14),
               decoration: BoxDecoration(
-                color: const Color(0xFF121218),
+                color: TXATheme.background,
                 borderRadius: BorderRadius.circular(16),
                 border: Border.all(color: TXATheme.cardBorder),
               ),
               child: Text(
                 updateNotes,
-                style: const TextStyle(
+                style: TextStyle(
                   color: TXATheme.textMuted,
                   fontSize: 13,
                   height: 1.4,
@@ -136,7 +149,10 @@ class TXAUpdateModal extends StatelessWidget {
                         ),
                         padding: const EdgeInsets.symmetric(vertical: 12),
                       ),
-                      child: const Text('Để sau', style: TextStyle(fontWeight: FontWeight.bold)),
+                      child: Text(
+                        txaLang.getText('update_later'),
+                        style: const TextStyle(fontWeight: FontWeight.bold),
+                      ),
                     ),
                   ),
                   const SizedBox(width: 12),
@@ -147,7 +163,7 @@ class TXAUpdateModal extends StatelessWidget {
                       Navigator.pop(context);
                       TXAToast.show(
                         context,
-                        '📲 Đang bắt đầu cập nhật In-App Update...',
+                        txaLang.getText('update_toast_starting'),
                         icon: Icons.system_update_alt_rounded,
                       );
                     },
@@ -160,9 +176,9 @@ class TXAUpdateModal extends StatelessWidget {
                       ),
                       padding: const EdgeInsets.symmetric(vertical: 12),
                     ),
-                    child: const Text(
-                      'Cập nhật ngay',
-                      style: TextStyle(fontWeight: FontWeight.w900),
+                    child: Text(
+                      txaLang.getText('update_now'),
+                      style: const TextStyle(fontWeight: FontWeight.w900),
                     ),
                   ),
                 ),

@@ -317,7 +317,7 @@ class _SplashScreenState extends State<SplashScreen> with TickerProviderStateMix
                           ),
                         ),
                         const SizedBox(height: 28),
-                        const Text(
+                        Text(
                           'ARMY',
                           style: TextStyle(
                             fontSize: 36,
@@ -329,7 +329,7 @@ class _SplashScreenState extends State<SplashScreen> with TickerProviderStateMix
                         const SizedBox(height: 8),
                         Text(
                           txaLang.getText('splash_subtitle'),
-                          style: const TextStyle(
+                          style: TextStyle(
                             fontSize: 14,
                             color: TXATheme.textSecondary,
                             letterSpacing: 1.2,

@@ -115,7 +115,7 @@ class _TXAGoldPassPaywallScreenState extends State<TXAGoldPassPaywallScreen> {
               // Title
               Text(
                 txaLang.getText('gold_pass_paywall_title'),
-                style: const TextStyle(
+                style: TextStyle(
                   color: Colors.white,
                   fontSize: 28,
                   fontWeight: FontWeight.w900,
@@ -127,7 +127,7 @@ class _TXAGoldPassPaywallScreenState extends State<TXAGoldPassPaywallScreen> {
               // Subtitle
               Text(
                 txaLang.getText('gold_pass_paywall_subtitle'),
-                style: const TextStyle(
+                style: TextStyle(
                   color: TXATheme.textMuted,
                   fontSize: 15,
                   fontWeight: FontWeight.w500,

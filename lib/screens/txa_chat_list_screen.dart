@@ -67,7 +67,7 @@ class _TXAChatListScreenState extends State<TXAChatListScreen> {
               onPressed: () => Navigator.pop(context),
             ),
             centerTitle: true,
-            title: const Text(
+            title: Text(
               'Tin nhắn',
               style: TextStyle(
                 color: Colors.white,
@@ -81,11 +81,11 @@ class _TXAChatListScreenState extends State<TXAChatListScreen> {
                   child: Column(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
-                      const Icon(Icons.chat_bubble_outline_rounded, size: 54, color: TXATheme.textMuted),
+                      Icon(Icons.chat_bubble_outline_rounded, size: 54, color: TXATheme.textMuted),
                       const SizedBox(height: 16),
                       Text(
                         txaLang.getText('add_friend_to_chat_hint'),
-                        style: const TextStyle(color: TXATheme.textMuted, fontSize: 14),
+                        style: TextStyle(color: TXATheme.textMuted, fontSize: 14),
                       ),
                       const SizedBox(height: 6),
                       const Text(
@@ -170,7 +170,7 @@ class _TXAChatListScreenState extends State<TXAChatListScreen> {
                                 children: [
                                   Text(
                                     fName,
-                                    style: const TextStyle(
+                                    style: TextStyle(
                                       color: Colors.white,
                                       fontWeight: FontWeight.bold,
                                       fontSize: 15,

@@ -181,13 +181,14 @@ class ArmyApp extends StatelessWidget {
         TXACameraThemeService.instance,
       ]),
       builder: (context, _) {
+        final isLight = TXACameraThemeService.instance.currentThemeData.id == 'system_light';
         return MaterialApp(
           navigatorKey: navigatorKey,
           title: TXALanguage.instance.getText('app_title'),
           debugShowCheckedModeBanner: false,
-          themeMode: ThemeMode.dark,
-          theme: TXATheme.darkTheme,
-          darkTheme: TXATheme.darkTheme,
+          themeMode: isLight ? ThemeMode.light : ThemeMode.dark,
+          theme: TXATheme.appTheme,
+          darkTheme: TXATheme.appTheme,
           scrollBehavior: TXAScrollBehavior(), // vuốt bằng chuột toàn app
           builder: (context, child) {
             final mediaQueryData = MediaQuery.of(context);

@@ -403,7 +403,7 @@ class _TXARecapScreenState extends State<TXARecapScreen> {
           Text(
             txaLang.getText('recap_screen_title').toUpperCase(),
             textAlign: TextAlign.center,
-            style: const TextStyle(
+            style: TextStyle(
               color: Colors.white,
               fontSize: 20,
               fontWeight: FontWeight.w900,
@@ -414,7 +414,7 @@ class _TXARecapScreenState extends State<TXARecapScreen> {
           Text(
             txaLang.getText('recap_select_period'),
             textAlign: TextAlign.center,
-            style: const TextStyle(
+            style: TextStyle(
               color: TXATheme.textMuted,
               fontSize: 13,
             ),
@@ -524,17 +524,17 @@ class _TXARecapScreenState extends State<TXARecapScreen> {
                 children: [
                   Text(
                     title,
-                    style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 18),
+                    style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 18),
                   ),
                   const SizedBox(height: 4),
                   Text(
                     desc,
-                    style: const TextStyle(color: TXATheme.textMuted, fontSize: 13),
+                    style: TextStyle(color: TXATheme.textMuted, fontSize: 13),
                   ),
                 ],
               ),
             ),
-            const Icon(Icons.arrow_forward_ios_rounded, color: TXATheme.textMuted, size: 16),
+            Icon(Icons.arrow_forward_ios_rounded, color: TXATheme.textMuted, size: 16),
           ],
         ),
       ),
@@ -889,7 +889,7 @@ class _TXARecapScreenState extends State<TXARecapScreen> {
               'assets/images/armi_happy.png',
               width: 100,
               height: 100,
-              errorBuilder: (ctx, err, stack) => const Text('🐜❤️', style: TextStyle(fontSize: 54)),
+              errorBuilder: (ctx, err, stack) => Text('🐜❤️', style: TextStyle(fontSize: 54)),
             ),
           ),
         ],
@@ -902,7 +902,7 @@ class _TXARecapScreenState extends State<TXARecapScreen> {
       children: [
         Icon(icon, color: TXATheme.primaryYellow, size: 18),
         const SizedBox(width: 10),
-        Text(label, style: const TextStyle(color: TXATheme.textMuted, fontSize: 13)),
+        Text(label, style: TextStyle(color: TXATheme.textMuted, fontSize: 13)),
         const Spacer(),
         Text(value, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 13)),
       ],

@@ -922,7 +922,7 @@ class _TXAChatDetailScreenState extends State<TXAChatDetailScreen> {
                 children: [
                   Text(
                     fName,
-                    style: const TextStyle(color: Colors.white, fontSize: 15, fontWeight: FontWeight.bold),
+                    style: TextStyle(color: Colors.white, fontSize: 15, fontWeight: FontWeight.bold),
                   ),
                   const SizedBox(height: 2),
                   // Firebase Query để fetch online status dùng TXAFormat
@@ -932,14 +932,14 @@ class _TXAChatDetailScreenState extends State<TXAChatDetailScreen> {
                       if (!snapshot.hasData || snapshot.data == null) {
                         return Text(
                           txaLang.getText('offline'),
-                          style: const TextStyle(color: TXATheme.textMuted, fontSize: 11),
+                          style: TextStyle(color: TXATheme.textMuted, fontSize: 11),
                         );
                       }
                       final userModel = snapshot.data!;
                       if (userModel.lastActive == null) {
                         return Text(
                           txaLang.getText('offline'),
-                          style: const TextStyle(color: TXATheme.textMuted, fontSize: 11),
+                          style: TextStyle(color: TXATheme.textMuted, fontSize: 11),
                         );
                       }
                       final lastActiveTime = DateTime.parse(userModel.lastActive!).toLocal();
@@ -1016,7 +1016,7 @@ class _TXAChatDetailScreenState extends State<TXAChatDetailScreen> {
                             const SizedBox(height: 18),
                             Text(
                               txaLang.getText('start_conversation_title'),
-                              style: const TextStyle(
+                              style: TextStyle(
                                 color: Colors.white,
                                 fontSize: 16,
                                 fontWeight: FontWeight.bold,
@@ -1026,7 +1026,7 @@ class _TXAChatDetailScreenState extends State<TXAChatDetailScreen> {
                             Text(
                               txaLang.getText('start_conversation_desc'),
                               textAlign: TextAlign.center,
-                              style: const TextStyle(
+                              style: TextStyle(
                                 color: TXATheme.textMuted,
                                 fontSize: 13,
                               ),
@@ -1176,10 +1176,10 @@ class _TXAChatDetailScreenState extends State<TXAChatDetailScreen> {
                         Expanded(
                           child: TextField(
                             controller: _textController,
-                            style: const TextStyle(color: Colors.white, fontSize: 14.5),
+                            style: TextStyle(color: Colors.white, fontSize: 14.5),
                             decoration: InputDecoration(
                               hintText: txaLang.getText('type_message_hint'),
-                              hintStyle: const TextStyle(color: TXATheme.textMuted, fontSize: 14.5),
+                              hintStyle: TextStyle(color: TXATheme.textMuted, fontSize: 14.5),
                               border: InputBorder.none,
                             ),
                             onSubmitted: (_) => _sendMessage(),

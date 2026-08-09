@@ -1354,7 +1354,7 @@ class _PhotoPreviewScreenState extends State<PhotoPreviewScreen> {
                       const SizedBox(width: 44),
                       Text(
                         txaLang.getText('send_to'),
-                        style: const TextStyle(
+                        style: TextStyle(
                           fontSize: 18,
                           fontWeight: FontWeight.bold,
                           color: TXATheme.textPrimary,
@@ -1369,7 +1369,7 @@ class _PhotoPreviewScreenState extends State<PhotoPreviewScreen> {
                             shape: BoxShape.circle,
                             color: Colors.transparent,
                           ),
-                          child: const Icon(
+                          child: Icon(
                             Icons.file_download_outlined,
                             color: TXATheme.textPrimary,
                             size: 28,
@@ -1414,7 +1414,7 @@ class _PhotoPreviewScreenState extends State<PhotoPreviewScreen> {
                                         ? Image.file(File(widget.imagePath!), fit: BoxFit.cover)
                                         : Container(
                                             color: const Color(0xFF1C1C26),
-                                            child: const Center(
+                                            child: Center(
                                               child: Column(
                                                 mainAxisAlignment: MainAxisAlignment.center,
                                                 children: [
@@ -1802,7 +1802,7 @@ class _PhotoPreviewScreenState extends State<PhotoPreviewScreen> {
                                         ? Image.file(File(widget.imagePath!), fit: BoxFit.cover)
                                         : Container(
                                             color: const Color(0xFF1C1C26),
-                                            child: const Center(
+                                            child: Center(
                                               child: Column(
                                                 mainAxisAlignment: MainAxisAlignment.center,
                                                 children: [
@@ -2143,7 +2143,7 @@ class _PhotoPreviewScreenState extends State<PhotoPreviewScreen> {
                                         ? Image.file(File(widget.imagePath!), fit: BoxFit.cover)
                                         : Container(
                                             color: const Color(0xFF1C1C26),
-                                            child: const Center(
+                                            child: Center(
                                               child: Column(
                                                 mainAxisAlignment: MainAxisAlignment.center,
                                                 children: [
@@ -2301,7 +2301,7 @@ class _PhotoPreviewScreenState extends State<PhotoPreviewScreen> {
                                         ? Image.file(File(widget.imagePath!), fit: BoxFit.cover)
                                         : Container(
                                             color: const Color(0xFF1C1C26),
-                                            child: const Center(
+                                            child: Center(
                                               child: Column(
                                                 mainAxisAlignment: MainAxisAlignment.center,
                                                 children: [
@@ -2542,7 +2542,7 @@ class _PhotoPreviewScreenState extends State<PhotoPreviewScreen> {
                             shape: BoxShape.circle,
                             border: Border.all(color: Colors.white.withAlpha(40), width: 1),
                           ),
-                          child: const Icon(
+                          child: Icon(
                             Icons.close_rounded,
                             color: TXATheme.textPrimary,
                             size: 28,
@@ -2596,12 +2596,12 @@ class _PhotoPreviewScreenState extends State<PhotoPreviewScreen> {
                           ),
                           child: Center(
                             child: _selectedMoodEmoji != null
-                                ? Text(_selectedMoodEmoji!, style: const TextStyle(fontSize: 24))
+                                ? Text(_selectedMoodEmoji!, style: TextStyle(fontSize: 24))
                                 : _selectedCustomSticker != null
                                     ? (_selectedStickerIcon != null && _selectedStickerIcon is String
-                                        ? Text(_selectedStickerIcon as String, style: const TextStyle(fontSize: 24))
-                                        : const Icon(Icons.auto_awesome_rounded, color: TXATheme.primaryYellow, size: 26))
-                                    : const Icon(
+                                        ? Text(_selectedStickerIcon as String, style: TextStyle(fontSize: 24))
+                                        : Icon(Icons.auto_awesome_rounded, color: TXATheme.primaryYellow, size: 26))
+                                    : Icon(
                                         Icons.auto_awesome_rounded,
                                         color: TXATheme.textPrimary,
                                         size: 26,

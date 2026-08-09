@@ -212,7 +212,7 @@ class _TXALoginScreenState extends State<TXALoginScreen> {
                         const SizedBox(height: 16),
                         Text(
                           txaLang.getText('login_title'),
-                          style: const TextStyle(
+                          style: TextStyle(
                             fontSize: 26,
                             fontWeight: FontWeight.bold,
                             color: Colors.white,
@@ -221,7 +221,7 @@ class _TXALoginScreenState extends State<TXALoginScreen> {
                         const SizedBox(height: 6),
                         Text(
                           txaLang.getText('login_subtitle'),
-                          style: const TextStyle(
+                          style: TextStyle(
                             fontSize: 13,
                             color: TXATheme.textMuted,
                           ),
@@ -235,7 +235,7 @@ class _TXALoginScreenState extends State<TXALoginScreen> {
                   // Email or Username Input Field
                   Text(
                     txaLang.getText('email_or_username'),
-                    style: const TextStyle(
+                    style: TextStyle(
                       fontSize: 14,
                       fontWeight: FontWeight.bold,
                       color: Colors.white70,
@@ -245,11 +245,11 @@ class _TXALoginScreenState extends State<TXALoginScreen> {
                   TextField(
                     controller: _identityController,
                     focusNode: _identityFocusNode,
-                    style: const TextStyle(color: Colors.white, fontSize: 15),
+                    style: TextStyle(color: Colors.white, fontSize: 15),
                     decoration: InputDecoration(
                       hintText: txaLang.getText('email_or_username'),
-                      hintStyle: const TextStyle(color: TXATheme.textMuted),
-                      prefixIcon: const Icon(Icons.person_outline_rounded, color: TXATheme.textMuted),
+                      hintStyle: TextStyle(color: TXATheme.textMuted),
+                      prefixIcon: Icon(Icons.person_outline_rounded, color: TXATheme.textMuted),
                       filled: true,
                       fillColor: TXATheme.cardBg,
                       contentPadding: const EdgeInsets.symmetric(horizontal: 18, vertical: 16),
@@ -288,7 +288,7 @@ class _TXALoginScreenState extends State<TXALoginScreen> {
                   // Password Input Field
                   Text(
                     txaLang.getText('password'),
-                    style: const TextStyle(
+                    style: TextStyle(
                       fontSize: 14,
                       fontWeight: FontWeight.bold,
                       color: Colors.white70,
@@ -299,11 +299,11 @@ class _TXALoginScreenState extends State<TXALoginScreen> {
                     controller: _passwordController,
                     focusNode: _passwordFocusNode,
                     obscureText: !_isPasswordVisible,
-                    style: const TextStyle(color: Colors.white, fontSize: 15),
+                    style: TextStyle(color: Colors.white, fontSize: 15),
                     decoration: InputDecoration(
                       hintText: txaLang.getText('password'),
-                      hintStyle: const TextStyle(color: TXATheme.textMuted),
-                      prefixIcon: const Icon(Icons.lock_outline_rounded, color: TXATheme.textMuted),
+                      hintStyle: TextStyle(color: TXATheme.textMuted),
+                      prefixIcon: Icon(Icons.lock_outline_rounded, color: TXATheme.textMuted),
                       suffixIcon: IconButton(
                         icon: Icon(
                           _isPasswordVisible ? Icons.visibility_off_rounded : Icons.visibility_rounded,
@@ -433,7 +433,7 @@ class _TXALoginScreenState extends State<TXALoginScreen> {
                         const SizedBox(width: 4),
                         Text(
                           txaLang.getText('gms_disabled_tooltip'),
-                          style: const TextStyle(color: TXATheme.statusRed, fontSize: 11.5),
+                          style: TextStyle(color: TXATheme.statusRed, fontSize: 11.5),
                         ),
                       ],
                     ),
@@ -448,7 +448,7 @@ class _TXALoginScreenState extends State<TXALoginScreen> {
                       children: [
                         Text(
                           txaLang.getText('no_account'),
-                          style: const TextStyle(color: TXATheme.textMuted, fontSize: 14),
+                          style: TextStyle(color: TXATheme.textMuted, fontSize: 14),
                         ),
                         const SizedBox(width: 4),
                         GestureDetector(

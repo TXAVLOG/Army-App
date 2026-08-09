@@ -158,7 +158,7 @@ class _TXALoveSetupScreenState extends State<TXALoveSetupScreen> {
                     const SizedBox(height: 32),
                     Text(
                       txaLang.getText('waiting_response'),
-                      style: const TextStyle(
+                      style: TextStyle(
                         color: Colors.white,
                         fontSize: 22,
                         fontWeight: FontWeight.bold,
@@ -167,7 +167,7 @@ class _TXALoveSetupScreenState extends State<TXALoveSetupScreen> {
                     const SizedBox(height: 12),
                     Text(
                       txaLang.getText('love_setup_waiting_desc').replaceFirst('%user%', _selectedFriendUsername ?? ''),
-                      style: const TextStyle(
+                      style: TextStyle(
                         color: TXATheme.textMuted,
                         fontSize: 15,
                         height: 1.4,
@@ -348,7 +348,7 @@ class _TXALoveSetupScreenState extends State<TXALoveSetupScreen> {
                               children: [
                                 Text(
                                   preselectedFriend['name'] as String? ?? '',
-                                  style: const TextStyle(
+                                  style: TextStyle(
                                     color: Colors.white,
                                     fontWeight: FontWeight.bold,
                                     fontSize: 16,
@@ -356,7 +356,7 @@ class _TXALoveSetupScreenState extends State<TXALoveSetupScreen> {
                                 ),
                                 Text(
                                   preselectedFriend['username'] as String? ?? '',
-                                  style: const TextStyle(
+                                  style: TextStyle(
                                     color: TXATheme.textMuted,
                                     fontSize: 14,
                                   ),
@@ -376,7 +376,7 @@ class _TXALoveSetupScreenState extends State<TXALoveSetupScreen> {
                   ] else ...[
                     Text(
                       txaLang.getText('friends_title'),
-                      style: const TextStyle(
+                      style: TextStyle(
                         color: Colors.white70,
                         fontSize: 14,
                         fontWeight: FontWeight.w600,
@@ -388,7 +388,7 @@ class _TXALoveSetupScreenState extends State<TXALoveSetupScreen> {
                           ? Center(
                               child: Text(
                                 txaLang.getText('no_posts_yet'),
-                                style: const TextStyle(color: TXATheme.textMuted),
+                                style: TextStyle(color: TXATheme.textMuted),
                               ),
                             )
                           : ListView.separated(
@@ -443,7 +443,7 @@ class _TXALoveSetupScreenState extends State<TXALoveSetupScreen> {
                                             children: [
                                               Text(
                                                 friend['name'] as String? ?? '',
-                                                style: const TextStyle(
+                                                style: TextStyle(
                                                   color: Colors.white,
                                                   fontWeight: FontWeight.bold,
                                                   fontSize: 15,
@@ -451,7 +451,7 @@ class _TXALoveSetupScreenState extends State<TXALoveSetupScreen> {
                                               ),
                                               Text(
                                                 friend['username'] as String? ?? '',
-                                                style: const TextStyle(
+                                                style: TextStyle(
                                                   color: TXATheme.textMuted,
                                                   fontSize: 13,
                                                 ),

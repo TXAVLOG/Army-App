@@ -128,7 +128,7 @@ class _TXARollcallResponsesScreenState extends State<TXARollcallResponsesScreen>
                   ? Center(
                       child: Text(
                         txaLang.getText('rollcall_no_responses'),
-                        style: const TextStyle(color: TXATheme.textMuted, fontSize: 14),
+                        style: TextStyle(color: TXATheme.textMuted, fontSize: 14),
                       ),
                     )
                   : Stack(
@@ -190,7 +190,7 @@ class _TXARollcallResponsesScreenState extends State<TXARollcallResponsesScreen>
                                                 : Center(
                                                     child: Text(
                                                       post.senderAvatar,
-                                                      style: const TextStyle(fontSize: 14),
+                                                      style: TextStyle(fontSize: 14),
                                                     ),
                                                   ),
                                           ),
@@ -198,14 +198,14 @@ class _TXARollcallResponsesScreenState extends State<TXARollcallResponsesScreen>
                                         const SizedBox(width: 8),
                                         Text(
                                           post.senderUsername,
-                                          style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 14),
+                                          style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 14),
                                         ),
                                         const Spacer(),
-                                        const Icon(Icons.access_time_rounded, color: TXATheme.textMuted, size: 14),
+                                        Icon(Icons.access_time_rounded, color: TXATheme.textMuted, size: 14),
                                         const SizedBox(width: 4),
                                         Text(
                                           TXAFormat.formatPostTime(post.createdTime.isNotEmpty ? post.createdTime : post.timestampText),
-                                          style: const TextStyle(color: TXATheme.textMuted, fontSize: 12),
+                                          style: TextStyle(color: TXATheme.textMuted, fontSize: 12),
                                         ),
                                       ],
                                     ),

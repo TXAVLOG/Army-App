@@ -5,12 +5,41 @@ class TXAVersion extends ChangeNotifier {
   TXAVersion._internal();
 
   static const String appName = 'Army';
-  static const String currentVersion = '1.3.1';
-  static const int buildNumber = 7;
-  static const String releaseDate = '06/08/2026';
-  static const String fullVersionString = 'Bản 1.3.1+7';
+  static const String currentVersion = '1.4.0';
+  static const int buildNumber = 8;
+  static const String releaseDate = '09/08/2026';
+  static const String fullVersionString = 'Bản 1.4.0+8';
 
   static const List<Map<String, dynamic>> changelogData = [
+    {
+      'version': '1.4.0+8',
+      'date': '09/08/2026',
+      'title': 'Giao Diện Sáng Rực Rỡ & Trải Nghiệm Mượt Mà ☀️✨',
+      'subtitle': 'Tự động tối ưu màu sắc sắc nét khi dùng Chế độ Sáng (Light Mode), hiển thị đa ngôn ngữ chuẩn xác và nâng cao độ mượt toàn diện.',
+      'badge': 'BẢN CẬP NHẬT',
+      'features': [
+        {
+          'icon': '🎨',
+          'title': 'Giao diện Chế độ Sáng (Light Mode) sắc nét',
+          'description': 'Màu chữ và khung thông tin tự động chuyển đổi tương phản cao trên nền sáng, xem thông tin dễ dàng và êm mắt.',
+        },
+        {
+          'icon': '🌐',
+          'title': 'Trải nghiệm Đa ngôn ngữ chuẩn xác',
+          'description': 'Tất cả nút bấm, hộp thoại thông báo và thông tin hiển thị tự động tinh chỉnh mượt mà theo Tiếng Việt và Tiếng Anh.',
+        },
+        {
+          'icon': '⚡',
+          'title': 'Tối ưu độ mượt & Phản hồi nhanh',
+          'description': 'Tối ưu hóa toàn bộ hệ thống giúp ứng dụng phản hồi mượt mà, thao tác chuyển màn hình tức thì và tiết kiệm pin.',
+        },
+        {
+          'icon': '📲',
+          'title': 'Bảng thông báo bản mới trực quan',
+          'description': 'Hộp thoại thông báo phiên bản mới tự động trình bày các tính năng mới rõ ràng, hiện đại và dễ xem.',
+        },
+      ],
+    },
     {
       'version': '1.3.1+7',
       'date': '06/08/2026',
