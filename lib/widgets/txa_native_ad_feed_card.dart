@@ -139,9 +139,9 @@ class _TXANativeAdFeedCardState extends State<TXANativeAdFeedCard> {
   Widget build(BuildContext context) {
     final txaLang = TXALanguage.instance;
 
-    // 1. Offline Guard Check
+    // 1. Offline Guard Check - Render TXALanguage notification card
     if (!TXANetworkMonitor.instance.hasConnection) {
-      return const SizedBox.shrink();
+      return _buildOfflinePlaceholder();
     }
 
     // On Windows/Web, hide ads completely
@@ -323,6 +323,74 @@ class _TXANativeAdFeedCardState extends State<TXANativeAdFeedCard> {
             ),
           ),
         ],
+      ),
+    );
+  }
+
+  Widget _buildOfflinePlaceholder() {
+    final txaLang = TXALanguage.instance;
+
+    return Center(
+      child: ConstrainedBox(
+        constraints: BoxConstraints(
+          maxWidth: 350,
+          maxHeight: MediaQuery.of(context).size.height * 0.52,
+        ),
+        child: AspectRatio(
+          aspectRatio: 3 / 4,
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 20),
+            child: ClipRRect(
+              borderRadius: BorderRadius.circular(28),
+              child: Container(
+                color: const Color(0xFF13131A),
+                padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 20),
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.all(14),
+                      decoration: BoxDecoration(
+                        color: Colors.white.withAlpha(15),
+                        shape: BoxShape.circle,
+                      ),
+                      child: const Icon(Icons.wifi_off_rounded, color: Colors.white70, size: 40),
+                    ),
+                    const SizedBox(height: 16),
+                    Text(
+                      txaLang.getText('ad_offline_title'),
+                      style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 15),
+                    ),
+                    const SizedBox(height: 8),
+                    Text(
+                      txaLang.getText('ad_offline_notice'),
+                      style: const TextStyle(color: Colors.white54, fontSize: 12, height: 1.4),
+                      textAlign: TextAlign.center,
+                    ),
+                    const SizedBox(height: 20),
+                    OutlinedButton.icon(
+                      onPressed: () {
+                        setState(() {
+                          _loadAd();
+                        });
+                      },
+                      icon: const Icon(Icons.refresh_rounded, size: 16, color: Colors.white),
+                      label: Text(
+                        txaLang.getText('retry_btn_label'),
+                        style: const TextStyle(color: Colors.white, fontSize: 13, fontWeight: FontWeight.bold),
+                      ),
+                      style: OutlinedButton.styleFrom(
+                        side: const BorderSide(color: Colors.white24),
+                        padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 10),
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ),
+        ),
       ),
     );
   }

@@ -230,18 +230,16 @@ class _LocketFeedScreenState extends State<LocketFeedScreen> {
     final visiblePosts = TXAFeedService.instance.getVisiblePostsForUser(username);
     final bool isVip = TXAIAPService.instance.isVipActive;
     final List<dynamic> feedItems = [];
-    if (isVip) {
+    if (isVip || visiblePosts.length < 4) {
       feedItems.addAll(visiblePosts);
     } else {
-      int nextAdOffset = 3;
       int postCounter = 0;
       for (var post in visiblePosts) {
         feedItems.add(post);
         postCounter++;
-        if (postCounter == nextAdOffset) {
+        if (postCounter == 4) {
           feedItems.add('ad_slot');
           postCounter = 0;
-          nextAdOffset = nextAdOffset == 3 ? 5 : 3;
         }
       }
     }
@@ -842,7 +840,7 @@ class _LocketFeedScreenState extends State<LocketFeedScreen> {
 
         final bool isVip = TXAIAPService.instance.isVipActive;
         final List<dynamic> feedItems = [];
-        if (isVip) {
+        if (isVip || visiblePosts.length < 4) {
           feedItems.addAll(visiblePosts);
         } else {
           int postCounter = 0;
@@ -853,10 +851,6 @@ class _LocketFeedScreenState extends State<LocketFeedScreen> {
               feedItems.add('ad_slot');
               postCounter = 0;
             }
-          }
-          // Nếu số bài đăng chưa đủ 4 (chưa có ad nào được chèn) và không phải VIP, bắt buộc chèn 1 ad_slot
-          if (visiblePosts.isNotEmpty && !feedItems.contains('ad_slot')) {
-            feedItems.add('ad_slot');
           }
         }
 
@@ -2455,8 +2449,10 @@ class _LocketFeedScreenState extends State<LocketFeedScreen> {
         ? feedItems[safeIndex] as LocketPostModel
         : (visiblePosts.isNotEmpty ? visiblePosts.first : null);
 
+    final double bottomInset = MediaQuery.of(context).padding.bottom;
+
     return Container(
-      padding: const EdgeInsets.only(bottom: 24, top: 12, left: 24, right: 24),
+      padding: EdgeInsets.only(bottom: 24 + bottomInset, top: 12, left: 24, right: 24),
       color: Colors.transparent,
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,

@@ -2820,7 +2820,7 @@ class _DayPostsPreviewState extends State<_DayPostsPreview> {
                     if (widget.posts.length > 1)
                       Container(
                         height: 56,
-                        margin: const EdgeInsets.only(bottom: 16, top: 4),
+                        margin: EdgeInsets.only(bottom: 16 + MediaQuery.of(context).padding.bottom, top: 4),
                         child: ListView.builder(
                           scrollDirection: Axis.horizontal,
                           physics: const BouncingScrollPhysics(),
@@ -2866,7 +2866,7 @@ class _DayPostsPreviewState extends State<_DayPostsPreview> {
                         ),
                       )
                     else
-                      const SizedBox(height: 16),
+                      SizedBox(height: 16 + MediaQuery.of(context).padding.bottom),
                   ],
                 ),
               ),

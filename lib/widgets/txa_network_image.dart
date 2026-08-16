@@ -1,6 +1,10 @@
+import 'dart:convert';
+import 'dart:io';
 import 'dart:typed_data';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
+import 'package:path_provider/path_provider.dart';
+import 'package:crypto/crypto.dart';
 import '../services/txa_language.dart';
 
 class TXANetworkImage extends StatefulWidget {
@@ -17,10 +21,10 @@ class TXANetworkImage extends StatefulWidget {
     this.errorBuilder,
   });
 
-  // Cache tĩnh trong bộ nhớ để lưu trữ các bytes ảnh đã tải thành công
+  // Cache tĩnh trong bộ nhớ RAM để truy cập tức thì 0ms
   static final Map<String, Uint8List> _memoryCache = {};
 
-  // Xóa cache khi cần
+  // Xóa cache RAM khi cần
   static void clearCache() {
     _memoryCache.clear();
   }
@@ -48,6 +52,23 @@ class _TXANetworkImageState extends State<TXANetworkImage> {
     }
   }
 
+  String _getCacheKey(String url) {
+    return md5.convert(utf8.encode(url)).toString();
+  }
+
+  Future<File?> _getCacheFile(String cacheKey) async {
+    try {
+      final tempDir = await getTemporaryDirectory();
+      final cacheDir = Directory('${tempDir.path}/txa_img_cache');
+      if (!await cacheDir.exists()) {
+        await cacheDir.create(recursive: true);
+      }
+      return File('${cacheDir.path}/$cacheKey.bin');
+    } catch (_) {
+      return null;
+    }
+  }
+
   Future<void> _loadImage() async {
     final cleanUrl = widget.url.trim();
     if (cleanUrl.isEmpty) {
@@ -60,7 +81,7 @@ class _TXANetworkImageState extends State<TXANetworkImage> {
       return;
     }
 
-    // Kiểm tra cache trước
+    // 1. Kiểm tra RAM Cache trước (0ms load)
     if (TXANetworkImage._memoryCache.containsKey(cleanUrl)) {
       if (mounted) {
         setState(() {
@@ -80,32 +101,71 @@ class _TXANetworkImageState extends State<TXANetworkImage> {
       });
     }
 
-    try {
-      // Tải ảnh qua http client của Dart (ổn định hơn Image.network trên Windows)
-      final response = await http.get(Uri.parse(cleanUrl)).timeout(
-        const Duration(seconds: 15),
-      );
+    // 2. Kiểm tra Disk Cache (đã lưu trên bộ nhớ thiết bị)
+    final cacheKey = _getCacheKey(cleanUrl);
+    final cacheFile = await _getCacheFile(cacheKey);
 
-      if (response.statusCode == 200) {
-        final bytes = response.bodyBytes;
-        TXANetworkImage._memoryCache[cleanUrl] = bytes;
-        if (mounted) {
-          setState(() {
-            _imageBytes = bytes;
-            _error = null;
-            _isLoading = false;
-          });
+    if (cacheFile != null && await cacheFile.exists()) {
+      try {
+        final bytes = await cacheFile.readAsBytes();
+        if (bytes.isNotEmpty) {
+          TXANetworkImage._memoryCache[cleanUrl] = bytes;
+          if (mounted) {
+            setState(() {
+              _imageBytes = bytes;
+              _error = null;
+              _isLoading = false;
+            });
+          }
+          return;
         }
-      } else {
-        throw Exception('HTTP error code: ${response.statusCode}');
+      } catch (e) {
+        debugPrint('Read disk cache error ($cleanUrl): $e');
       }
-    } catch (e) {
-      debugPrint('❌ TXANetworkImage load error ($cleanUrl): $e');
-      if (mounted) {
-        setState(() {
-          _error = e;
-          _isLoading = false;
-        });
+    }
+
+    // 3. Tải từ mạng với timeout tối ưu 6s và cơ chế retry 1 lần khi mạng yếu
+    int attempts = 0;
+    while (attempts < 2) {
+      attempts++;
+      try {
+        final response = await http.get(Uri.parse(cleanUrl)).timeout(
+          const Duration(seconds: 6),
+        );
+
+        if (response.statusCode == 200) {
+          final bytes = response.bodyBytes;
+          TXANetworkImage._memoryCache[cleanUrl] = bytes;
+
+          // Lưu xuống Disk Cache ở background (không block UI)
+          if (cacheFile != null) {
+            cacheFile.writeAsBytes(bytes).catchError((e) {
+              debugPrint('Write disk cache error: $e');
+              return cacheFile;
+            });
+          }
+
+          if (mounted) {
+            setState(() {
+              _imageBytes = bytes;
+              _error = null;
+              _isLoading = false;
+            });
+          }
+          return;
+        }
+      } catch (e) {
+        if (attempts >= 2) {
+          debugPrint('❌ TXANetworkImage load error ($cleanUrl): $e');
+          if (mounted) {
+            setState(() {
+              _error = e;
+              _isLoading = false;
+            });
+          }
+          return;
+        }
+        await Future.delayed(const Duration(milliseconds: 300));
       }
     }
   }
@@ -118,6 +178,7 @@ class _TXANetworkImageState extends State<TXANetworkImage> {
       return Image.memory(
         _imageBytes!,
         fit: widget.fit,
+        cacheWidth: 800, // Tối ưu RAM và GPU khi render feed
         errorBuilder: (ctx, err, st) {
           if (widget.errorBuilder != null) {
             return widget.errorBuilder!(ctx, err, st);

@@ -112,7 +112,7 @@ void main(List<String> args) {
       TXALogger.logError('Firebase init warning: $e', stackTrace: stack);
     }
 
-    // 5. Initialize all core services with isolated error handling
+    // 5. Initialize core services in parallel using Future.wait for fast startup
     Future<void> safeInit(String name, Future<void> Function() initFunc) async {
       try {
         await initFunc();
@@ -122,28 +122,32 @@ void main(List<String> args) {
       }
     }
 
-    await safeInit('TXASupabaseService', () => TXASupabaseService.instance.init());
-    await safeInit('TXALanguage', () => TXALanguage.instance.init());
-    await safeInit('TXAFormat', () => TXAFormat.instance.init());
-    await safeInit('TXACameraThemeService', () => TXACameraThemeService.instance.init());
-    await safeInit('TXANotificationService', () => TXANotificationService.instance.init());
-    await safeInit('TXAAchievementService', () => TXAAchievementService.instance.init());
-    await safeInit('TXAAuthService', () => TXAAuthService.instance.init());
-    await safeInit('TXAFeedService', () => TXAFeedService.instance.init());
-    await safeInit('TXADeepLinkService', () => TXADeepLinkService.instance.init(args: args));
-    await safeInit('TXAScreenSecurity', () => TXAScreenSecurity.instance.init());
-    await safeInit('TXAAdMobService', () => TXAAdMobService.instance.init());
-    await safeInit('TXAInAppUpdateService', () => TXAInAppUpdateService.instance.checkForUpdates());
+    // Phase 1: Core essential services (parallel)
+    await Future.wait([
+      safeInit('TXASupabaseService', () => TXASupabaseService.instance.init()),
+      safeInit('TXALanguage', () => TXALanguage.instance.init()),
+      safeInit('TXAFormat', () => TXAFormat.instance.init()),
+      safeInit('TXACameraThemeService', () => TXACameraThemeService.instance.init()),
+      safeInit('TXAAuthService', () => TXAAuthService.instance.init()),
+    ]);
 
+    // Phase 2: Secondary services (parallel in background without blocking UI startup)
+    Future.wait([
+      safeInit('TXANotificationService', () => TXANotificationService.instance.init()),
+      safeInit('TXAAchievementService', () => TXAAchievementService.instance.init()),
+      safeInit('TXAFeedService', () => TXAFeedService.instance.init()),
+      safeInit('TXADeepLinkService', () => TXADeepLinkService.instance.init(args: args)),
+      safeInit('TXAScreenSecurity', () => TXAScreenSecurity.instance.init()),
+      safeInit('TXAAdMobService', () => TXAAdMobService.instance.init()),
+      safeInit('TXAInAppUpdateService', () => TXAInAppUpdateService.instance.checkForUpdates()),
+    // ignore: body_might_complete_normally_catch_error
+    ]).catchError((e) {
+      debugPrint('Background services init warning: $e');
+    });
 
-    // 5.5. Log app open event safely
-    try {
-      await TXAAnalytics.logAppOpen();
-      await TXAAnalytics.logEvent('app_open');
-      debugPrint('📊 Analytics app_open event logged successfully.');
-    } catch (e) {
-      debugPrint('Analytics event log error: $e');
-    }
+    // 5.5. Log app open event safely (non-blocking)
+    TXAAnalytics.logAppOpen().catchError((_) {});
+    TXAAnalytics.logEvent('app_open').catchError((_) {});
 
     // 6. Launch main app UI
     runApp(const ArmyApp());

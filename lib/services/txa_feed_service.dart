@@ -153,6 +153,14 @@ class TXAFeedService extends ChangeNotifier {
   final List<LocketPostModel> _posts = [];
   List<LocketPostModel> get posts => List.unmodifiable(_posts);
 
+  List<LocketPostModel>? _cachedVisiblePosts;
+  String? _cachedUsername;
+
+  void clearVisiblePostsCache() {
+    _cachedVisiblePosts = null;
+    _cachedUsername = null;
+  }
+
   Future<void> init() async {
     TXASupabaseService.instance.client
         .from('txa_posts')
@@ -160,6 +168,7 @@ class TXAFeedService extends ChangeNotifier {
         .order('createdTime', ascending: false)
         .listen((List<Map<String, dynamic>> data) {
       _posts.clear();
+      clearVisiblePostsCache();
       for (var row in data) {
         final photoPath = row['photoPath'] as String? ?? '';
         if (photoPath.startsWith('assets/')) {
@@ -176,6 +185,10 @@ class TXAFeedService extends ChangeNotifier {
 
   // Get posts visible to current user based on recipient permissions
   List<LocketPostModel> getVisiblePostsForUser(String currentUsername) {
+    if (_cachedVisiblePosts != null && _cachedUsername == currentUsername) {
+      return _cachedVisiblePosts!;
+    }
+
     final txaAuth = TXAAuthService.instance;
     final friendsList = txaAuth.friendsList;
     final bestFriendsList = txaAuth.bestFriendsList;
@@ -219,33 +232,25 @@ class TXAFeedService extends ChangeNotifier {
       return false;
     }).toList();
 
-    // Sắp xếp theo thứ tự: Bài đăng của mình trước -> Bạn thân -> Người yêu -> Bạn bình thường
-    // Trong mỗi nhóm xếp theo thời gian mới nhất lên đầu.
-    filtered.sort((a, b) {
-      final isOwnA = a.senderUsername == currentUsername;
-      final isOwnB = b.senderUsername == currentUsername;
-      
-      if (isOwnA != isOwnB) {
-        return isOwnA ? -1 : 1;
-      }
-      
-      final isBestA = txaAuth.bestFriendsList.any((f) => f['username'] == a.senderUsername);
-      final isBestB = txaAuth.bestFriendsList.any((f) => f['username'] == b.senderUsername);
-      
-      if (isBestA != isBestB) {
-        return isBestA ? -1 : 1;
-      }
+    // Sắp xếp theo thứ tự: Bài đăng của mình trước (0) -> Bạn thân (1) -> Người yêu (2) -> Bạn bình thường (3)
+    int getRank(LocketPostModel p) {
+      if (p.senderUsername == currentUsername) return 0;
+      if (bestFriendUsernames.contains(p.senderUsername)) return 1;
+      if (loverUsernames.contains(p.senderUsername)) return 2;
+      return 3;
+    }
 
-      final isLoverA = txaAuth.loversList.any((f) => f['username'] == a.senderUsername);
-      final isLoverB = txaAuth.loversList.any((f) => f['username'] == b.senderUsername);
-      
-      if (isLoverA != isLoverB) {
-        return isLoverA ? -1 : 1;
+    filtered.sort((a, b) {
+      final rankA = getRank(a);
+      final rankB = getRank(b);
+      if (rankA != rankB) {
+        return rankA.compareTo(rankB);
       }
-      
       return b.createdTime.compareTo(a.createdTime);
     });
 
+    _cachedVisiblePosts = filtered;
+    _cachedUsername = currentUsername;
     return filtered;
   }
 

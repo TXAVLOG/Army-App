@@ -5,12 +5,46 @@ class TXAVersion extends ChangeNotifier {
   TXAVersion._internal();
 
   static const String appName = 'Army';
-  static const String currentVersion = '1.4.0';
-  static const int buildNumber = 8;
-  static const String releaseDate = '09/08/2026';
-  static const String fullVersionString = 'Bản 1.4.0+8';
+  static const String currentVersion = '1.4.1';
+  static const int buildNumber = 9;
+  static const String releaseDate = '16/08/2026';
+  static const String fullVersionString = 'Bản 1.4.1+9';
 
   static const List<Map<String, dynamic>> changelogData = [
+    {
+      'version': '1.4.1+9',
+      'date': '16/08/2026',
+      'title': 'Trải Nghiệm Siêu Mượt & Giao Diện Hoàn Hảo ⚡✨',
+      'subtitle': 'Tối ưu tốc độ phản hồi tức thì, lưu đĩa đệm xem lại bài đăng mượt mà, nâng cao bố cục phím bấm và tinh chỉnh giao diện thoáng mắt.',
+      'badge': 'BẢN CẬP NHẬT',
+      'features': [
+        {
+          'icon': '🚀',
+          'title': 'Mở ứng dụng siêu tốc & mượt mà',
+          'description': 'Tối ưu hóa quy trình khởi chạy giúp ứng dụng phản hồi nhanh chóng, mở màn hình chính tức thì.',
+        },
+        {
+          'icon': '⚡',
+          'title': 'Xem bài đăng mượt mà & Tiết kiệm data',
+          'description': 'Tích hợp bộ nhớ đệm thông minh, hiển thị tức thì 0ms các bài đăng đã lưu giúp lướt mượt mà và không tốn dung lượng mạng.',
+        },
+        {
+          'icon': '🎨',
+          'title': 'Tối ưu không gian hiển thị bài viết',
+          'description': 'Tinh chỉnh khoảng cách và nhịp cuộn trang hợp lý, mang lại trải nghiệm xem ảnh khoảnh khắc tự nhiên, thoải mái.',
+        },
+        {
+          'icon': '🔔',
+          'title': 'Thông báo trạng thái hệ thống linh hoạt',
+          'description': 'Cập nhật giao diện thông báo thân thiện với ngôn ngữ chuẩn xác, giúp bạn dễ dàng theo dõi trạng thái ứng dụng.',
+        },
+        {
+          'icon': '📱',
+          'title': 'Bố cục phím bấm chuẩn xác & Nút nâng cao',
+          'description': 'Tối ưu khoảng cách phím điều hướng ở góc dưới màn hình, thao tác bấm nhạy và không lo bị đè chữ hay lệch vị trí.',
+        },
+      ],
+    },
     {
       'version': '1.4.0+8',
       'date': '09/08/2026',

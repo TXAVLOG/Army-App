@@ -75,8 +75,9 @@ class _SplashScreenState extends State<SplashScreen> with TickerProviderStateMix
     }
 
     await TXAGooglePlayServices.instance.checkAvailability();
-    await _fixBrokenImages();
-    await Future.delayed(const Duration(milliseconds: 2000));
+    // Chạy sửa ảnh lỗi bất đồng bộ ở nền để không gây đơ/lag màn hình khởi động
+    _fixBrokenImages().catchError((e) => debugPrint('Fix images background error: $e'));
+    await Future.delayed(const Duration(milliseconds: 300));
 
     if (!mounted) return;
 
