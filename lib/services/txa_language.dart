@@ -10,6 +10,7 @@ class TXALanguage extends ChangeNotifier {
 
   String _currentLanguage = 'vi';
   String get currentLanguage => _currentLanguage;
+  bool get isVietnamese => _currentLanguage == 'vi';
 
   static const Map<String, String> supportedLanguages = {
     'vi': 'Tiếng Việt',
@@ -199,6 +200,12 @@ class TXALanguage extends ChangeNotifier {
       'camera_theme_title': 'Chọn chủ đề camera',
       'camera_theme_subtitle': 'Thay đổi màu nền và viền camera',
       'change_app_icon': 'Thay đổi icon ứng dụng',
+      'app_icon_title': 'Kho Icon 3D Độc Quyền 📱',
+      'app_icon_subtitle': 'Chọn icon 3D cá tính để biến đổi phong cách biểu tượng ứng dụng',
+      'app_icon_applied_toast': '✨ Đã chọn icon %name% thành công!',
+      'app_icon_vip_locked': '🌟 Nâng cấp Army Gold Pass để mở khóa toàn bộ 25 Icon VIP!',
+      'app_icon_active': 'ĐANG DÙNG',
+      'app_icon_apply': 'Áp Dụng Icon',
       'settings_title': 'Cài đặt',
       'language_settings': 'Ngôn ngữ',
       'share_post': 'Chia sẻ bài viết',
@@ -572,6 +579,7 @@ class TXALanguage extends ChangeNotifier {
       'monthly_plan': 'Gói Tháng',
       'yearly_plan': 'Gói Năm',
       'save_percentage': 'TIẾT KIỆM %count%%',
+      'yearly_discount_hint': 'Tiết kiệm %count%% so với thanh toán theo tháng',
       'vip_feature_adfree': 'Ẩn 100% quảng cáo toàn ứng dụng',
       'vip_feature_unlimited_restore': 'Khôi phục chuỗi Streak không giới hạn',
       'vip_feature_icons': 'Sở hữu vĩnh viễn 25 Icon App 3D VIP',
@@ -896,6 +904,12 @@ class TXALanguage extends ChangeNotifier {
       'camera_theme_title': 'Choose camera theme',
       'camera_theme_subtitle': 'Change camera background and border',
       'change_app_icon': 'Change App Icon',
+      'app_icon_title': 'Exclusive 3D App Icons 📱',
+      'app_icon_subtitle': 'Choose unique 3D icons to personalize your app style',
+      'app_icon_applied_toast': '✨ %name% icon selected successfully!',
+      'app_icon_vip_locked': '🌟 Upgrade to Army Gold Pass to unlock all 25 VIP Icons!',
+      'app_icon_active': 'ACTIVE',
+      'app_icon_apply': 'Apply Icon',
       'settings_title': 'Settings',
       'language_settings': 'Language',
       'logout': 'Log Out',
@@ -1224,6 +1238,7 @@ class TXALanguage extends ChangeNotifier {
       'monthly_plan': 'Monthly',
       'yearly_plan': 'Yearly',
       'save_percentage': 'SAVE %count%%',
+      'yearly_discount_hint': 'Save %count%% compared to monthly billing',
       'vip_feature_adfree': '100% ad-free experience',
       'vip_feature_unlimited_restore': 'Unlimited streak restorations',
       'vip_feature_icons': 'Forever own 25 premium 3D app icons',

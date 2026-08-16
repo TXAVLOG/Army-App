@@ -49,9 +49,12 @@ class _TXAGoldPassPaywallScreenState extends State<TXAGoldPassPaywallScreen> {
     }
 
     final selectedProduct = _isYearlySelected ? yearlyProduct : monthlyProduct;
-    final displayPrice = selectedProduct != null
-        ? selectedProduct.price
-        : (_isYearlySelected ? '189.000đ / năm' : '29.000đ / tháng');
+    final periodSuffix = txaLang.isVietnamese
+        ? (_isYearlySelected ? ' / năm' : ' / tháng')
+        : (_isYearlySelected ? ' / year' : ' / month');
+    final rawDisplay = selectedProduct?.price ?? (_isYearlySelected ? '189.000đ' : '29.000đ');
+    final displayPrice = rawDisplay.contains('/') ? rawDisplay : '$rawDisplay$periodSuffix';
+    final originalYearlyPrice = _getYearlyOriginalPrice(monthlyProduct);
 
     return Scaffold(
       backgroundColor: const Color(0xFF0B0B0E),
@@ -231,14 +234,54 @@ class _TXAGoldPassPaywallScreenState extends State<TXAGoldPassPaywallScreen> {
               const SizedBox(height: 40),
 
               // Pricing details & Subscribe button
-              Text(
-                displayPrice,
-                style: const TextStyle(
-                  color: Colors.white,
-                  fontSize: 22,
-                  fontWeight: FontWeight.bold,
+              if (_isYearlySelected) ...[
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  crossAxisAlignment: CrossAxisAlignment.baseline,
+                  textBaseline: TextBaseline.alphabetic,
+                  children: [
+                    Text(
+                      originalYearlyPrice,
+                      style: const TextStyle(
+                        color: Colors.white38,
+                        fontSize: 17,
+                        fontWeight: FontWeight.w600,
+                        decoration: TextDecoration.lineThrough,
+                        decorationColor: Colors.white54,
+                        decorationThickness: 2,
+                      ),
+                    ),
+                    const SizedBox(width: 10),
+                    Text(
+                      displayPrice,
+                      style: const TextStyle(
+                        color: Color(0xFFFFD700),
+                        fontSize: 24,
+                        fontWeight: FontWeight.w900,
+                        letterSpacing: 0.3,
+                      ),
+                    ),
+                  ],
                 ),
-              ),
+                const SizedBox(height: 6),
+                Text(
+                  txaLang.getText('yearly_discount_hint').replaceAll('%count%', '45'),
+                  style: TextStyle(
+                    color: const Color(0xFFFFD700).withAlpha(220),
+                    fontSize: 12,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+              ] else ...[
+                Text(
+                  displayPrice,
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontSize: 22,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+              ],
               const SizedBox(height: 16),
 
               SizedBox(
@@ -306,5 +349,65 @@ class _TXAGoldPassPaywallScreenState extends State<TXAGoldPassPaywallScreen> {
         ],
       ),
     );
+  }
+
+  String _getYearlyOriginalPrice(ProductDetails? monthlyProduct) {
+    if (monthlyProduct != null && monthlyProduct.rawPrice > 0) {
+      final originalRaw = monthlyProduct.rawPrice * 12;
+      final code = monthlyProduct.currencyCode.toUpperCase();
+      final symbol = monthlyProduct.currencySymbol.isNotEmpty ? monthlyProduct.currencySymbol : '';
+      final priceStr = monthlyProduct.price;
+
+      // 1. Zero-decimal currencies (VND, JPY, KRW, IDR, etc.)
+      final isZeroDecimal = code == 'JPY' ||
+          code == 'KRW' ||
+          code == 'VND' ||
+          code == 'IDR' ||
+          priceStr.contains('đ') ||
+          priceStr.contains('₫') ||
+          priceStr.contains('¥') ||
+          priceStr.contains('￥') ||
+          priceStr.contains('₩');
+
+      if (isZeroDecimal) {
+        if (code == 'VND' || priceStr.contains('đ') || priceStr.contains('₫')) {
+          final formatted = originalRaw.round().toString().replaceAllMapped(
+            RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'),
+            (Match m) => '${m[1]}.',
+          );
+          final curr = symbol.isNotEmpty ? symbol : 'đ';
+          return '$formatted$curr';
+        } else {
+          // JPY (Yên), KRW (Won), etc. (format with commas: 3,600)
+          final formatted = originalRaw.round().toString().replaceAllMapped(
+            RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'),
+            (Match m) => '${m[1]},',
+          );
+          if (priceStr.startsWith(symbol) ||
+              priceStr.startsWith('¥') ||
+              priceStr.startsWith('￥') ||
+              priceStr.startsWith('₩')) {
+            final s = symbol.isNotEmpty ? symbol : (code == 'JPY' ? '¥' : '₩');
+            return '$s$formatted';
+          } else {
+            final s = symbol.isNotEmpty ? symbol : code;
+            return '$formatted $s';
+          }
+        }
+      }
+
+      // 2. Standard decimal currencies (USD, EUR, GBP, AUD, etc.)
+      final formattedNum = originalRaw.toStringAsFixed(2);
+      if (symbol.isNotEmpty && priceStr.endsWith(symbol)) {
+        return '$formattedNum $symbol';
+      } else if (symbol.isNotEmpty) {
+        return '$symbol$formattedNum';
+      } else if (code.isNotEmpty) {
+        return '$code $formattedNum';
+      } else {
+        return '\$$formattedNum';
+      }
+    }
+    return '348.000đ';
   }
 }

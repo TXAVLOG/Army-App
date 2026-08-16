@@ -5,12 +5,46 @@ class TXAVersion extends ChangeNotifier {
   TXAVersion._internal();
 
   static const String appName = 'Army';
-  static const String currentVersion = '1.4.1';
-  static const int buildNumber = 9;
+  static const String currentVersion = '1.5.0';
+  static const int buildNumber = 10;
   static const String releaseDate = '16/08/2026';
-  static const String fullVersionString = 'Bản 1.4.1+9';
+  static const String fullVersionString = 'Bản 1.5.0+10';
 
   static const List<Map<String, dynamic>> changelogData = [
+    {
+      'version': '1.5.0+10',
+      'date': '16/08/2026',
+      'title': 'Bộ Sưu Tập Icon 3D & Nâng Cấp Trải Nghiệm Mượt Mà 📱✨',
+      'subtitle': 'Biến hóa phong cách với 25 Icon 3D cực chất, ưu đãi gói năm Gold Pass siêu tiết kiệm và tinh chỉnh giao diện hiển thị hoàn hảo.',
+      'badge': 'BẢN CẬP NHẬT LỚN',
+      'features': [
+        {
+          'icon': '📱',
+          'title': 'Bộ sưu tập 25 Icon 3D cực chất',
+          'description': 'Thoải mái đổi icon ứng dụng theo cá tính riêng với 25 mẫu icon 3D sống động từ phong cách Cổ Điển, Neon rực rỡ đến các mẫu VIP độc quyền.',
+        },
+        {
+          'icon': '🌟',
+          'title': 'Ưu đãi gói năm Gold Pass siêu tiết kiệm 45%',
+          'description': 'Hiển thị giá gốc và mức ưu đãi rõ ràng khi nâng cấp gói năm, giúp bạn dễ dàng chọn gói cước tiết kiệm và tiện lợi nhất.',
+        },
+        {
+          'icon': '🔔',
+          'title': 'Giao diện thông báo thoáng mắt & Dễ nhìn',
+          'description': 'Căn chỉnh các thông báo trạng thái luôn hiển thị vừa vặn, không bị che khuất bởi các phím điều hướng của điện thoại.',
+        },
+        {
+          'icon': '🏆',
+          'title': 'Mở khóa huy hiệu Sưu Tầm Icon',
+          'description': 'Khám phá và sở hữu các mẫu icon độc đáo để nâng cấp danh hiệu và nhận huy hiệu thành tựu cực ngầu.',
+        },
+        {
+          'icon': '⚡',
+          'title': 'Trải nghiệm mượt mà & Nâng tầm cảm ứng',
+          'description': 'Thao tác xem trước, đổi icon và chọn gói cước phản hồi tức thì, kèm hiệu ứng rung phản hồi chân thực.',
+        },
+      ],
+    },
     {
       'version': '1.4.1+9',
       'date': '16/08/2026',

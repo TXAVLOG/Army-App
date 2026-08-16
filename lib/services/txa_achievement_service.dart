@@ -159,6 +159,16 @@ class TXAAchievementService extends ChangeNotifier {
     }
   }
 
+  /// Trigger general achievement evaluation
+  void checkAndEvaluate() {
+    final user = TXAAuthService.instance.currentUser;
+    final isVip = user?.isVipCurrentlyActive ?? false;
+    syncStats(
+      isVipUser: isVip,
+      unlockedIconsCount: isVip ? 25 : 5,
+    );
+  }
+
   /// Total unlocked tiers across all achievement series
   int getTotalUnlockedTiers() {
     int total = 0;
