@@ -403,6 +403,8 @@ class _LocketMainScreenState extends State<LocketMainScreen> with WidgetsBinding
           );
         }
       }
+    }, onError: (e) {
+      debugPrint('incomingReqSub error: $e');
     });
 
     _acceptedReqSub = TXASupabaseService.instance.client

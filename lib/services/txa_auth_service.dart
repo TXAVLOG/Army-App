@@ -903,6 +903,9 @@ class TXAAuthService extends ChangeNotifier {
         .stream(primaryKey: ['id'])
         .eq('username', username)
         .limit(1)
+        .handleError((e) {
+          debugPrint('listenToUser stream error: $e');
+        })
         .map((rows) {
           if (rows.isEmpty) return null;
           return UserModel.fromJson(rows.first);
@@ -1161,6 +1164,9 @@ class TXAAuthService extends ChangeNotifier {
         .from('txa_friend_requests')
         .stream(primaryKey: ['id'])
         .eq('to', username)
+        .handleError((e) {
+          debugPrint('listenIncomingRequests stream error: $e');
+        })
         .map((rows) => rows.where((row) => row['status'] == 'pending').toList());
   }
 
@@ -1289,6 +1295,9 @@ class TXAAuthService extends ChangeNotifier {
         .from('txa_friend_requests')
         .stream(primaryKey: ['id'])
         .eq('from', username)
+        .handleError((e) {
+          debugPrint('listenSentRequests stream error: $e');
+        })
         .map((rows) => rows.where((row) => row['status'] == 'pending').toList());
   }
 
@@ -1521,6 +1530,9 @@ class TXAAuthService extends ChangeNotifier {
         .from('txa_love_invitations')
         .stream(primaryKey: ['id'])
         .eq('receiver', username)
+        .handleError((e) {
+          debugPrint('listenIncomingLoveRequests stream error: $e');
+        })
         .map((rows) => rows.where((row) => row['status'] == 'pending').toList());
   }
 
@@ -1532,6 +1544,9 @@ class TXAAuthService extends ChangeNotifier {
         .from('txa_love_invitations')
         .stream(primaryKey: ['id'])
         .eq('sender', username)
+        .handleError((e) {
+          debugPrint('listenSentLoveRequests stream error: $e');
+        })
         .map((rows) => rows.where((row) => row['status'] == 'pending').toList());
   }
 
@@ -1542,6 +1557,9 @@ class TXAAuthService extends ChangeNotifier {
         .from('txa_loves')
         .stream(primaryKey: ['id'])
         .eq('id', loveId)
+        .handleError((e) {
+          debugPrint('listenToLoveConnection stream error: $e');
+        })
         .map((rows) => rows.isNotEmpty ? rows.first : null);
   }
 

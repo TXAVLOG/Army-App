@@ -59,6 +59,62 @@ class MainActivity: FlutterFragmentActivity() {
                     result.notImplemented()
                 }
             }
+        MethodChannel(flutterEngine.dartExecutor.binaryMessenger, "vn.army.txa/app_icon").setMethodCallHandler { call, result ->
+            when (call.method) {
+                "changeAppIcon" -> {
+                    val iconName = call.argument<String>("iconName") ?: "default_gold"
+                    val aliasMap = mapOf(
+                        "default_gold" to "vn.army.txa.MainActivityDefault",
+                        "midnight_dark" to "vn.army.txa.MainActivityMidnight",
+                        "cyberpunk_neon" to "vn.army.txa.MainActivityCyberpunk",
+                        "sakura_pink" to "vn.army.txa.MainActivitySakura",
+                        "ocean_breeze" to "vn.army.txa.MainActivityOcean",
+                        "sunset_glow" to "vn.army.txa.MainActivitySunset",
+                        "matrix_matrix" to "vn.army.txa.MainActivityMatrix",
+                        "fire_dragon" to "vn.army.txa.MainActivityFire",
+                        "galaxy_cosmic" to "vn.army.txa.MainActivityGalaxy",
+                        "frost_ice" to "vn.army.txa.MainActivityFrost",
+                        "emerald_gem" to "vn.army.txa.MainActivityEmerald",
+                        "ruby_luxury" to "vn.army.txa.MainActivityRuby",
+                        "amethyst_purple" to "vn.army.txa.MainActivityAmethyst",
+                        "retro_synthwave" to "vn.army.txa.MainActivitySynthwave",
+                        "matcha_zen" to "vn.army.txa.MainActivityMatcha",
+                        "phantom_ghost" to "vn.army.txa.MainActivityPhantom",
+                        "golden_king" to "vn.army.txa.MainActivityGoldenKing",
+                        "diamond_ultra" to "vn.army.txa.MainActivityDiamond",
+                        "blood_moon" to "vn.army.txa.MainActivityBloodMoon",
+                        "aurora_lights" to "vn.army.txa.MainActivityAurora",
+                        "space_blackhole" to "vn.army.txa.MainActivityBlackHole",
+                        "coffee_caramel" to "vn.army.txa.MainActivityCoffee",
+                        "neon_toxic" to "vn.army.txa.MainActivityToxic",
+                        "quantum_portal" to "vn.army.txa.MainActivityQuantum",
+                        "infinity_titan" to "vn.army.txa.MainActivityTitan"
+                    )
+                    val targetAlias = aliasMap[iconName] ?: "vn.army.txa.MainActivityDefault"
+                    try {
+                        val pm = packageManager
+                        for ((_, aliasComponent) in aliasMap) {
+                            val comp = android.content.ComponentName(packageName, aliasComponent)
+                            val state = if (aliasComponent == targetAlias) {
+                                android.content.pm.PackageManager.COMPONENT_ENABLED_STATE_ENABLED
+                            } else {
+                                android.content.pm.PackageManager.COMPONENT_ENABLED_STATE_DISABLED
+                            }
+                            pm.setComponentEnabledSetting(
+                                comp,
+                                state,
+                                android.content.pm.PackageManager.DONT_KILL_APP
+                            )
+                        }
+                        result.success(true)
+                    } catch (e: Exception) {
+                        result.error("ICON_ERROR", "Failed to change launcher icon: ${e.message}", null)
+                    }
+                }
+                else -> {
+                    result.notImplemented()
+                }
+            }
         }
     }
 

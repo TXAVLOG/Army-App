@@ -3,6 +3,9 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'txa_auth_service.dart';
 import 'txa_achievement_service.dart';
 
+import 'package:flutter/services.dart';
+import 'txa_logger.dart';
+
 class TXAAppIconItem {
   final String id;
   final String nameVi;
@@ -33,6 +36,8 @@ class TXAAppIconService extends ChangeNotifier {
   }
 
   static const String _keySelectedIcon = 'txa_selected_app_icon_id';
+  static const MethodChannel _channel = MethodChannel('vn.army.txa/app_icon');
+
   String _selectedIconId = 'default_gold';
   String get selectedIconId => _selectedIconId;
 
@@ -286,6 +291,7 @@ class TXAAppIconService extends ChangeNotifier {
   Future<bool> selectIcon(String iconId) async {
     final target = icons.firstWhere((i) => i.id == iconId, orElse: () => icons.first);
     if (!isIconUnlocked(target)) {
+      TXALogger.logApp('Từ chối đổi icon: $iconId chưa mở khóa (VIP: ${target.isVip})');
       return false;
     }
 
@@ -296,6 +302,23 @@ class TXAAppIconService extends ChangeNotifier {
 
     // Trigger achievement check
     TXAAchievementService.instance.checkAndEvaluate();
+
+    // Invoke Native launcher icon change on Android / iOS
+    try {
+      await _channel.invokeMethod('changeAppIcon', {'iconName': iconId});
+      TXALogger.logApp('Đổi icon app thành công sang: $iconId (${target.nameVi})');
+    } on PlatformException catch (e) {
+      TXALogger.logError('Lỗi nền tảng khi đổi app icon sang $iconId: ${e.message}', extraInfo: {
+        'code': e.code,
+        'details': e.details?.toString(),
+        'targetIcon': iconId,
+      });
+    } catch (e, stack) {
+      TXALogger.logError('Lỗi không xác định khi đổi app icon sang $iconId: $e', stackTrace: stack, extraInfo: {
+        'targetIcon': iconId,
+      });
+    }
+
     return true;
   }
 }

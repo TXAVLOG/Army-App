@@ -29,6 +29,7 @@ import 'txa_gold_pass_paywall_screen.dart';
 import 'txa_version_timeline_screen.dart';
 import '../services/txa_version.dart';
 import '../services/txa_app_icon_service.dart';
+import 'txa_log_viewer_screen.dart';
 
 class TXAProfileScreen extends StatefulWidget {
   const TXAProfileScreen({super.key});
@@ -2466,6 +2467,26 @@ class _TXAProfileScreenState extends State<TXAProfileScreen>
                         onTap: () {
                           Navigator.pop(context);
                           Navigator.push(context, MaterialPageRoute(builder: (_) => const TXAVersionTimelineScreen()));
+                        },
+                      ),
+                      Divider(color: TXATheme.cardBorder),
+
+                      // ─── 6.2 Nhật Ký Hệ Thống (System Logs) ───────────
+                      ListTile(
+                        contentPadding: EdgeInsets.zero,
+                        leading: const Icon(Icons.terminal_rounded, color: Color(0xFF00E5FF)),
+                        title: Text(
+                          txaLang.getText('system_logs_title'),
+                          style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+                        ),
+                        subtitle: Text(
+                          txaLang.getText('system_logs_subtitle'),
+                          style: TextStyle(color: TXATheme.textMuted, fontSize: 12),
+                        ),
+                        trailing: const Icon(Icons.arrow_forward_ios_rounded, color: Colors.white24, size: 16),
+                        onTap: () {
+                          Navigator.pop(context);
+                          Navigator.push(context, MaterialPageRoute(builder: (_) => const TXALogViewerScreen()));
                         },
                       ),
                       Divider(color: TXATheme.cardBorder),

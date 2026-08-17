@@ -286,6 +286,8 @@ class _InviteDialogState extends State<_InviteDialog> {
             _isOutgoingPending = pending.isNotEmpty;
           });
         }
+      }, onError: (e) {
+        debugPrint('_subOutgoing stream error: $e');
       });
 
       // 2. Listen to incoming pending request
@@ -307,6 +309,8 @@ class _InviteDialogState extends State<_InviteDialog> {
             }
           });
         }
+      }, onError: (e) {
+        debugPrint('_subIncoming stream error: $e');
       });
     }
   }
