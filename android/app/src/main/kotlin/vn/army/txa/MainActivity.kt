@@ -59,6 +59,8 @@ class MainActivity: FlutterFragmentActivity() {
                     result.notImplemented()
                 }
             }
+        }
+
         MethodChannel(flutterEngine.dartExecutor.binaryMessenger, "vn.army.txa/app_icon").setMethodCallHandler { call, result ->
             when (call.method) {
                 "changeAppIcon" -> {
