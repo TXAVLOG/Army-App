@@ -5,12 +5,46 @@ class TXAVersion extends ChangeNotifier {
   TXAVersion._internal();
 
   static const String appName = 'Army';
-  static const String currentVersion = '1.5.0';
-  static const int buildNumber = 10;
-  static const String releaseDate = '16/08/2026';
-  static const String fullVersionString = 'Bản 1.5.0+10';
+  static const String currentVersion = '1.6.0';
+  static const int buildNumber = 11;
+  static const String releaseDate = '22/08/2026';
+  static const String fullVersionString = 'Bản 1.6.0+11';
 
   static const List<Map<String, dynamic>> changelogData = [
+    {
+      'version': '1.6.0+11',
+      'date': '22/08/2026',
+      'title': 'Cài Đặt Máy Ảnh Chuyên Nghiệp: Hẹn Giờ Chụp & Đèn Flash ⏱️📸',
+      'subtitle': 'Thỏa sức selfie từ xa và bắt trọn khoảnh khắc nhóm với Hẹn Giờ Chụp thông minh, tùy chỉnh Đèn Flash đa chế độ và trải nghiệm mượt mà.',
+      'badge': 'TÍNH NĂNG MỚI',
+      'features': [
+        {
+          'icon': '⏱️',
+          'title': 'Hẹn giờ chụp ảnh đa mốc (3s, 5s, 7s, 10s)',
+          'description': 'Đếm ngược trực quan với số to nổi bật trên camera, rung phản hồi xúc giác qua từng giây và dễ dàng hủy đếm ngược bất kỳ lúc nào.',
+        },
+        {
+          'icon': '⚡',
+          'title': 'Tùy chỉnh Đèn Flash đa chế độ',
+          'description': 'Linh hoạt chuyển đổi giữa Tắt, Bật sáng liên tục (Torch) và Tự động (Auto) giúp bắt trọn mọi góc chụp trong điều kiện thiếu sáng.',
+        },
+        {
+          'icon': '🎛️',
+          'title': 'Bảng Cài Đặt Camera Hiện Đại & Tinh Tế',
+          'description': 'Thiết kế Bottom Sheet sang trọng, tự động lưu cấu hình yêu thích vào bộ nhớ máy và khôi phục khi mở lại app.',
+        },
+        {
+          'icon': '🛡️',
+          'title': 'Hủy hẹn giờ thông minh & An toàn',
+          'description': 'Tự động hủy đếm ngược khi đổi camera, mở thư viện ảnh hoặc ẩn app ra ngoài màn hình chính, chống lỗi camera tuyệt đối.',
+        },
+        {
+          'icon': '🚀',
+          'title': 'Tối ưu hiệu năng & Phản hồi tức thì',
+          'description': 'Tốc độ chụp ảnh nhanh chóng, xử lý mượt mà và tối ưu hóa thời lượng pin cho thiết bị.',
+        },
+      ],
+    },
     {
       'version': '1.5.0+10',
       'date': '16/08/2026',

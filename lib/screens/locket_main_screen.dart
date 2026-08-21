@@ -24,6 +24,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import '../widgets/txa_avatar_frame.dart';
 import '../widgets/txa_network_image.dart';
 import '../widgets/txa_coach_mark.dart';
+import '../widgets/txa_camera_settings_modal.dart';
 import 'photo_preview_screen.dart';
 import '../services/txa_version.dart';
 import 'locket_feed_screen.dart';
@@ -56,7 +57,10 @@ class _LocketMainScreenState extends State<LocketMainScreen> with WidgetsBinding
   final Set<String> _notifiedAcceptedIds = {};
   int _selectedCameraIndex = 0;
   int _flashModeIndex = 0; // 0: off, 1: torch (always on), 2: auto (capture flash)
-  bool _isFlashPillOpen = false;
+  int _timerSeconds = 0; // 0: off, 3: 3s, 5: 5s, 7: 7s, 10: 10s
+  bool _isCountingDown = false;
+  int _countdownRemaining = 0;
+  Timer? _countdownTimer;
   final List<IconData> _flashIcons = [
     Icons.flash_off_rounded,
     Icons.flash_on_rounded,
@@ -302,6 +306,7 @@ class _LocketMainScreenState extends State<LocketMainScreen> with WidgetsBinding
     super.initState();
     TXAAnalytics.logScreenView(screenName: TXAAnalytics.screenMain);
     WidgetsBinding.instance.addObserver(this);
+    _loadCameraPreferences();
     _initCamera();
     WidgetsBinding.instance.addPostFrameCallback((_) async {
       final shownChangelog = await _checkAndShowChangelog();
@@ -327,6 +332,7 @@ class _LocketMainScreenState extends State<LocketMainScreen> with WidgetsBinding
   void dispose() {
     WidgetsBinding.instance.removeObserver(this);
     _activeTimer?.cancel();
+    _countdownTimer?.cancel();
     _focusNode.dispose();
     TXAAuthService.instance.removeListener(_onAuthServiceChanged);
     _incomingReqSub?.cancel();
@@ -344,6 +350,7 @@ class _LocketMainScreenState extends State<LocketMainScreen> with WidgetsBinding
     } else if (state == AppLifecycleState.paused ||
                state == AppLifecycleState.inactive ||
                state == AppLifecycleState.detached) {
+      _cancelCountdown(showToast: false);
       authService.updateOnlineStatus(false);
     }
   }
@@ -543,6 +550,19 @@ class _LocketMainScreenState extends State<LocketMainScreen> with WidgetsBinding
           _currentZoom = 1.0;
         });
       }
+
+      // Khôi phục flash mode đã lưu cho camera sau
+      if (_cameras[index].lensDirection == CameraLensDirection.back) {
+        try {
+          if (_flashModeIndex == 1) {
+            await controller.setFlashMode(FlashMode.torch);
+          } else if (_flashModeIndex == 2) {
+            await controller.setFlashMode(FlashMode.auto);
+          } else {
+            await controller.setFlashMode(FlashMode.off);
+          }
+        } catch (_) {}
+      }
     } on CameraException catch (e) {
       debugPrint('Camera setup CameraException: code=${e.code}, desc=${e.description}');
       try {
@@ -577,6 +597,7 @@ class _LocketMainScreenState extends State<LocketMainScreen> with WidgetsBinding
   }
 
   void _toggleCamera() {
+    _cancelCountdown(showToast: false);
     final txaLang = TXALanguage.instance;
     if (_cameras.length > 1) {
       _selectedCameraIndex = (_selectedCameraIndex + 1) % _cameras.length;
@@ -586,11 +607,29 @@ class _LocketMainScreenState extends State<LocketMainScreen> with WidgetsBinding
     }
   }
 
-  void _setFlashMode(int index) async {
+  Future<void> _loadCameraPreferences() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final savedFlash = prefs.getInt('txa_camera_flash_mode') ?? 0;
+      final savedTimer = prefs.getInt('txa_camera_timer_seconds') ?? 0;
+      if (mounted) {
+        setState(() {
+          _flashModeIndex = savedFlash;
+          _timerSeconds = savedTimer;
+        });
+      }
+    } catch (e) {
+      debugPrint('Load camera preferences error: $e');
+    }
+  }
+
+  void _setFlashMode(int index, {bool showToast = false}) async {
     final txaLang = TXALanguage.instance;
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setInt('txa_camera_flash_mode', index);
+
     setState(() {
       _flashModeIndex = index;
-      _isFlashPillOpen = false;
     });
 
     if (_cameraController != null && _isCameraInitialized) {
@@ -610,7 +649,7 @@ class _LocketMainScreenState extends State<LocketMainScreen> with WidgetsBinding
       }
     }
 
-    if (mounted) {
+    if (showToast && mounted) {
       final labels = [
         txaLang.getText('flash_off_toast'),
         txaLang.getText('flash_on_toast'),
@@ -620,14 +659,94 @@ class _LocketMainScreenState extends State<LocketMainScreen> with WidgetsBinding
     }
   }
 
-  void _toggleFlashPill() {
+  void _setTimerSeconds(int seconds) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setInt('txa_camera_timer_seconds', seconds);
+
     setState(() {
-      _isFlashPillOpen = !_isFlashPillOpen;
+      _timerSeconds = seconds;
     });
   }
 
-  void _toggleFlash() {
-    _setFlashMode((_flashModeIndex + 1) % 3);
+  void _showCameraSettingsModal() {
+    final isRearCamera = _cameras.isNotEmpty &&
+        _selectedCameraIndex < _cameras.length &&
+        _cameras[_selectedCameraIndex].lensDirection == CameraLensDirection.back;
+
+    TXACameraSettingsModal.show(
+      context: context,
+      initialFlashMode: _flashModeIndex,
+      initialTimerSeconds: _timerSeconds,
+      isRearCamera: isRearCamera,
+      onFlashChanged: (mode) => _setFlashMode(mode),
+      onTimerChanged: (sec) => _setTimerSeconds(sec),
+    );
+  }
+
+  void _cancelCountdown({bool showToast = true}) {
+    if (_countdownTimer != null) {
+      _countdownTimer!.cancel();
+      _countdownTimer = null;
+    }
+    if (_isCountingDown) {
+      setState(() {
+        _isCountingDown = false;
+        _countdownRemaining = 0;
+      });
+      if (showToast && mounted) {
+        TXAToast.show(
+          context,
+          TXALanguage.instance.getText('timer_cancel_toast'),
+          icon: Icons.timer_off_outlined,
+        );
+      }
+    }
+  }
+
+  void _onShutterPressed() {
+    if (!_isCameraInitialized || _cameraErrorMsg != null) return;
+
+    if (_isCountingDown) {
+      _cancelCountdown();
+      return;
+    }
+
+    if (_timerSeconds > 0) {
+      _startCountdownCapture();
+    } else {
+      _capturePhoto();
+    }
+  }
+
+  void _startCountdownCapture() {
+    _cancelCountdown(showToast: false);
+    setState(() {
+      _isCountingDown = true;
+      _countdownRemaining = _timerSeconds;
+    });
+
+    HapticFeedback.mediumImpact();
+
+    _countdownTimer = Timer.periodic(const Duration(seconds: 1), (timer) {
+      if (!mounted) {
+        timer.cancel();
+        return;
+      }
+      if (_countdownRemaining > 1) {
+        HapticFeedback.selectionClick();
+        setState(() {
+          _countdownRemaining--;
+        });
+      } else {
+        timer.cancel();
+        _countdownTimer = null;
+        setState(() {
+          _isCountingDown = false;
+          _countdownRemaining = 0;
+        });
+        _capturePhoto();
+      }
+    });
   }
 
   void _capturePhoto() async {
@@ -657,6 +776,7 @@ class _LocketMainScreenState extends State<LocketMainScreen> with WidgetsBinding
   }
 
   Future<void> _pickImageFromGallery() async {
+    _cancelCountdown(showToast: false);
     try {
       final picker = ImagePicker();
       final XFile? image = await picker.pickImage(source: ImageSource.gallery);
@@ -673,6 +793,7 @@ class _LocketMainScreenState extends State<LocketMainScreen> with WidgetsBinding
   }
 
   Future<void> _pickImageFromGalleryForRollcall() async {
+    _cancelCountdown(showToast: false);
     try {
       final picker = ImagePicker();
       final XFile? image = await picker.pickImage(source: ImageSource.gallery);
@@ -703,7 +824,7 @@ class _LocketMainScreenState extends State<LocketMainScreen> with WidgetsBinding
     if (event is KeyDownEvent) {
       final key = event.logicalKey;
       if (key == LogicalKeyboardKey.space || key == LogicalKeyboardKey.enter) {
-        _capturePhoto();
+        _onShutterPressed();
         return KeyEventResult.handled;
       } else if (key == LogicalKeyboardKey.arrowUp ||
           key == LogicalKeyboardKey.arrowDown ||
@@ -712,7 +833,7 @@ class _LocketMainScreenState extends State<LocketMainScreen> with WidgetsBinding
         _goToFeed();
         return KeyEventResult.handled;
       } else if (key == LogicalKeyboardKey.keyF) {
-        _toggleFlash();
+        _showCameraSettingsModal();
         return KeyEventResult.handled;
       } else if (key == LogicalKeyboardKey.keyC) {
         _toggleCamera();
@@ -1268,163 +1389,165 @@ class _LocketMainScreenState extends State<LocketMainScreen> with WidgetsBinding
                                             ),
                                           ),
 
-                                        // Top Right: Flash Indicator & Horizontal Animated Flash Pill Bar (Chỉ hiện ở Camera sau)
-                                        if (isRearCamera)
-                                          Positioned(
-                                            top: 14,
-                                            right: 14,
-                                            child: Row(
-                                              mainAxisSize: MainAxisSize.min,
-                                              children: [
-                                                // Horizontal Flash Presets Pill Slider Bar
-                                                AnimatedCrossFade(
-                                                  duration: const Duration(milliseconds: 200),
-                                                  crossFadeState: _isFlashPillOpen
-                                                      ? CrossFadeState.showSecond
-                                                      : CrossFadeState.showFirst,
-                                                  firstChild: const SizedBox.shrink(),
-                                                  secondChild: Container(
-                                                    margin: const EdgeInsets.only(right: 6),
-                                                    padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 3),
-                                                    decoration: BoxDecoration(
-                                                      color: Colors.black.withAlpha(200),
-                                                      borderRadius: BorderRadius.circular(16),
-                                                      border: Border.all(
-                                                        color: Colors.white.withAlpha(50),
-                                                        width: 1,
-                                                      ),
-                                                    ),
-                                                    child: Row(
-                                                      mainAxisSize: MainAxisSize.min,
-                                                      children: [
-                                                        // 1. Off (Tắt)
-                                                        Tooltip(
-                                                          message: txaLang.getText('flash_off_tooltip'),
-                                                          child: GestureDetector(
-                                                            onTap: () => _setFlashMode(0),
-                                                            child: AnimatedContainer(
-                                                              duration: const Duration(milliseconds: 150),
-                                                              margin: const EdgeInsets.symmetric(horizontal: 3),
-                                                              padding: const EdgeInsets.all(6),
-                                                              decoration: BoxDecoration(
-                                                                color: _flashModeIndex == 0
-                                                                    ? TXATheme.primaryYellow
-                                                                    : Colors.white.withAlpha(20),
-                                                                shape: BoxShape.circle,
-                                                                border: Border.all(
-                                                                  color: _flashModeIndex == 0 ? TXATheme.primaryYellow : Colors.transparent,
-                                                                  width: 1,
-                                                                ),
-                                                              ),
-                                                              child: Icon(
-                                                                Icons.flash_off_rounded,
-                                                                color: _flashModeIndex == 0 ? Colors.black : Colors.white,
-                                                                size: 16,
-                                                              ),
-                                                            ),
-                                                          ),
-                                                        ),
-
-                                                        // 2. Torch (Luôn bật)
-                                                        Tooltip(
-                                                          message: txaLang.getText('flash_on_tooltip'),
-                                                          child: GestureDetector(
-                                                            onTap: () => _setFlashMode(1),
-                                                            child: AnimatedContainer(
-                                                              duration: const Duration(milliseconds: 150),
-                                                              margin: const EdgeInsets.symmetric(horizontal: 3),
-                                                              padding: const EdgeInsets.all(6),
-                                                              decoration: BoxDecoration(
-                                                                color: _flashModeIndex == 1
-                                                                    ? TXATheme.primaryYellow
-                                                                    : Colors.white.withAlpha(20),
-                                                                shape: BoxShape.circle,
-                                                                border: Border.all(
-                                                                  color: _flashModeIndex == 1 ? TXATheme.primaryYellow : Colors.transparent,
-                                                                  width: 1,
-                                                                ),
-                                                              ),
-                                                              child: Icon(
-                                                                Icons.flash_on_rounded,
-                                                                color: _flashModeIndex == 1 ? Colors.black : Colors.white,
-                                                                size: 16,
-                                                              ),
-                                                            ),
-                                                          ),
-                                                        ),
-
-                                                        // 3. Auto (Tự động khi chụp)
-                                                        Tooltip(
-                                                          message: txaLang.getText('flash_auto_tooltip'),
-                                                          child: GestureDetector(
-                                                            onTap: () => _setFlashMode(2),
-                                                            child: AnimatedContainer(
-                                                              duration: const Duration(milliseconds: 150),
-                                                              margin: const EdgeInsets.symmetric(horizontal: 3),
-                                                              padding: const EdgeInsets.all(6),
-                                                              decoration: BoxDecoration(
-                                                                color: _flashModeIndex == 2
-                                                                    ? TXATheme.primaryYellow
-                                                                    : Colors.white.withAlpha(20),
-                                                                shape: BoxShape.circle,
-                                                                border: Border.all(
-                                                                  color: _flashModeIndex == 2 ? TXATheme.primaryYellow : Colors.transparent,
-                                                                  width: 1,
-                                                                ),
-                                                              ),
-                                                              child: Icon(
-                                                                Icons.flash_auto_rounded,
-                                                                color: _flashModeIndex == 2 ? Colors.black : Colors.white,
-                                                                size: 16,
-                                                              ),
-                                                            ),
-                                                          ),
-                                                        ),
-                                                      ],
-                                                    ),
-                                                  ),
+                                        // Top Right: Camera Settings Button (Flash & Hẹn giờ chụp)
+                                        Positioned(
+                                          top: 14,
+                                          right: 14,
+                                          child: Tooltip(
+                                            message: txaLang.getText('camera_settings_title'),
+                                            child: GestureDetector(
+                                              onTap: _showCameraSettingsModal,
+                                              child: AnimatedContainer(
+                                                duration: const Duration(milliseconds: 200),
+                                                padding: EdgeInsets.symmetric(
+                                                  horizontal: (_timerSeconds > 0 || _flashModeIndex > 0) ? 10 : 8,
+                                                  vertical: 7,
                                                 ),
-
-                                                // Flash Main Pill Button
-                                                Tooltip(
-                                                  message: _flashModeIndex == 0
-                                                      ? txaLang.getText('flash_off_tooltip')
-                                                      : _flashModeIndex == 1
-                                                          ? txaLang.getText('flash_on_tooltip')
-                                                          : txaLang.getText('flash_auto_tooltip'),
-                                                  child: GestureDetector(
-                                                    onTap: _toggleFlashPill,
-                                                    child: AnimatedContainer(
-                                                      duration: const Duration(milliseconds: 200),
-                                                      width: 36,
-                                                      height: 36,
-                                                      decoration: BoxDecoration(
-                                                        color: _isFlashPillOpen
-                                                            ? TXATheme.primaryYellow
-                                                            : (_flashModeIndex > 0 ? TXATheme.primaryYellow.withAlpha(50) : Colors.black.withAlpha(160)),
-                                                        shape: BoxShape.circle,
-                                                        border: Border.all(
-                                                          color: _isFlashPillOpen || _flashModeIndex > 0
+                                                decoration: BoxDecoration(
+                                                  color: (_timerSeconds > 0 || _flashModeIndex > 0)
+                                                      ? TXATheme.primaryYellow.withAlpha(45)
+                                                      : Colors.black.withAlpha(160),
+                                                  borderRadius: BorderRadius.circular(20),
+                                                  border: Border.all(
+                                                    color: (_timerSeconds > 0 || _flashModeIndex > 0)
+                                                        ? TXATheme.primaryYellow
+                                                        : themeAccent.withAlpha(160),
+                                                    width: 1.5,
+                                                  ),
+                                                  boxShadow: [
+                                                    BoxShadow(
+                                                      color: ((_timerSeconds > 0 || _flashModeIndex > 0)
                                                               ? TXATheme.primaryYellow
-                                                              : themeAccent.withAlpha(160),
-                                                          width: 1.5,
+                                                              : themeAccent)
+                                                          .withAlpha(80),
+                                                      blurRadius: 8,
+                                                    ),
+                                                  ],
+                                                ),
+                                                child: Row(
+                                                  mainAxisSize: MainAxisSize.min,
+                                                  children: [
+                                                    Icon(
+                                                      _timerSeconds > 0
+                                                          ? Icons.timer_outlined
+                                                          : (_flashModeIndex > 0
+                                                              ? _flashIcons[_flashModeIndex]
+                                                              : Icons.tune_rounded),
+                                                      color: (_timerSeconds > 0 || _flashModeIndex > 0)
+                                                          ? TXATheme.primaryYellow
+                                                          : themeAccent,
+                                                      size: 18,
+                                                    ),
+                                                    if (_timerSeconds > 0) ...[
+                                                      const SizedBox(width: 4),
+                                                      Text(
+                                                        '${_timerSeconds}s',
+                                                        textScaler: TextScaler.noScaling,
+                                                        style: const TextStyle(
+                                                          color: TXATheme.primaryYellow,
+                                                          fontSize: 12,
+                                                          fontWeight: FontWeight.w900,
                                                         ),
-                                                        boxShadow: [
-                                                          BoxShadow(
-                                                            color: (_isFlashPillOpen || _flashModeIndex > 0 ? TXATheme.primaryYellow : themeAccent).withAlpha(80),
-                                                            blurRadius: 8,
-                                                          ),
-                                                        ],
                                                       ),
-                                                      child: Icon(
-                                                        _flashIcons[_flashModeIndex],
-                                                        color: _isFlashPillOpen ? Colors.black : (_flashModeIndex > 0 ? TXATheme.primaryYellow : themeAccent),
-                                                        size: 20,
+                                                    ] else if (_flashModeIndex > 0) ...[
+                                                      const SizedBox(width: 4),
+                                                      Text(
+                                                        _flashModeIndex == 1 ? 'ON' : 'AUTO',
+                                                        textScaler: TextScaler.noScaling,
+                                                        style: const TextStyle(
+                                                          color: TXATheme.primaryYellow,
+                                                          fontSize: 11,
+                                                          fontWeight: FontWeight.w900,
+                                                        ),
+                                                      ),
+                                                    ],
+                                                  ],
+                                                ),
+                                              ),
+                                            ),
+                                          ),
+                                        ),
+
+                                        // Viewfinder Animated Countdown Overlay
+                                        if (_isCountingDown)
+                                          Positioned.fill(
+                                            child: Container(
+                                              decoration: BoxDecoration(
+                                                color: Colors.black.withAlpha(140),
+                                                borderRadius: BorderRadius.circular(clipRadius),
+                                              ),
+                                              child: Center(
+                                                child: Column(
+                                                  mainAxisSize: MainAxisSize.min,
+                                                  children: [
+                                                    AnimatedScale(
+                                                      duration: const Duration(milliseconds: 200),
+                                                      scale: 1.0,
+                                                      child: Container(
+                                                        width: 96,
+                                                        height: 96,
+                                                        decoration: BoxDecoration(
+                                                          shape: BoxShape.circle,
+                                                          color: TXATheme.primaryYellow.withAlpha(35),
+                                                          border: Border.all(
+                                                            color: TXATheme.primaryYellow,
+                                                            width: 3.5,
+                                                          ),
+                                                          boxShadow: [
+                                                            BoxShadow(
+                                                              color: TXATheme.primaryYellow.withAlpha(150),
+                                                              blurRadius: 24,
+                                                              spreadRadius: 3,
+                                                            ),
+                                                          ],
+                                                        ),
+                                                        child: Center(
+                                                          child: Text(
+                                                            '$_countdownRemaining',
+                                                            textScaler: TextScaler.noScaling,
+                                                            style: const TextStyle(
+                                                              color: TXATheme.primaryYellow,
+                                                              fontSize: 50,
+                                                              fontWeight: FontWeight.w900,
+                                                              letterSpacing: -1,
+                                                            ),
+                                                          ),
+                                                        ),
                                                       ),
                                                     ),
-                                                  ),
+                                                    const SizedBox(height: 16),
+                                                    GestureDetector(
+                                                      onTap: () => _cancelCountdown(),
+                                                      child: Container(
+                                                        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 7),
+                                                        decoration: BoxDecoration(
+                                                          color: Colors.black.withAlpha(180),
+                                                          borderRadius: BorderRadius.circular(20),
+                                                          border: Border.all(
+                                                            color: Colors.white.withAlpha(80),
+                                                            width: 1,
+                                                          ),
+                                                        ),
+                                                        child: Row(
+                                                          mainAxisSize: MainAxisSize.min,
+                                                          children: [
+                                                            const Icon(Icons.close_rounded, color: Colors.white, size: 16),
+                                                            const SizedBox(width: 5),
+                                                            Text(
+                                                              txaLang.getText('timer_cancel'),
+                                                              style: const TextStyle(
+                                                                color: Colors.white,
+                                                                fontSize: 12.5,
+                                                                fontWeight: FontWeight.bold,
+                                                              ),
+                                                            ),
+                                                          ],
+                                                        ),
+                                                      ),
+                                                    ),
+                                                  ],
                                                 ),
-                                              ],
+                                              ),
                                             ),
                                           ),
                                     ],
@@ -1502,7 +1625,7 @@ class _LocketMainScreenState extends State<LocketMainScreen> with WidgetsBinding
                             waitDuration: const Duration(milliseconds: 250),
                             child: GestureDetector(
                               key: _shutterKey,
-                              onTap: canCapture ? _capturePhoto : null,
+                              onTap: canCapture ? _onShutterPressed : null,
                               child: Opacity(
                                 opacity: canCapture ? 1.0 : 0.4,
                                 child: Container(
