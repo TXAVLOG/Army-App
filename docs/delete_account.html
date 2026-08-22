@@ -436,10 +436,15 @@
             border-radius: 12px;
             margin-bottom: 12px;
             overflow: hidden;
+            transition: border-color 0.2s;
+        }
+
+        .faq-item.open {
+            border-color: rgba(255, 199, 44, 0.4);
         }
 
         .faq-header {
-            padding: 14px 18px;
+            padding: 16px 20px;
             background: rgba(255,255,255,0.02);
             cursor: pointer;
             font-weight: 700;
@@ -448,18 +453,35 @@
             justify-content: space-between;
             align-items: center;
             user-select: none;
+            transition: background 0.2s;
         }
 
         .faq-header:hover {
-            background: rgba(255, 199, 44, 0.05);
+            background: rgba(255, 199, 44, 0.06);
+        }
+
+        .faq-arrow {
+            transition: transform 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+            color: var(--primary-gold);
+            flex-shrink: 0;
+        }
+
+        .faq-item.open .faq-arrow {
+            transform: rotate(180deg);
         }
 
         .faq-body {
-            padding: 14px 18px;
+            display: none;
+            padding: 16px 20px;
             border-top: 1px solid var(--card-border);
             color: var(--text-secondary);
-            font-size: 0.9rem;
-            background: rgba(0,0,0,0.2);
+            font-size: 0.92rem;
+            background: rgba(0,0,0,0.25);
+            line-height: 1.65;
+        }
+
+        .faq-item.open .faq-body {
+            display: block;
         }
 
         .badge {
@@ -656,7 +678,7 @@
                 <div class="faq-item">
                     <div class="faq-header" onclick="toggleFaq(this)">
                         <span>Tôi có thể xóa riêng từng ảnh khoảnh khắc mà không cần xóa toàn bộ tài khoản không?</span>
-                        <span>▼</span>
+                        <svg class="faq-arrow" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"></polyline></svg>
                     </div>
                     <div class="faq-body">
                         Có. Bạn chỉ cần mở Bảng tin (Feed), nhấn giữ vào bài đăng bạn muốn xóa và chọn <strong>"Xóa bài viết này"</strong>. Ảnh/video đó sẽ bị xóa ngay lập tức khỏi bảng tin và widget của bạn bè.
@@ -666,7 +688,7 @@
                 <div class="faq-item">
                     <div class="faq-header" onclick="toggleFaq(this)">
                         <span>Sau khi gửi email yêu cầu xóa, mất bao lâu để hệ thống xử lý?</span>
-                        <span>▼</span>
+                        <svg class="faq-arrow" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"></polyline></svg>
                     </div>
                     <div class="faq-body">
                         Đội ngũ hỗ trợ của <strong>TXAVLOG</strong> sẽ xử lý và xác nhận yêu cầu xóa dữ liệu của bạn trong vòng <strong>24 đến 48 giờ làm việc</strong> kể từ khi tiếp nhận email.
@@ -676,7 +698,7 @@
                 <div class="faq-item">
                     <div class="faq-header" onclick="toggleFaq(this)">
                         <span>Tôi có thể tạo lại tài khoản với cùng Email sau khi xóa không?</span>
-                        <span>▼</span>
+                        <svg class="faq-arrow" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"></polyline></svg>
                     </div>
                     <div class="faq-body">
                         Có. Bạn hoàn toàn có thể đăng ký tài khoản mới bằng chính Email đó bất cứ lúc nào, nhưng mọi dữ liệu cũ sẽ bắt đầu lại từ đầu như một tài khoản mới tinh.
@@ -799,7 +821,7 @@
                 <div class="faq-item">
                     <div class="faq-header" onclick="toggleFaq(this)">
                         <span>Can I delete individual moments without deleting my entire account?</span>
-                        <span>▼</span>
+                        <svg class="faq-arrow" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"></polyline></svg>
                     </div>
                     <div class="faq-body">
                         Yes. Simply long-press any moment on your Feed inside Army and select <strong>"Delete this post"</strong>. That specific photo or video will be deleted immediately from servers and friends' widgets.
@@ -809,7 +831,7 @@
                 <div class="faq-item">
                     <div class="faq-header" onclick="toggleFaq(this)">
                         <span>How long does it take for a manual deletion request to complete?</span>
-                        <span>▼</span>
+                        <svg class="faq-arrow" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"></polyline></svg>
                     </div>
                     <div class="faq-body">
                         Our support team at <strong>TXAVLOG</strong> will process and confirm your request within <strong>24 to 48 business hours</strong> upon receiving your submission.
@@ -838,15 +860,8 @@
         }
 
         function toggleFaq(header) {
-            const body = header.nextElementSibling;
-            const arrow = header.querySelector('span:last-child');
-            if (body.style.display === 'none' || !body.style.display) {
-                body.style.display = 'block';
-                arrow.textContent = '▲';
-            } else {
-                body.style.display = 'none';
-                arrow.textContent = '▼';
-            }
+            const item = header.closest('.faq-item');
+            item.classList.toggle('open');
         }
 
         function handleFormSubmit(e, lang) {
