@@ -3,150 +3,517 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Chính Sách Quyền Riêng Tư & Điều Khoản Sử Dụng - Army</title>
+    <title>Privacy Policy & Terms of Service - Army (vn.army.txa)</title>
+    <meta name="description" content="Official Privacy Policy and Terms of Service for Army app developed by TXAVLOG (Package: vn.army.txa).">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
     <style>
         :root {
-            --bg-color: #0c0c10;
-            --card-bg: #16161f;
-            --card-border: #2a2a38;
-            --primary-yellow: #ffc72c;
+            --bg-color: #0c0c12;
+            --card-bg: #14141e;
+            --card-border: #262638;
+            --primary-gold: #ffc72c;
+            --primary-accent: #ff9100;
             --text-primary: #ffffff;
-            --text-secondary: #a1a1aa;
-            --accent-blue: #2f80ed;
+            --text-secondary: #a0a0b2;
+            --text-muted: #71717a;
+            --accent-blue: #38bdf8;
+            --accent-green: #22c55e;
+            --danger-red: #ef4444;
         }
 
-        body {
-            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
-            background-color: var(--bg-color);
-            color: var(--text-primary);
-            line-height: 1.6;
+        * {
+            box-sizing: border-box;
             margin: 0;
             padding: 0;
         }
 
+        body {
+            font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-primary);
+            line-height: 1.7;
+            padding: 0;
+            margin: 0;
+        }
+
         .container {
-            max-width: 800px;
-            margin: 40px auto;
-            padding: 20px;
+            max-width: 920px;
+            margin: 0 auto;
+            padding: 40px 20px 80px;
         }
 
-        .header {
-            text-align: center;
-            padding-bottom: 30px;
-            border-bottom: 1px solid var(--card-border);
+        /* Top Identity Bar */
+        .identity-bar {
+            background: linear-gradient(135deg, #1c1c28, #141420);
+            border: 1px solid rgba(255, 199, 44, 0.3);
+            border-radius: 20px;
+            padding: 24px 28px;
+            margin-bottom: 30px;
+            display: flex;
+            flex-wrap: wrap;
+            align-items: center;
+            justify-content: space-between;
+            gap: 16px;
+            box-shadow: 0 12px 36px rgba(0,0,0,0.5);
         }
 
-        .header h1 {
-            font-size: 2.2rem;
-            color: var(--primary-yellow);
-            margin-bottom: 10px;
+        .app-branding {
+            display: flex;
+            align-items: center;
+            gap: 16px;
         }
 
-        .header p {
+        .app-icon {
+            width: 64px;
+            height: 64px;
+            background: linear-gradient(135deg, var(--primary-gold), var(--primary-accent));
+            border-radius: 16px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 32px;
+            box-shadow: 0 6px 20px rgba(255, 199, 44, 0.35);
+        }
+
+        .app-info h1 {
+            font-size: 1.6rem;
+            color: var(--text-primary);
+            font-weight: 800;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .app-info p {
             color: var(--text-secondary);
-            font-size: 0.95rem;
+            font-size: 0.9rem;
         }
 
-        .card {
+        .identity-meta {
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+            font-size: 0.85rem;
+            color: var(--text-secondary);
+            text-align: right;
+        }
+
+        @media (max-width: 640px) {
+            .identity-meta {
+                text-align: left;
+            }
+        }
+
+        .identity-meta span strong {
+            color: var(--primary-gold);
+        }
+
+        /* Language Switcher */
+        .lang-switch {
+            display: flex;
+            background: rgba(255,255,255,0.06);
+            padding: 4px;
+            border-radius: 12px;
+            gap: 4px;
+            margin-bottom: 24px;
+            border: 1px solid var(--card-border);
+        }
+
+        .lang-btn {
+            flex: 1;
+            padding: 10px 16px;
+            border: none;
+            background: transparent;
+            color: var(--text-secondary);
+            font-weight: 700;
+            font-size: 0.9rem;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            font-family: inherit;
+        }
+
+        .lang-btn.active {
+            background: var(--primary-gold);
+            color: #000;
+            box-shadow: 0 4px 12px rgba(255, 199, 44, 0.3);
+        }
+
+        /* Card Content */
+        .content-card {
             background-color: var(--card-bg);
             border: 1px solid var(--card-border);
-            border-radius: 20px;
-            padding: 30px;
-            margin-top: 30px;
-            box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+            border-radius: 24px;
+            padding: 36px;
+            box-shadow: 0 16px 40px rgba(0,0,0,0.6);
+        }
+
+        @media (max-width: 640px) {
+            .content-card {
+                padding: 24px 18px;
+            }
         }
 
         h2 {
-            color: var(--primary-yellow);
-            border-bottom: 1px solid rgba(255, 199, 44, 0.2);
+            color: var(--primary-gold);
+            font-size: 1.35rem;
+            margin-top: 32px;
+            margin-bottom: 12px;
             padding-bottom: 8px;
-            margin-top: 24px;
+            border-bottom: 1px solid rgba(255, 199, 44, 0.15);
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        h2:first-of-type {
+            margin-top: 0;
         }
 
         h3 {
             color: var(--accent-blue);
-            margin-top: 18px;
-        }
-
-        ul {
-            padding-left: 20px;
-            color: var(--text-secondary);
-        }
-
-        li {
+            font-size: 1.05rem;
+            margin-top: 20px;
             margin-bottom: 8px;
         }
 
         p {
             color: var(--text-secondary);
+            margin-bottom: 14px;
+            font-size: 0.95rem;
         }
 
-        .footer {
-            text-align: center;
-            margin-top: 40px;
-            padding: 20px;
-            color: #555;
-            font-size: 0.85rem;
+        ul, ol {
+            padding-left: 24px;
+            color: var(--text-secondary);
+            margin-bottom: 16px;
+        }
+
+        li {
+            margin-bottom: 8px;
+            font-size: 0.95rem;
+        }
+
+        strong {
+            color: var(--text-primary);
+        }
+
+        code {
+            background: rgba(255, 255, 255, 0.1);
+            color: var(--primary-gold);
+            padding: 2px 8px;
+            border-radius: 6px;
+            font-size: 0.85em;
+            font-family: monospace;
+        }
+
+        /* Table */
+        .table-responsive {
+            overflow-x: auto;
+            margin: 20px 0;
+            border-radius: 12px;
+            border: 1px solid var(--card-border);
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 0.9rem;
+            text-align: left;
+        }
+
+        th {
+            background: rgba(255, 199, 44, 0.12);
+            color: var(--primary-gold);
+            padding: 12px 16px;
+            font-weight: 700;
+            border-bottom: 1px solid var(--card-border);
+        }
+
+        td {
+            padding: 12px 16px;
+            border-bottom: 1px solid rgba(255,255,255,0.05);
+            color: var(--text-secondary);
+        }
+
+        tr:last-child td {
+            border-bottom: none;
+        }
+
+        /* Callout Box */
+        .callout {
+            background: rgba(56, 189, 248, 0.08);
+            border-left: 4px solid var(--accent-blue);
+            border-radius: 0 12px 12px 0;
+            padding: 16px 20px;
+            margin: 20px 0;
+        }
+
+        .callout-danger {
+            background: rgba(239, 68, 68, 0.08);
+            border-left: 4px solid var(--danger-red);
+        }
+
+        .callout-gold {
+            background: rgba(255, 199, 44, 0.08);
+            border-left: 4px solid var(--primary-gold);
+        }
+
+        .callout p {
+            margin: 0;
+            color: var(--text-primary);
         }
 
         .badge {
             display: inline-block;
             background: rgba(255, 199, 44, 0.15);
-            color: var(--primary-yellow);
-            padding: 4px 12px;
-            border-radius: 12px;
-            font-size: 0.8rem;
-            font-weight: bold;
-            border: 1px solid var(--primary-yellow);
+            color: var(--primary-gold);
+            padding: 4px 10px;
+            border-radius: 8px;
+            font-size: 0.75rem;
+            font-weight: 800;
+            border: 1px solid var(--primary-gold);
+            text-transform: uppercase;
+        }
+
+        a {
+            color: var(--primary-gold);
+            text-decoration: none;
+            transition: color 0.2s;
+        }
+
+        a:hover {
+            color: var(--primary-accent);
+            text-decoration: underline;
+        }
+
+        .footer {
+            text-align: center;
+            margin-top: 40px;
+            color: var(--text-muted);
+            font-size: 0.85rem;
+        }
+
+        .lang-section {
+            display: none;
+        }
+
+        .lang-section.active {
+            display: block;
         }
     </style>
 </head>
 <body>
     <div class="container">
-        <div class="header">
-            <span class="badge">CHÍNH THỨC</span>
-            <h1>Ứng Dụng Army 🐜</h1>
-            <p>Chính Sách Quyền Riêng Tư & Điều Khoản Dịch Vụ (Privacy Policy & Terms of Service)</p>
-            <p><em>Cập nhật lần cuối: Ngày 31 tháng 07 năm 2026</em></p>
+        <!-- Top App & Developer Identification Header (Required by Google Play Policy) -->
+        <div class="identity-bar">
+            <div class="app-branding">
+                <div class="app-icon">🐜</div>
+                <div class="app-info">
+                    <h1>Army <span class="badge">Official</span></h1>
+                    <p>Chia Sẻ Khoảnh Khắc Locket & Màn Hình Chính</p>
+                </div>
+            </div>
+            <div class="identity-meta">
+                <span><strong>App Name:</strong> Army</span>
+                <span><strong>Package ID:</strong> <code>vn.army.txa</code></span>
+                <span><strong>Developer:</strong> <strong>TXAVLOG</strong></span>
+                <span><strong>Updated:</strong> August 22, 2026</span>
+            </div>
         </div>
 
-        <div class="card">
-            <h2>1. Giới Thiệu</h2>
-            <p>Chào mừng bạn đến với ứng dụng <strong>Army</strong> (ID: <code>vn.army.txa</code>). Chúng tôi cam kết bảo vệ quyền riêng tư và thông tin cá nhân của bạn. Chính sách này giải thích cách chúng tôi thu thập, sử dụng và bảo vệ dữ liệu khi bạn trải nghiệm ứng dụng.</p>
+        <!-- Language Selector -->
+        <div class="lang-switch">
+            <button class="lang-btn active" onclick="switchLang('vi')">🇻🇳 Tiếng Việt</button>
+            <button class="lang-btn" onclick="switchLang('en')">🇺🇸 English (Official)</button>
+        </div>
 
-            <h2>2. Quyền Thiết Bị & Dữ Liệu Thu Thập</h2>
-            <p>Để cung cấp trải nghiệm chia sẻ khoảnh khắc Locket, ứng dụng Army yêu cầu các quyền truy cập sau:</p>
+        <!-- VIETNAMESE SECTION -->
+        <div id="section-vi" class="lang-section active content-card">
+            <h2>1. Thông Tin Nhận Diện & Phạm Vi Áp Dụng</h2>
+            <p>Chính sách quyền riêng tư này áp dụng cho ứng dụng di động <strong>Army</strong> (Tên gói / Package Name: <code>vn.army.txa</code>) được phát triển và quản lý bởi nhà phát triển <strong>TXAVLOG</strong> (sau đây gọi là "chúng tôi").</p>
+            <p>Chúng tôi cam kết tôn trọng tuyệt đối quyền riêng tư và bảo vệ an toàn thông tin cá nhân của bạn khi sử dụng ứng dụng Army trên Google Play Store.</p>
+
+            <div class="callout callout-gold">
+                <p><strong>Xác Nhận Định Danh Trùng Khớp:</strong> Văn bản này xác định chính xác ứng dụng <strong>Army</strong>, mã ứng dụng <code>vn.army.txa</code> và nhà phát triển <strong>TXAVLOG</strong> liên kết với trang thông tin trên Cửa hàng Google Play.</p>
+            </div>
+
+            <h2>2. Quyền Truy Cập Thiết Bị & Mục Đích Sử Dụng</h2>
+            <p>Để phục vụ tính năng chụp và gửi ảnh khoảnh khắc Locket trực tiếp tới Widget màn hình chính của bạn bè, ứng dụng Army yêu cầu các quyền truy cập sau:</p>
+            
+            <div class="table-responsive">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Quyền Thiết Bị</th>
+                            <th>Mục Đích Sử Dụng Thực Tế</th>
+                            <th>Tính Chất Bắt Buộc</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td><strong>Máy ảnh (Camera)</strong></td>
+                            <td>Chụp ảnh và quay video ngắn khoảnh khắc thực tế để gửi cho bạn bè qua widget.</td>
+                            <td>Chỉ khi sử dụng tính năng chụp</td>
+                        </tr>
+                        <tr>
+                            <td><strong>Microphone (Ghi âm)</strong></td>
+                            <td>Thu âm thanh chân thực khi bạn chọn quay video khoảnh khắc 5 giây.</td>
+                            <td>Chỉ khi quay video có âm thanh</td>
+                        </tr>
+                        <tr>
+                            <td><strong>Vị trí (Location)</strong></td>
+                            <td>Định vị địa danh khi bạn chủ động chọn gắn Tem Thư Vị Trí (Postmark Location) lên ảnh.</td>
+                            <td>Tùy chọn (Không bắt buộc)</td>
+                        </tr>
+                        <tr>
+                            <td><strong>Thư viện ảnh & Bộ nhớ (Photos/Media)</strong></td>
+                            <td>Cho phép bạn chọn ảnh đại diện hoặc lưu ảnh khoảnh khắc từ bạn bè về thư viện máy.</td>
+                            <td>Chỉ khi tải/lưu ảnh</td>
+                        </tr>
+                        <tr>
+                            <td><strong>Thông báo đẩy (Notifications)</strong></td>
+                            <td>Gửi thông báo tức thì khi bạn bè gửi ảnh mới, thả cảm xúc sticker hoặc gửi tin nhắn.</td>
+                            <td>Tùy chọn</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <h2>3. Thu Thập Dữ Liệu & Dịch Vụ Bên Thứ Ba</h2>
+            <p>Chúng tôi tích hợp các nhà cung cấp dịch vụ đáng tin cậy tuân thủ tiêu chuẩn bảo mật quốc tế:</p>
             <ul>
-                <li><strong>Máy ảnh (Camera):</strong> Cho phép chụp ảnh và quay video khoảnh khắc 5 giây để gửi trực tiếp tới màn hình Home Widget của bạn bè.</li>
-                <li><strong>Microphone (Ghi âm):</strong> Cho phép thu âm thanh khi quay video khoảnh khắc 5s.</li>
-                <li><strong>Vị trí địa lý (Location):</strong> Được sử dụng để định vị và đóng dấu vị trí địa lý lên ảnh Tem Thư Bưu Chính (Postmark Vintage) khi bạn chủ động kích hoạt.</li>
-                <li><strong>Thư viện ảnh & Bộ nhớ (Storage/Media):</strong> Cho phép bạn lựa chọn ảnh đại diện, tùy chỉnh nền và lưu trữ các khoảnh khắc về thiết bị.</li>
-                <li><strong>Thông báo đẩy (FCM Notifications):</strong> Dùng để gửi thông báo tức thì khi có bạn bè gửi ảnh khoảnh khắc, thả cảm xúc hoặc nhắn tin.</li>
+                <li><strong>Google Play Services & Firebase:</strong> Quản lý đăng nhập an toàn (Google Sign-In, Firebase Auth), lưu trữ dữ liệu thời gian thực (Cloud Firestore), lưu trữ tệp đa phương tiện (Firebase Cloud Storage), và gửi thông báo đẩy (Firebase Cloud Messaging).</li>
+                <li><strong>Google Mobile Ads (AdMob SDK):</strong> Hiển thị quảng cáo phần thưởng khi người dùng chủ động xem để mở khóa biểu tượng Icon ứng dụng 3D trong 30 ngày.</li>
+                <li><strong>Supabase:</strong> Lưu trữ dữ liệu cấu hình bổ sung và hệ thống thành tựu tiến cấp.</li>
             </ul>
 
-            <h2>3. Bảo Mật & Lưu Trữ Dữ Liệu</h2>
-            <p>Mọi dữ liệu tài khoản, chuỗi Streak và thành tựu của bạn được lưu trữ an toàn trên hạ tầng đám mây <strong>Google Firebase Cloud Firestore</strong> & <strong>Firebase Storage</strong> với các giao thức mã hóa dữ liệu tiên tiến.</p>
+            <h2>4. Bảo Mật & Lưu Trữ Dữ Liệu</h2>
+            <p>Dữ liệu người dùng được truyền tải qua các kênh được mã hóa an toàn theo giao thức <strong>HTTPS / SSL/TLS</strong> tiêu chuẩn. Chúng tôi không bao giờ bán, cho thuê hoặc chia sẻ dữ liệu cá nhân của bạn cho bất kỳ bên thứ ba nào vì mục đích thương mại trái phép.</p>
 
-            <h2>4. Quyền Yêu Cầu Xóa Dữ Liệu (Data Deletion)</h2>
-            <p>Bạn có toàn quyền yêu cầu xóa tài khoản và toàn bộ dữ liệu cá nhân của mình bất kỳ lúc nào trực tiếp trong mục <em>Cài Đặt Trang Cá Nhân</em> hoặc gửi yêu cầu về email hỗ trợ của chúng tôi.</p>
-
-            <h2>5. Điều Khoản Sử Dụng (Terms of Service)</h2>
+            <h2>5. Chính Sách Xóa Tài Khoản & Dữ Liệu (Data Deletion)</h2>
+            <p>Tuân thủ nghiêm ngặt Chính sách Dữ liệu Người dùng của Google Play, bạn có toàn quyền yêu cầu xóa vĩnh viễn tài khoản và toàn bộ dữ liệu cá nhân của mình bất cứ lúc nào:</p>
             <ul>
-                <li>Người dùng không đăng tải nội dung vi phạm pháp luật, đồi trụy hoặc thù hận.</li>
-                <li>Hệ thống có quyền tạm khóa hoặc vô hiệu hóa các tài khoản vi phạm tiêu chuẩn cộng đồng.</li>
+                <li><strong>Xóa trực tiếp trong ứng dụng:</strong> Vào <em>Trang Cá Nhân &rarr; Cài Đặt &rarr; Quản Lý Tài Khoản &rarr; Xóa Tài Khoản Vĩnh Viễn</em>. Toàn bộ hình ảnh, bài đăng, chuỗi streak và thông tin cá nhân sẽ được xóa sạch khỏi máy chủ.</li>
+                <li><strong>Yêu cầu xóa qua Web:</strong> Bạn có thể truy cập trang hỗ trợ xóa tài khoản tại <a href="delete_account.html">Trang Hướng Dẫn Xóa Tài Khoản Army</a> hoặc gửi email đến <code>txavlog@gmail.com</code> để được xử lý trong vòng 48 giờ.</li>
             </ul>
 
-            <h2>6. Liên Hệ Hỗ Trợ</h2>
-            <p>Nếu bạn có bất kỳ câu hỏi nào về chính sách quyền riêng tư, vui lòng liên hệ với chúng tôi qua:</p>
+            <h2>6. Quyền Riêng Tư Của Trẻ Em (COPPA/GDPR)</h2>
+            <p>Ứng dụng Army không nhắm mục tiêu và không cố ý thu thập thông tin nhận dạng cá nhân từ trẻ em dưới 13 tuổi. Nếu phát hiện bất kỳ dữ liệu nào của trẻ em dưới 13 tuổi được gửi lên hệ thống mà không có sự đồng ý của phụ huynh, chúng tôi sẽ tiến hành xóa bỏ ngay lập tức.</p>
+
+            <h2>7. Thông Tin Liên Hệ Của Nhà Phát Triển</h2>
+            <p>Nếu bạn có bất kỳ thắc mắc, khiếu nại hoặc đóng góp ý kiến nào về Chính Sách Quyền Riêng Tư này, vui lòng liên hệ:</p>
             <ul>
-                <li><strong>Email hỗ trợ:</strong> support@army.web.app</li>
-                <li><strong>Website:</strong> <a href="https://army.web.app" style="color: var(--primary-yellow);">https://army.web.app</a></li>
+                <li><strong>Nhà phát triển:</strong> TXAVLOG</li>
+                <li><strong>Tên Ứng dụng:</strong> Army (vn.army.txa)</li>
+                <li><strong>Email hỗ trợ chính thức:</strong> <a href="mailto:txavlog@gmail.com">txavlog@gmail.com</a></li>
+                <li><strong>Trang lưu trữ chính thức:</strong> <a href="https://github.com/TXAVLOG/Army-App">https://github.com/TXAVLOG/Army-App</a></li>
+            </ul>
+        </div>
+
+        <!-- ENGLISH SECTION (OFFICIAL FOR GOOGLE PLAY REVIEW) -->
+        <div id="section-en" class="lang-section content-card">
+            <h2>1. Identification & Scope</h2>
+            <p>This Privacy Policy applies to the mobile application <strong>Army</strong> (Package Name: <code>vn.army.txa</code>), developed and published by <strong>TXAVLOG</strong> (referred to as "we", "us", or "our").</p>
+            <p>We are committed to protecting your privacy and ensuring your personal information is handled safely and responsibly in compliance with the Google Play Developer Policy.</p>
+
+            <div class="callout callout-gold">
+                <p><strong>App & Developer Entity Confirmation:</strong> This policy clearly identifies the application <strong>Army</strong>, Application ID <code>vn.army.txa</code>, and developer entity <strong>TXAVLOG</strong> matching the official Google Play Store listing.</p>
+            </div>
+
+            <h2>2. Device Permissions & Purpose of Use</h2>
+            <p>To deliver real-time Locket widget photo-sharing experiences, Army requests the following runtime device permissions:</p>
+
+            <div class="table-responsive">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Permission</th>
+                            <th>Explicit Purpose of Use</th>
+                            <th>Requirement Type</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td><strong>Camera (<code>android.permission.CAMERA</code>)</strong></td>
+                            <td>Used solely to capture live photos and 5-second video moments to share directly to friends' Home Widgets.</td>
+                            <td>Required for capture features</td>
+                        </tr>
+                        <tr>
+                            <td><strong>Microphone (<code>android.permission.RECORD_AUDIO</code>)</strong></td>
+                            <td>Used to record audio when the user captures a 5-second video moment.</td>
+                            <td>Required for video audio</td>
+                        </tr>
+                        <tr>
+                            <td><strong>Location (<code>ACCESS_FINE_LOCATION</code>, <code>ACCESS_COARSE_LOCATION</code>)</strong></td>
+                            <td>Used only when the user voluntarily enables the Vintage Postal Stamp location tag on moments.</td>
+                            <td>Optional</td>
+                        </tr>
+                        <tr>
+                            <td><strong>Storage / Photos (<code>READ_MEDIA_IMAGES</code>, <code>READ_EXTERNAL_STORAGE</code>)</strong></td>
+                            <td>Used to allow users to select avatar photos or save received friend moments to the device gallery.</td>
+                            <td>Required for gallery actions</td>
+                        </tr>
+                        <tr>
+                            <td><strong>Notifications (<code>android.permission.POST_NOTIFICATIONS</code>)</strong></td>
+                            <td>Used to deliver real-time push notifications when friends send moments, reactions, or chat messages.</td>
+                            <td>Optional</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <h2>3. Third-Party Services & SDK Integrations</h2>
+            <p>We partner with industry-standard third-party service providers that adhere to rigorous privacy and security regulations:</p>
+            <ul>
+                <li><strong>Google Play Services & Firebase:</strong> Secure authentication (Google Sign-In, Firebase Auth), cloud real-time database (Cloud Firestore), media storage (Firebase Storage), and push notifications (Firebase Cloud Messaging).</li>
+                <li><strong>Google Mobile Ads (AdMob SDK):</strong> Provides rewarded video ads which users can optionally watch to unlock premium 3D App Icons for 30 days.</li>
+                <li><strong>Supabase:</strong> Provides auxiliary backend configurations and achievement progress persistence.</li>
+            </ul>
+
+            <h2>4. Data Security & Encryption</h2>
+            <p>All data transmitted between the Army app and cloud servers is encrypted in transit using industry-standard <strong>HTTPS / TLS/SSL</strong> encryption. We do not sell, rent, or trade your personal data to any third party for commercial purposes.</p>
+
+            <h2>5. Account & Data Deletion Policy (Google Play Compliant)</h2>
+            <p>In accordance with Google Play's User Data policy, users have the full right to delete their account and associated data at any time:</p>
+            <ul>
+                <li><strong>In-App Self-Service Deletion:</strong> Navigate to <em>Profile &rarr; Settings &rarr; Account Management &rarr; Delete Account Permanently</em>. All personal information, uploaded photos, chat history, and streak metrics will be irreversibly erased from our production servers.</li>
+                <li><strong>Web-Based Deletion Request:</strong> Visit our dedicated <a href="delete_account.html">Account & Data Deletion Portal</a> or email us at <code>txavlog@gmail.com</code> to have your account and data deleted within 48-72 hours.</li>
+            </ul>
+
+            <h2>6. Children's Privacy (COPPA / GDPR)</h2>
+            <p>Army is not directed toward children under the age of 13. We do not knowingly collect personal identifiable information from children under 13. If we discover that a child under 13 has provided us with personal information, we promptly delete it from our servers.</p>
+
+            <h2>7. Developer Contact Information</h2>
+            <p>If you have any questions, inquiries, or feedback regarding this Privacy Policy, please contact our support team:</p>
+            <ul>
+                <li><strong>Developer Name:</strong> TXAVLOG</li>
+                <li><strong>Application:</strong> Army (vn.army.txa)</li>
+                <li><strong>Official Support Email:</strong> <a href="mailto:txavlog@gmail.com">txavlog@gmail.com</a></li>
+                <li><strong>Repository & Hosting:</strong> <a href="https://github.com/TXAVLOG/Army-App">https://github.com/TXAVLOG/Army-App</a></li>
             </ul>
         </div>
 
         <div class="footer">
-            &copy; 2026 Army App. All rights reserved. Managed via GitHub Pages.
+            &copy; 2026 TXAVLOG • Army App (<code>vn.army.txa</code>). All rights reserved. Hosted on GitHub Pages.
         </div>
     </div>
+
+    <script>
+        function switchLang(lang) {
+            document.querySelectorAll('.lang-btn').forEach(b => b.classList.remove('active'));
+            document.querySelectorAll('.lang-section').forEach(s => s.classList.remove('active'));
+
+            if (lang === 'vi') {
+                document.querySelectorAll('.lang-btn')[0].classList.add('active');
+                document.getElementById('section-vi').classList.add('active');
+            } else {
+                document.querySelectorAll('.lang-btn')[1].classList.add('active');
+                document.getElementById('section-en').classList.add('active');
+            }
+        }
+    </script>
 </body>
 </html>
