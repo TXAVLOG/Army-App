@@ -133,12 +133,24 @@
             cursor: pointer;
             transition: all 0.2s ease;
             font-family: inherit;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
         }
 
         .lang-btn.active {
             background: var(--primary-gold);
             color: #000;
             box-shadow: 0 4px 12px rgba(255, 199, 44, 0.3);
+        }
+
+        .flag-icon {
+            width: 20px;
+            height: 14px;
+            border-radius: 3px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.4);
+            flex-shrink: 0;
         }
 
         /* Card Content */
@@ -326,8 +338,23 @@
 
         <!-- Language Selector -->
         <div class="lang-switch">
-            <button class="lang-btn active" onclick="switchLang('vi')">🇻🇳 Tiếng Việt</button>
-            <button class="lang-btn" onclick="switchLang('en')">🇺🇸 English (Official)</button>
+            <button class="lang-btn active" onclick="switchLang('vi')">
+                <svg class="flag-icon" viewBox="0 0 30 20">
+                    <rect width="30" height="20" fill="#DA251D"/>
+                    <polygon points="15,4 16.5,8.8 21.6,8.8 17.5,11.8 19,16.6 15,13.6 11,16.6 12.5,11.8 8.4,8.8 13.5,8.8" fill="#FFFF00"/>
+                </svg>
+                <span>Tiếng Việt</span>
+            </button>
+            <button class="lang-btn" onclick="switchLang('en')">
+                <svg class="flag-icon" viewBox="0 0 30 20">
+                    <rect width="30" height="20" fill="#012169"/>
+                    <path d="M0,0 L30,20 M30,0 L0,20" stroke="#fff" stroke-width="4"/>
+                    <path d="M0,0 L30,20 M30,0 L0,20" stroke="#C8102E" stroke-width="2"/>
+                    <path d="M15,0 V20 M0,10 H30" stroke="#fff" stroke-width="6"/>
+                    <path d="M15,0 V20 M0,10 H30" stroke="#C8102E" stroke-width="3.5"/>
+                </svg>
+                <span>English (Official)</span>
+            </button>
         </div>
 
         <!-- VIETNAMESE SECTION -->
