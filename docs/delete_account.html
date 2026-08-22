@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Account & Data Deletion Request - Army (vn.army.txa)</title>
-    <meta name="description" content="Official Account and Data Deletion Request page for Army app developed by TXAVLOG (Package: vn.army.txa).">
+    <meta name="description" content="Official Account and Data Deletion Portal for Army app (vn.army.txa) developed by TXAVLOG.">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
@@ -19,6 +19,7 @@
             --text-secondary: #a0a0b2;
             --text-muted: #71717a;
             --accent-blue: #38bdf8;
+            --accent-green: #22c55e;
             --danger-red: #ef4444;
         }
 
@@ -33,22 +34,64 @@
             background-color: var(--bg-color);
             color: var(--text-primary);
             line-height: 1.7;
-            padding: 0;
             margin: 0;
+            padding: 0;
         }
 
         .container {
             max-width: 920px;
             margin: 0 auto;
-            padding: 40px 20px 80px;
+            padding: 30px 20px 80px;
         }
 
+        /* Top Nav Bar */
+        .top-nav {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 14px 20px;
+            background: rgba(20, 20, 30, 0.85);
+            backdrop-filter: blur(12px);
+            border: 1px solid var(--card-border);
+            border-radius: 16px;
+            margin-bottom: 24px;
+        }
+
+        .nav-brand {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            font-weight: 800;
+            font-size: 1.1rem;
+            color: var(--primary-gold);
+            text-decoration: none;
+        }
+
+        .nav-links {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+        }
+
+        .nav-links a {
+            color: var(--text-secondary);
+            text-decoration: none;
+            font-size: 0.88rem;
+            font-weight: 600;
+            transition: color 0.2s;
+        }
+
+        .nav-links a:hover, .nav-links a.active {
+            color: var(--primary-gold);
+        }
+
+        /* Top Identity Bar */
         .identity-bar {
             background: linear-gradient(135deg, #1c1c28, #141420);
-            border: 1px solid rgba(255, 199, 44, 0.3);
+            border: 1px solid rgba(239, 68, 68, 0.3);
             border-radius: 20px;
             padding: 24px 28px;
-            margin-bottom: 30px;
+            margin-bottom: 24px;
             display: flex;
             flex-wrap: wrap;
             align-items: center;
@@ -66,19 +109,22 @@
         .app-icon {
             width: 64px;
             height: 64px;
-            background: linear-gradient(135deg, var(--primary-gold), var(--primary-accent));
+            background: linear-gradient(135deg, #ef4444, #b91c1c);
             border-radius: 16px;
             display: flex;
             align-items: center;
             justify-content: center;
             font-size: 32px;
-            box-shadow: 0 6px 20px rgba(255, 199, 44, 0.35);
+            box-shadow: 0 6px 20px rgba(239, 68, 68, 0.35);
         }
 
         .app-info h1 {
             font-size: 1.5rem;
             color: var(--text-primary);
             font-weight: 800;
+            display: flex;
+            align-items: center;
+            gap: 8px;
         }
 
         .app-info p {
@@ -101,12 +147,61 @@
             }
         }
 
+        .identity-meta span strong {
+            color: var(--primary-gold);
+        }
+
+        /* Language Switcher */
+        .lang-switch {
+            display: flex;
+            background: rgba(255,255,255,0.06);
+            padding: 4px;
+            border-radius: 12px;
+            gap: 4px;
+            margin-bottom: 24px;
+            border: 1px solid var(--card-border);
+        }
+
+        .lang-btn {
+            flex: 1;
+            padding: 10px 16px;
+            border: none;
+            background: transparent;
+            color: var(--text-secondary);
+            font-weight: 700;
+            font-size: 0.9rem;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            font-family: inherit;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+        }
+
+        .lang-btn.active {
+            background: var(--primary-gold);
+            color: #000;
+            box-shadow: 0 4px 12px rgba(255, 199, 44, 0.3);
+        }
+
+        .flag-icon {
+            width: 20px;
+            height: 14px;
+            border-radius: 3px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.4);
+            flex-shrink: 0;
+        }
+
+        /* Content Card */
         .content-card {
             background-color: var(--card-bg);
             border: 1px solid var(--card-border);
             border-radius: 24px;
             padding: 36px;
             box-shadow: 0 16px 40px rgba(0,0,0,0.6);
+            margin-bottom: 30px;
         }
 
         @media (max-width: 640px) {
@@ -119,13 +214,23 @@
             color: var(--primary-gold);
             font-size: 1.35rem;
             margin-top: 32px;
-            margin-bottom: 12px;
+            margin-bottom: 14px;
             padding-bottom: 8px;
             border-bottom: 1px solid rgba(255, 199, 44, 0.15);
+            display: flex;
+            align-items: center;
+            gap: 8px;
         }
 
         h2:first-of-type {
             margin-top: 0;
+        }
+
+        h3 {
+            color: var(--accent-blue);
+            font-size: 1.05rem;
+            margin-top: 20px;
+            margin-bottom: 8px;
         }
 
         p {
@@ -158,6 +263,7 @@
             font-family: monospace;
         }
 
+        /* Alert / Callout Box */
         .alert-box {
             background: rgba(239, 68, 68, 0.08);
             border-left: 4px solid var(--danger-red);
@@ -171,19 +277,201 @@
             color: var(--danger-red);
         }
 
-        .nav-links {
-            text-align: center;
-            margin-top: 30px;
+        .callout-green {
+            background: rgba(34, 197, 94, 0.08);
+            border-left: 4px solid var(--accent-green);
+            border-radius: 0 12px 12px 0;
+            padding: 16px 20px;
+            margin: 20px 0;
+            color: #86efac;
         }
 
-        .nav-links a {
+        .callout-green strong {
+            color: var(--accent-green);
+        }
+
+        /* Step Grid Cards */
+        .step-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+            gap: 16px;
+            margin: 20px 0;
+        }
+
+        .step-card {
+            background: rgba(255, 255, 255, 0.03);
+            border: 1px solid var(--card-border);
+            border-radius: 16px;
+            padding: 20px;
+            transition: transform 0.2s, border-color 0.2s;
+        }
+
+        .step-card:hover {
+            transform: translateY(-2px);
+            border-color: rgba(255, 199, 44, 0.4);
+        }
+
+        .step-number {
+            width: 32px;
+            height: 32px;
+            background: var(--primary-gold);
+            color: #000;
+            font-weight: 800;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-bottom: 12px;
+            font-size: 0.9rem;
+        }
+
+        .step-card h4 {
+            color: var(--text-primary);
+            margin-bottom: 6px;
+            font-size: 1rem;
+        }
+
+        .step-card p {
+            color: var(--text-secondary);
+            font-size: 0.88rem;
+            margin: 0;
+        }
+
+        /* Table */
+        .table-responsive {
+            overflow-x: auto;
+            margin: 20px 0;
+            border-radius: 12px;
+            border: 1px solid var(--card-border);
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 0.9rem;
+            text-align: left;
+        }
+
+        th {
+            background: rgba(255, 199, 44, 0.12);
             color: var(--primary-gold);
-            text-decoration: none;
+            padding: 12px 16px;
             font-weight: 700;
+            border-bottom: 1px solid var(--card-border);
         }
 
-        .nav-links a:hover {
-            text-decoration: underline;
+        td {
+            padding: 12px 16px;
+            border-bottom: 1px solid rgba(255,255,255,0.05);
+            color: var(--text-secondary);
+        }
+
+        tr:last-child td {
+            border-bottom: none;
+        }
+
+        /* Interactive Deletion Form */
+        .form-card {
+            background: linear-gradient(135deg, #181826, #141420);
+            border: 1px solid rgba(255, 199, 44, 0.25);
+            border-radius: 20px;
+            padding: 28px;
+            margin-top: 24px;
+        }
+
+        .form-group {
+            margin-bottom: 18px;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 6px;
+            font-weight: 600;
+            font-size: 0.9rem;
+            color: var(--text-primary);
+        }
+
+        .form-control {
+            width: 100%;
+            padding: 12px 16px;
+            background: rgba(0,0,0,0.35);
+            border: 1px solid var(--card-border);
+            border-radius: 10px;
+            color: var(--text-primary);
+            font-family: inherit;
+            font-size: 0.95rem;
+            transition: border-color 0.2s;
+        }
+
+        .form-control:focus {
+            outline: none;
+            border-color: var(--primary-gold);
+        }
+
+        .btn-submit {
+            background: linear-gradient(135deg, #ef4444, #dc2626);
+            color: #ffffff;
+            border: none;
+            padding: 14px 28px;
+            border-radius: 12px;
+            font-weight: 800;
+            font-size: 0.95rem;
+            cursor: pointer;
+            font-family: inherit;
+            transition: all 0.2s ease;
+            box-shadow: 0 4px 14px rgba(239, 68, 68, 0.4);
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .btn-submit:hover {
+            background: linear-gradient(135deg, #dc2626, #b91c1c);
+            transform: translateY(-1px);
+        }
+
+        /* FAQ Accordion */
+        .faq-item {
+            border: 1px solid var(--card-border);
+            border-radius: 12px;
+            margin-bottom: 12px;
+            overflow: hidden;
+        }
+
+        .faq-header {
+            padding: 14px 18px;
+            background: rgba(255,255,255,0.02);
+            cursor: pointer;
+            font-weight: 700;
+            color: var(--text-primary);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            user-select: none;
+        }
+
+        .faq-header:hover {
+            background: rgba(255, 199, 44, 0.05);
+        }
+
+        .faq-body {
+            padding: 14px 18px;
+            border-top: 1px solid var(--card-border);
+            color: var(--text-secondary);
+            font-size: 0.9rem;
+            background: rgba(0,0,0,0.2);
+        }
+
+        .badge {
+            display: inline-block;
+            background: rgba(239, 68, 68, 0.15);
+            color: #fca5a5;
+            padding: 4px 10px;
+            border-radius: 8px;
+            font-size: 0.75rem;
+            font-weight: 800;
+            border: 1px solid rgba(239, 68, 68, 0.4);
+            text-transform: uppercase;
         }
 
         .footer {
@@ -193,85 +481,389 @@
             font-size: 0.85rem;
         }
 
-        .badge {
-            display: inline-block;
-            background: rgba(255, 199, 44, 0.15);
-            color: var(--primary-gold);
-            padding: 4px 10px;
-            border-radius: 8px;
-            font-size: 0.75rem;
-            font-weight: 800;
-            border: 1px solid var(--primary-gold);
-            text-transform: uppercase;
+        .lang-section {
+            display: none;
+        }
+
+        .lang-section.active {
+            display: block;
         }
     </style>
 </head>
 <body>
     <div class="container">
+        <!-- Top Navigation -->
+        <nav class="top-nav">
+            <a href="index.html" class="nav-brand">
+                <span>🐜 Army</span>
+            </a>
+            <div class="nav-links">
+                <a href="index.html">Chính Sách Quyền Riêng Tư (Privacy)</a>
+                <a href="delete_account.html" class="active">Xóa Dữ Liệu (Data Deletion)</a>
+                <a href="mailto:txavlog@gmail.com">Hỗ Trợ (Support)</a>
+            </div>
+        </nav>
+
+        <!-- Top Identity Bar -->
         <div class="identity-bar">
             <div class="app-branding">
-                <div class="app-icon">🐜</div>
+                <div class="app-icon">🗑️</div>
                 <div class="app-info">
-                    <h1>Yêu Cầu Xóa Tài Khoản & Dữ Liệu</h1>
-                    <p>Google Play Data Deletion Compliance • Army App</p>
+                    <h1>Cổng Yêu Cầu Xóa Dữ Liệu <span class="badge">Compliance</span></h1>
+                    <p>Google Play Data Deletion & User Control Portal • Army App</p>
                 </div>
             </div>
             <div class="identity-meta">
                 <span><strong>App Name:</strong> Army</span>
                 <span><strong>Package ID:</strong> <code>vn.army.txa</code></span>
                 <span><strong>Developer:</strong> <strong>TXAVLOG</strong></span>
+                <span><strong>Updated:</strong> August 22, 2026</span>
             </div>
         </div>
 
-        <div class="content-card">
-            <h2>📌 Quyền Kiểm Soát Dữ Liệu Cá Nhân</h2>
-            <p>Chúng tôi tại <strong>TXAVLOG</strong> tôn trọng quyền kiểm soát dữ liệu cá nhân của người dùng trên ứng dụng <strong>Army</strong> (ID gói: <code>vn.army.txa</code>). Trang này cung cấp thông tin chi tiết về các phương thức xóa tài khoản và dữ liệu người dùng tuân thủ theo đúng chính sách của Google Play Store.</p>
-
-            <div class="alert-box">
-                ⚠️ <strong>Cảnh Báo Quan Trọng:</strong> Khi tài khoản bị xóa, toàn bộ dữ liệu cá nhân gồm hình ảnh, video khoảnh khắc, chuỗi ngày Streak, danh hiệu thành tựu và danh sách bạn bè sẽ bị xóa vĩnh viễn khỏi hệ thống đám mây và không thể khôi phục.
-            </div>
-
-            <h2>📱 Cách 1: Xóa Trực Tiếp Trong Ứng Dụng (Self-Service)</h2>
-            <p>Bạn có thể tự xóa tài khoản của mình bất cứ lúc nào ngay trong ứng dụng Army trên điện thoại:</p>
-            <ol>
-                <li>Mở ứng dụng <strong>Army</strong> và đăng nhập vào tài khoản của bạn.</li>
-                <li>Nhấn vào biểu tượng ảnh đại diện để mở trang <strong>Cá Nhân (Profile)</strong>.</li>
-                <li>Chọn mục <strong>Cài Đặt (Settings) ⚙️</strong>.</li>
-                <li>Cuộn xuống chọn <strong>Xóa Tài Khoản Vĩnh Viễn</strong> và xác nhận.</li>
-                <li>Hệ thống sẽ ngay lập tức xóa dữ liệu cá nhân và đăng xuất khỏi thiết bị.</li>
-            </ol>
-
-            <h2>📧 Cách 2: Gửi Yêu Cầu Xóa Dữ Liệu Qua Email</h2>
-            <p>Nếu bạn đã gỡ cài đặt ứng dụng hoặc không thể đăng nhập, vui lòng gửi email yêu cầu xóa dữ liệu đến đội ngũ hỗ trợ:</p>
-            <ul>
-                <li><strong>Email tiếp nhận:</strong> <a href="mailto:txavlog@gmail.com" style="color: var(--primary-gold);">txavlog@gmail.com</a></li>
-                <li><strong>Tiêu đề email:</strong> <code>[Yêu Cầu Xóa Tài Khoản Army] - {Tên người dùng hoặc Email của bạn}</code></li>
-                <li><strong>Thời gian hoàn tất:</strong> Trong vòng <strong>24 - 48 giờ</strong> làm việc.</li>
-            </ul>
-
-            <h2>🗑️ Chi Tiết Các Loại Dữ Liệu Bị Xóa</h2>
-            <p>Khi yêu cầu xóa tài khoản được thực hiện, các dữ liệu sau sẽ được xóa sạch khỏi cơ sở dữ liệu Firebase & Supabase:</p>
-            <ul>
-                <li><strong>Thông tin hồ sơ:</strong> Email, Username, Tên hiển thị, Ảnh đại diện Google/Tùy chỉnh.</li>
-                <li><strong>Nội dung truyền thông:</strong> Toàn bộ ảnh khoảnh khắc Locket, video 5s, file thu âm và tem thư vị trí.</li>
-                <li><strong>Dữ liệu xã hội:</strong> Tin nhắn trao đổi, danh sách bạn bè, trạng thái ghép đôi.</li>
-                <li><strong>Chỉ số tương tác:</strong> Chuỗi ngày thắp lửa Streak, bảng thành tựu và lịch sử điểm danh.</li>
-            </ul>
-
-            <h2>🔒 Dữ Liệu Được Giữ Lại Theo Quy Định Pháp Lý</h2>
-            <ul>
-                <li><strong>Biên lai giao dịch mua hàng In-App (nếu có):</strong> Lưu giữ tối thiểu 90 ngày phục vụ đối soát tài chính theo quy định của Google Play Billing.</li>
-                <li><strong>Nhật ký bảo mật máy chủ (Server Security Logs):</strong> Tự động hủy sau 30 ngày.</li>
-            </ul>
+        <!-- Language Selector -->
+        <div class="lang-switch">
+            <button class="lang-btn active" onclick="switchLang('vi')">
+                <svg class="flag-icon" viewBox="0 0 30 20">
+                    <rect width="30" height="20" fill="#DA251D"/>
+                    <polygon points="15,4 16.5,8.8 21.6,8.8 17.5,11.8 19,16.6 15,13.6 11,16.6 12.5,11.8 8.4,8.8 13.5,8.8" fill="#FFFF00"/>
+                </svg>
+                <span>Tiếng Việt</span>
+            </button>
+            <button class="lang-btn" onclick="switchLang('en')">
+                <svg class="flag-icon" viewBox="0 0 30 20">
+                    <rect width="30" height="20" fill="#012169"/>
+                    <path d="M0,0 L30,20 M30,0 L0,20" stroke="#fff" stroke-width="4"/>
+                    <path d="M0,0 L30,20 M30,0 L0,20" stroke="#C8102E" stroke-width="2"/>
+                    <path d="M15,0 V20 M0,10 H30" stroke="#fff" stroke-width="6"/>
+                    <path d="M15,0 V20 M0,10 H30" stroke="#C8102E" stroke-width="3.5"/>
+                </svg>
+                <span>English (Official)</span>
+            </button>
         </div>
 
-        <div class="nav-links">
-            <a href="index.html">← Quay Lại Trang Chính Sách Quyền Riêng Tư (Privacy Policy)</a>
+        <!-- VIETNAMESE SECTION -->
+        <div id="section-vi" class="lang-section active">
+            <div class="content-card">
+                <h2>📌 Cam Kết Quyền Riêng Tư & Kiểm Soát Dữ Liệu</h2>
+                <p>Nhà phát triển <strong>TXAVLOG</strong> tôn trọng tối đa quyền kiểm soát dữ liệu cá nhân của người dùng trên ứng dụng di động <strong>Army</strong> (ID gói: <code>vn.army.txa</code>). Trang này cung cấp thông tin chi tiết và công cụ trực tiếp cho phép bạn yêu cầu xóa vĩnh viễn tài khoản và toàn bộ dữ liệu cá nhân theo đúng chính sách của Cửa hàng Google Play.</p>
+
+                <div class="alert-box">
+                    ⚠️ <strong>Cảnh Báo Quan Trọng:</strong> Khi yêu cầu xóa tài khoản được thực thi, toàn bộ dữ liệu cá nhân gồm hình ảnh khoảnh khắc Locket, video 5s, file thu âm, chuỗi ngày Streak, danh hiệu thành tựu và danh sách bạn bè sẽ bị xóa vĩnh viễn khỏi toàn bộ hệ thống máy chủ và không thể khôi phục.
+                </div>
+
+                <h2>📱 Phương Thức 1: Tự Xóa Trực Tiếp Trong Ứng Dụng (Khuyên Dùng)</h2>
+                <p>Bạn có thể tự xóa tài khoản của mình bất cứ lúc nào tức thì ngay trong ứng dụng Army trên điện thoại mà không cần gửi email chờ duyệt:</p>
+
+                <div class="step-grid">
+                    <div class="step-card">
+                        <div class="step-number">1</div>
+                        <h4>Mở Trang Cá Nhân</h4>
+                        <p>Đăng nhập ứng dụng Army và nhấn vào biểu tượng avatar của bạn ở góc trên.</p>
+                    </div>
+                    <div class="step-card">
+                        <div class="step-number">2</div>
+                        <h4>Mở Cài Đặt (Settings)</h4>
+                        <p>Nhấn vào biểu tượng bánh răng Cài Đặt ⚙️ để mở menu tùy chọn hệ thống.</p>
+                    </div>
+                    <div class="step-card">
+                        <div class="step-number">3</div>
+                        <h4>Chọn Xóa Tài Khoản</h4>
+                        <p>Cuộn xuống dưới cùng và nhấn vào mục <strong>"Xóa Tài Khoản Vĩnh Viễn"</strong>.</p>
+                    </div>
+                    <div class="step-card">
+                        <div class="step-number">4</div>
+                        <h4>Xác Nhận Xóa</h4>
+                        <p>Xác nhận hộp thoại cảnh báo. Hệ thống sẽ ngay lập tức xóa dữ liệu và đăng xuất bạn ra khỏi máy chủ.</p>
+                    </div>
+                </div>
+
+                <h2>📧 Phương Thức 2: Gửi Yêu Cầu Xóa Trực Tuyến Qua Biểu Mẫu Web</h2>
+                <p>Nếu bạn đã gỡ cài đặt ứng dụng hoặc không còn quyền truy cập điện thoại, hãy điền thông tin vào biểu mẫu dưới đây để gửi yêu cầu xóa dữ liệu đến đội ngũ hỗ trợ:</p>
+
+                <div class="form-card">
+                    <form onsubmit="handleFormSubmit(event, 'vi')">
+                        <div class="form-group">
+                            <label for="vi-email">Địa chỉ Email đăng nhập tài khoản Army *</label>
+                            <input type="email" id="vi-email" class="form-control" placeholder="example@gmail.com" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="vi-username">Tên người dùng (@username) hoặc Tên hiển thị</label>
+                            <input type="text" id="vi-username" class="form-control" placeholder="@username">
+                        </div>
+                        <div class="form-group">
+                            <label for="vi-reason">Lý do yêu cầu xóa (Tùy chọn)</label>
+                            <textarea id="vi-reason" class="form-control" rows="3" placeholder="Chia sẻ lý do bạn muốn xóa dữ liệu..."></textarea>
+                        </div>
+                        <div class="form-group" style="display: flex; align-items: flex-start; gap: 10px;">
+                            <input type="checkbox" id="vi-confirm" style="margin-top: 4px;" required>
+                            <label for="vi-confirm" style="font-size: 0.85rem; color: var(--text-secondary); cursor: pointer;">
+                                Tôi hiểu rằng hành động này sẽ xóa vĩnh viễn toàn bộ khoảnh khắc ảnh, video, danh sách bạn bè và chuỗi Streak của tôi mà không thể khôi phục.
+                            </label>
+                        </div>
+                        <button type="submit" class="btn-submit">
+                            <span>Gửi Yêu Cầu Xóa Tài Khoản & Dữ Liệu 🗑️</span>
+                        </button>
+                    </form>
+                </div>
+
+                <h2>📊 Bảng Chi Tiết Phân Loại Dữ Liệu Xử Lý</h2>
+                <div class="table-responsive">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Danh Mục Dữ Liệu</th>
+                                <th>Các Mục Cụ Thể Bị Xóa Vĩnh Viễn</th>
+                                <th>Thời Gian Xóa</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td><strong>Hồ Sơ Cá Nhân</strong></td>
+                                <td>Email, Tên đăng nhập (@username), Tên hiển thị, Ảnh đại diện Google/Tùy chỉnh.</td>
+                                <td>Ngay lập tức (Tối đa 24h)</td>
+                            </tr>
+                            <tr>
+                                <td><strong>Nội Dung Truyền Thông</strong></td>
+                                <td>Toàn bộ Ảnh khoảnh khắc Locket, Video 5s, File âm thanh thu âm, Tem thư địa lý.</td>
+                                <td>Ngay lập tức trên Storage</td>
+                            </tr>
+                            <tr>
+                                <td><strong>Tương Tác & Bạn Bè</strong></td>
+                                <td>Danh sách bạn bè, Bạn thân, Lịch sử tin nhắn chat, Biểu cảm sticker, Ghép đôi.</td>
+                                <td>Ngay lập tức</td>
+                            </tr>
+                            <tr>
+                                <td><strong>Chỉ Số Hệ Thống</strong></td>
+                                <td>Chuỗi ngày thắp lửa Streak 🔥, Bảng huy hiệu thành tựu 🏆, Lịch sử điểm danh.</td>
+                                <td>Ngay lập tức</td>
+                            </tr>
+                            <tr>
+                                <td><strong>Nhật Ký Máy Chủ</strong></td>
+                                <td>Log bảo mật kết nối và phát hiện lỗi ứng dụng (Server security & Crash logs).</td>
+                                <td>Tự động tiêu hủy sau 30 ngày</td>
+                            </tr>
+                            <tr>
+                                <td><strong>Hóa Đơn Thanh Toán</strong></td>
+                                <td>Mã Token giao dịch mua gói hội viên Gold Pass qua Google Play Billing.</td>
+                                <td>Lưu giữ 90 ngày theo luật tài chính</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+
+                <h2>❓ Câu Hỏi Thường Gặp (FAQs)</h2>
+                <div class="faq-item">
+                    <div class="faq-header" onclick="toggleFaq(this)">
+                        <span>Tôi có thể xóa riêng từng ảnh khoảnh khắc mà không cần xóa toàn bộ tài khoản không?</span>
+                        <span>▼</span>
+                    </div>
+                    <div class="faq-body">
+                        Có. Bạn chỉ cần mở Bảng tin (Feed), nhấn giữ vào bài đăng bạn muốn xóa và chọn <strong>"Xóa bài viết này"</strong>. Ảnh/video đó sẽ bị xóa ngay lập tức khỏi bảng tin và widget của bạn bè.
+                    </div>
+                </div>
+
+                <div class="faq-item">
+                    <div class="faq-header" onclick="toggleFaq(this)">
+                        <span>Sau khi gửi email yêu cầu xóa, mất bao lâu để hệ thống xử lý?</span>
+                        <span>▼</span>
+                    </div>
+                    <div class="faq-body">
+                        Đội ngũ hỗ trợ của <strong>TXAVLOG</strong> sẽ xử lý và xác nhận yêu cầu xóa dữ liệu của bạn trong vòng <strong>24 đến 48 giờ làm việc</strong> kể từ khi tiếp nhận email.
+                    </div>
+                </div>
+
+                <div class="faq-item">
+                    <div class="faq-header" onclick="toggleFaq(this)">
+                        <span>Tôi có thể tạo lại tài khoản với cùng Email sau khi xóa không?</span>
+                        <span>▼</span>
+                    </div>
+                    <div class="faq-body">
+                        Có. Bạn hoàn toàn có thể đăng ký tài khoản mới bằng chính Email đó bất cứ lúc nào, nhưng mọi dữ liệu cũ sẽ bắt đầu lại từ đầu như một tài khoản mới tinh.
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- ENGLISH SECTION (OFFICIAL FOR GOOGLE PLAY REVIEW) -->
+        <div id="section-en" class="lang-section">
+            <div class="content-card">
+                <h2>📌 Data Control & Privacy Commitment</h2>
+                <p>The developer <strong>TXAVLOG</strong> respects your absolute control over your personal data within the <strong>Army</strong> mobile application (Package Name: <code>vn.army.txa</code>). This portal provides full transparency, step-by-step instructions, and an interactive request mechanism to permanently delete your account and associated data in full compliance with Google Play's User Data Policy.</p>
+
+                <div class="alert-box">
+                    ⚠️ <strong>Important Notice:</strong> Account deletion is irreversible. All your uploaded moments, 5-second videos, audio notes, friendship connections, streaks, and unlocked badges will be permanently erased from all production servers.
+                </div>
+
+                <h2>📱 Method 1: Self-Service Deletion Inside the App (Recommended)</h2>
+                <p>You can permanently delete your account directly from your smartphone at any time without waiting for customer support:</p>
+
+                <div class="step-grid">
+                    <div class="step-card">
+                        <div class="step-number">1</div>
+                        <h4>Open Profile</h4>
+                        <p>Open Army and tap on your avatar icon at the top of the screen.</p>
+                    </div>
+                    <div class="step-card">
+                        <div class="step-number">2</div>
+                        <h4>Open Settings</h4>
+                        <p>Tap the gear icon ⚙️ to open the Application Settings sheet.</p>
+                    </div>
+                    <div class="step-card">
+                        <div class="step-number">3</div>
+                        <h4>Select Delete Account</h4>
+                        <p>Scroll down to the bottom and select <strong>"Delete Account Permanently"</strong>.</p>
+                    </div>
+                    <div class="step-card">
+                        <div class="step-number">4</div>
+                        <h4>Confirm Deletion</h4>
+                        <p>Confirm the dialog. The system will instantly wipe your account data and log you out.</p>
+                    </div>
+                </div>
+
+                <h2>📧 Method 2: Web-Based Data Deletion Request Form</h2>
+                <p>If you have uninstalled the app or cannot access your device, submit the form below to have our support team manually delete your data:</p>
+
+                <div class="form-card">
+                    <form onsubmit="handleFormSubmit(event, 'en')">
+                        <div class="form-group">
+                            <label for="en-email">Registered Army Account Email *</label>
+                            <input type="email" id="en-email" class="form-control" placeholder="example@gmail.com" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="en-username">Username (@username) or Display Name</label>
+                            <input type="text" id="en-username" class="form-control" placeholder="@username">
+                        </div>
+                        <div class="form-group">
+                            <label for="en-reason">Reason for Deletion (Optional)</label>
+                            <textarea id="en-reason" class="form-control" rows="3" placeholder="Tell us why you are deleting your data..."></textarea>
+                        </div>
+                        <div class="form-group" style="display: flex; align-items: flex-start; gap: 10px;">
+                            <input type="checkbox" id="en-confirm" style="margin-top: 4px;" required>
+                            <label for="en-confirm" style="font-size: 0.85rem; color: var(--text-secondary); cursor: pointer;">
+                                I understand that this action permanently erases all my photo moments, videos, friends list, and streak history with no option to restore.
+                            </label>
+                        </div>
+                        <button type="submit" class="btn-submit">
+                            <span>Submit Account & Data Deletion Request 🗑️</span>
+                        </button>
+                    </form>
+                </div>
+
+                <h2>📊 Data Retention & Deletion Schedule</h2>
+                <div class="table-responsive">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Data Category</th>
+                                <th>Specific Data Items Permanently Erased</th>
+                                <th>Deletion Timeframe</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td><strong>User Profile</strong></td>
+                                <td>Email, Username (@username), Display Name, Google/Custom Avatar photo.</td>
+                                <td>Immediately (Within 24h)</td>
+                            </tr>
+                            <tr>
+                                <td><strong>Media Content</strong></td>
+                                <td>All Locket moments, 5-second videos, audio clips, postal stamp location tags.</td>
+                                <td>Immediately from Storage</td>
+                            </tr>
+                            <tr>
+                                <td><strong>Social Interactions</strong></td>
+                                <td>Friends list, Best friends, Chat messages, Reaction stickers, Pair mode.</td>
+                                <td>Immediately</td>
+                            </tr>
+                            <tr>
+                                <td><strong>Metrics & Streaks</strong></td>
+                                <td>Fire Streak days count 🔥, Achievement badges 🏆, Daily check-ins.</td>
+                                <td>Immediately</td>
+                            </tr>
+                            <tr>
+                                <td><strong>Server Logs</strong></td>
+                                <td>Connection security logs and diagnostic crash reports.</td>
+                                <td>Auto-deleted after 30 days</td>
+                            </tr>
+                            <tr>
+                                <td><strong>Financial Receipts</strong></td>
+                                <td>In-app purchase transaction IDs (Google Play Billing).</td>
+                                <td>Retained 90 days for audit laws</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+
+                <h2>❓ Frequently Asked Questions (FAQs)</h2>
+                <div class="faq-item">
+                    <div class="faq-header" onclick="toggleFaq(this)">
+                        <span>Can I delete individual moments without deleting my entire account?</span>
+                        <span>▼</span>
+                    </div>
+                    <div class="faq-body">
+                        Yes. Simply long-press any moment on your Feed inside Army and select <strong>"Delete this post"</strong>. That specific photo or video will be deleted immediately from servers and friends' widgets.
+                    </div>
+                </div>
+
+                <div class="faq-item">
+                    <div class="faq-header" onclick="toggleFaq(this)">
+                        <span>How long does it take for a manual deletion request to complete?</span>
+                        <span>▼</span>
+                    </div>
+                    <div class="faq-body">
+                        Our support team at <strong>TXAVLOG</strong> will process and confirm your request within <strong>24 to 48 business hours</strong> upon receiving your submission.
+                    </div>
+                </div>
+            </div>
         </div>
 
         <div class="footer">
-            &copy; 2026 TXAVLOG • Army App (<code>vn.army.txa</code>). All rights reserved.
+            &copy; 2026 TXAVLOG • Army App (<code>vn.army.txa</code>). All rights reserved. Hosted on GitHub Pages.
         </div>
     </div>
+
+    <script>
+        function switchLang(lang) {
+            document.querySelectorAll('.lang-btn').forEach(b => b.classList.remove('active'));
+            document.querySelectorAll('.lang-section').forEach(s => s.classList.remove('active'));
+
+            if (lang === 'vi') {
+                document.querySelectorAll('.lang-btn')[0].classList.add('active');
+                document.getElementById('section-vi').classList.add('active');
+            } else {
+                document.querySelectorAll('.lang-btn')[1].classList.add('active');
+                document.getElementById('section-en').classList.add('active');
+            }
+        }
+
+        function toggleFaq(header) {
+            const body = header.nextElementSibling;
+            const arrow = header.querySelector('span:last-child');
+            if (body.style.display === 'none' || !body.style.display) {
+                body.style.display = 'block';
+                arrow.textContent = '▲';
+            } else {
+                body.style.display = 'none';
+                arrow.textContent = '▼';
+            }
+        }
+
+        function handleFormSubmit(e, lang) {
+            e.preventDefault();
+            const email = document.getElementById(lang + '-email').value;
+            const username = document.getElementById(lang + '-username').value;
+            const reason = document.getElementById(lang + '-reason').value;
+
+            const subject = encodeURIComponent(`[Army Data Deletion Request] - ${email}`);
+            const body = encodeURIComponent(`Yêu cầu xóa tài khoản và toàn bộ dữ liệu Army:\n\nEmail: ${email}\nUsername: ${username}\nLý do: ${reason}\n\nTôi xác nhận muốn xóa vĩnh viễn tài khoản.`);
+
+            window.location.href = `mailto:txavlog@gmail.com?subject=${subject}&body=${body}`;
+
+            alert(lang === 'vi' 
+                ? 'Yêu cầu của bạn đã được khởi tạo! Ứng dụng email sẽ mở ra để gửi yêu cầu đến txavlog@gmail.com. Đội ngũ sẽ hoàn tất trong 24-48 giờ.' 
+                : 'Your deletion request has been created! Your email client will open to send the request to txavlog@gmail.com. We will complete it within 24-48 hours.');
+        }
+    </script>
 </body>
 </html>

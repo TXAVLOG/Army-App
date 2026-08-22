@@ -41,7 +41,48 @@
         .container {
             max-width: 920px;
             margin: 0 auto;
-            padding: 40px 20px 80px;
+            padding: 30px 20px 80px;
+        }
+
+        /* Top Nav Bar */
+        .top-nav {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 14px 20px;
+            background: rgba(20, 20, 30, 0.85);
+            backdrop-filter: blur(12px);
+            border: 1px solid var(--card-border);
+            border-radius: 16px;
+            margin-bottom: 24px;
+        }
+
+        .nav-brand {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            font-weight: 800;
+            font-size: 1.1rem;
+            color: var(--primary-gold);
+            text-decoration: none;
+        }
+
+        .nav-links {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+        }
+
+        .nav-links a {
+            color: var(--text-secondary);
+            text-decoration: none;
+            font-size: 0.88rem;
+            font-weight: 600;
+            transition: color 0.2s;
+        }
+
+        .nav-links a:hover, .nav-links a.active {
+            color: var(--primary-gold);
         }
 
         /* Top Identity Bar */
@@ -319,6 +360,18 @@
 </head>
 <body>
     <div class="container">
+        <!-- Top Navigation -->
+        <nav class="top-nav">
+            <a href="index.html" class="nav-brand">
+                <span>🐜 Army</span>
+            </a>
+            <div class="nav-links">
+                <a href="index.html" class="active">Chính Sách Quyền Riêng Tư (Privacy)</a>
+                <a href="delete_account.html">Xóa Dữ Liệu (Data Deletion)</a>
+                <a href="mailto:txavlog@gmail.com">Hỗ Trợ (Support)</a>
+            </div>
+        </nav>
+
         <!-- Top App & Developer Identification Header (Required by Google Play Policy) -->
         <div class="identity-bar">
             <div class="app-branding">
