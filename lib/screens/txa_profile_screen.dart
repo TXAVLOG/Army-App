@@ -30,6 +30,8 @@ import 'txa_version_timeline_screen.dart';
 import '../services/txa_version.dart';
 import '../services/txa_app_icon_service.dart';
 import 'txa_log_viewer_screen.dart';
+import 'txa_app_icon_gallery_screen.dart';
+import '../widgets/txa_rating_modal.dart';
 
 class TXAProfileScreen extends StatefulWidget {
   const TXAProfileScreen({super.key});
@@ -522,334 +524,9 @@ class _TXAProfileScreenState extends State<TXAProfileScreen>
   }
 
   void _showAppIconBottomSheet(BuildContext context) {
-    final iconService = TXAAppIconService.instance;
-    final txaLang = TXALanguage.instance;
-    final isVi = txaLang.currentLanguage == 'vi';
-
-    showModalBottomSheet(
-      context: context,
-      backgroundColor: TXATheme.cardBg,
-      isScrollControlled: true,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
-      ),
-      builder: (ctx) {
-        return StatefulBuilder(
-          builder: (sheetCtx, setSheetState) {
-            return AnimatedBuilder(
-              animation: Listenable.merge([iconService, TXAAuthService.instance]),
-              builder: (ctx2, _) {
-                final isVip = TXAAuthService.instance.currentUser?.isVipCurrentlyActive ?? false;
-                final unlockedCount = iconService.unlockedIconsCount;
-
-                return Container(
-                  height: MediaQuery.of(context).size.height * 0.82,
-                  padding: const EdgeInsets.only(top: 16, bottom: 20),
-                  child: Column(
-                    children: [
-                      // Handle Bar & Header
-                      Stack(
-                        alignment: Alignment.center,
-                        children: [
-                          Padding(
-                            padding: const EdgeInsets.symmetric(horizontal: 40),
-                            child: Column(
-                              children: [
-                                GestureDetector(
-                                  onTap: () => Navigator.pop(context),
-                                  child: Container(
-                                    width: 40,
-                                    height: 4,
-                                    decoration: BoxDecoration(
-                                      color: TXATheme.textMuted.withAlpha(80),
-                                      borderRadius: BorderRadius.circular(10),
-                                    ),
-                                  ),
-                                ),
-                                const SizedBox(height: 12),
-                                Text(
-                                  txaLang.getText('app_icon_title').toUpperCase(),
-                                  style: TextStyle(
-                                    color: TXATheme.textPrimary,
-                                    fontSize: 16,
-                                    fontWeight: FontWeight.w900,
-                                    letterSpacing: 1.2,
-                                  ),
-                                ),
-                                const SizedBox(height: 4),
-                                Text(
-                                  txaLang.getText('app_icon_subtitle'),
-                                  textAlign: TextAlign.center,
-                                  style: TextStyle(
-                                    color: TXATheme.textMuted,
-                                    fontSize: 12,
-                                  ),
-                                ),
-                                const SizedBox(height: 10),
-                                Container(
-                                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 5),
-                                  decoration: BoxDecoration(
-                                    color: isVip
-                                        ? const Color(0xFFFFD700).withAlpha(35)
-                                        : const Color(0xFF42A5F5).withAlpha(30),
-                                    borderRadius: BorderRadius.circular(20),
-                                    border: Border.all(
-                                      color: isVip
-                                          ? const Color(0xFFFFD700).withAlpha(120)
-                                          : const Color(0xFF42A5F5).withAlpha(100),
-                                    ),
-                                  ),
-                                  child: Row(
-                                    mainAxisSize: MainAxisSize.min,
-                                    children: [
-                                      Icon(
-                                        isVip ? Icons.workspace_premium_rounded : Icons.check_circle_rounded,
-                                        color: isVip ? const Color(0xFFFFD700) : const Color(0xFF42A5F5),
-                                        size: 14,
-                                      ),
-                                      const SizedBox(width: 6),
-                                      Text(
-                                        isVip
-                                            ? (isVi ? 'Đã mở khóa trọn bộ 25/25 Icon VIP 👑' : 'All 25/25 VIP Icons Unlocked 👑')
-                                            : (isVi ? 'Đã mở khóa $unlockedCount/25 Icon (Nâng cấp VIP để mở hết)' : '$unlockedCount/25 Icons Unlocked (Upgrade VIP for all)'),
-                                        style: TextStyle(
-                                          color: isVip ? const Color(0xFFFFD700) : Colors.white70,
-                                          fontSize: 11,
-                                          fontWeight: FontWeight.bold,
-                                        ),
-                                      ),
-                                    ],
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
-                          Positioned(
-                            right: 16,
-                            top: 0,
-                            child: IconButton(
-                              icon: Container(
-                                padding: const EdgeInsets.all(5),
-                                decoration: BoxDecoration(
-                                  color: Colors.white.withAlpha(25),
-                                  shape: BoxShape.circle,
-                                ),
-                                child: const Icon(Icons.close_rounded, color: Colors.white70, size: 18),
-                              ),
-                              onPressed: () => Navigator.pop(context),
-                            ),
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: 16),
-
-                      // Grid of Icons
-                      Expanded(
-                        child: GridView.builder(
-                          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
-                          gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                            crossAxisCount: 3,
-                            crossAxisSpacing: 14,
-                            mainAxisSpacing: 16,
-                            childAspectRatio: 0.78,
-                          ),
-                          itemCount: TXAAppIconService.icons.length,
-                          itemBuilder: (gridCtx, idx) {
-                            final iconItem = TXAAppIconService.icons[idx];
-                            final isSelected = iconService.selectedIconId == iconItem.id;
-                            final isUnlocked = iconService.isIconUnlocked(iconItem);
-
-                            return GestureDetector(
-                              onTap: () async {
-                                if (!isUnlocked) {
-                                  TXAToast.show(
-                                    context,
-                                    txaLang.getText('app_icon_vip_locked'),
-                                    icon: Icons.lock_outline_rounded,
-                                  );
-                                  Navigator.push(
-                                    context,
-                                    MaterialPageRoute(builder: (_) => const TXAGoldPassPaywallScreen()),
-                                  );
-                                  return;
-                                }
-
-                                await iconService.selectIcon(iconItem.id);
-                                HapticFeedback.mediumImpact();
-                                if (context.mounted) {
-                                  TXAToast.show(
-                                    context,
-                                    txaLang.getText('app_icon_applied_toast').replaceAll('%name%', iconItem.getName(isVi)),
-                                    icon: Icons.check_circle_rounded,
-                                  );
-                                }
-                                setSheetState(() {});
-                              },
-                              child: Container(
-                                decoration: BoxDecoration(
-                                  color: const Color(0xFF1B1A22),
-                                  borderRadius: BorderRadius.circular(20),
-                                  border: Border.all(
-                                    color: isSelected
-                                        ? const Color(0xFFFFD700)
-                                        : (isUnlocked ? Colors.white12 : Colors.white10),
-                                    width: isSelected ? 2.5 : 1.0,
-                                  ),
-                                  boxShadow: isSelected
-                                      ? [
-                                          BoxShadow(
-                                            color: const Color(0xFFFFD700).withAlpha(90),
-                                            blurRadius: 12,
-                                            spreadRadius: 1,
-                                          ),
-                                        ]
-                                      : null,
-                                ),
-                                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 10),
-                                child: Column(
-                                  mainAxisAlignment: MainAxisAlignment.center,
-                                  children: [
-                                    // Icon Square with Gradient
-                                    Stack(
-                                      clipBehavior: Clip.none,
-                                      alignment: Alignment.center,
-                                      children: [
-                                        Container(
-                                          width: 58,
-                                          height: 58,
-                                          decoration: BoxDecoration(
-                                            gradient: LinearGradient(
-                                              colors: iconItem.gradient,
-                                              begin: Alignment.topLeft,
-                                              end: Alignment.bottomRight,
-                                            ),
-                                            borderRadius: BorderRadius.circular(16),
-                                            boxShadow: [
-                                              BoxShadow(
-                                                color: iconItem.gradient.first.withAlpha(100),
-                                                blurRadius: 8,
-                                                offset: const Offset(0, 3),
-                                              ),
-                                            ],
-                                          ),
-                                          child: Center(
-                                            child: Text(
-                                              iconItem.emoji,
-                                              style: const TextStyle(fontSize: 28),
-                                            ),
-                                          ),
-                                        ),
-
-                                        // Badge (VIP or category)
-                                        if (iconItem.badge.isNotEmpty)
-                                          Positioned(
-                                            top: -6,
-                                            right: -6,
-                                            child: Container(
-                                              padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 2),
-                                              decoration: BoxDecoration(
-                                                color: iconItem.isVip
-                                                    ? (isUnlocked ? const Color(0xFFFFD700) : Colors.redAccent)
-                                                    : const Color(0xFF42A5F5),
-                                                borderRadius: BorderRadius.circular(6),
-                                                boxShadow: const [
-                                                  BoxShadow(color: Colors.black38, blurRadius: 4),
-                                                ],
-                                              ),
-                                              child: Text(
-                                                iconItem.badge,
-                                                style: const TextStyle(
-                                                  color: Colors.black,
-                                                  fontSize: 8,
-                                                  fontWeight: FontWeight.w900,
-                                                ),
-                                              ),
-                                            ),
-                                          ),
-
-                                        // Lock overlay if VIP and not unlocked
-                                        if (!isUnlocked)
-                                          Positioned.fill(
-                                            child: Container(
-                                              decoration: BoxDecoration(
-                                                color: Colors.black.withAlpha(160),
-                                                borderRadius: BorderRadius.circular(16),
-                                              ),
-                                              child: const Icon(
-                                                Icons.lock_rounded,
-                                                color: Color(0xFFFFD700),
-                                                size: 22,
-                                              ),
-                                            ),
-                                          ),
-                                      ],
-                                    ),
-                                    const SizedBox(height: 10),
-
-                                    // Icon Name
-                                    Text(
-                                      iconItem.getName(isVi),
-                                      textAlign: TextAlign.center,
-                                      maxLines: 1,
-                                      overflow: TextOverflow.ellipsis,
-                                      style: TextStyle(
-                                        color: isSelected ? const Color(0xFFFFD700) : Colors.white,
-                                        fontSize: 11,
-                                        fontWeight: isSelected ? FontWeight.w900 : FontWeight.w600,
-                                      ),
-                                    ),
-                                    const SizedBox(height: 4),
-
-                                    // Status tag
-                                    if (isSelected)
-                                      Container(
-                                        padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                                        decoration: BoxDecoration(
-                                          color: const Color(0xFFFFD700),
-                                          borderRadius: BorderRadius.circular(8),
-                                        ),
-                                        child: Text(
-                                          txaLang.getText('app_icon_active'),
-                                          style: const TextStyle(
-                                            color: Colors.black,
-                                            fontSize: 8,
-                                            fontWeight: FontWeight.w900,
-                                          ),
-                                        ),
-                                      )
-                                    else if (!isUnlocked)
-                                      const Text(
-                                        'VIP',
-                                        style: TextStyle(
-                                          color: Color(0xFFFFD700),
-                                          fontSize: 9,
-                                          fontWeight: FontWeight.bold,
-                                        ),
-                                      )
-                                    else
-                                      Text(
-                                        isVi ? 'Chọn' : 'Use',
-                                        style: TextStyle(
-                                          color: TXATheme.textMuted,
-                                          fontSize: 9,
-                                          fontWeight: FontWeight.w500,
-                                        ),
-                                      ),
-                                  ],
-                                ),
-                              ),
-                            );
-                          },
-                        ),
-                      ),
-                    ],
-                  ),
-                );
-              },
-            );
-          },
-        );
-      },
+    Navigator.push(
+      context,
+      MaterialPageRoute(builder: (_) => const TXAAppIconGalleryScreen()),
     );
   }
 
@@ -2487,6 +2164,28 @@ class _TXAProfileScreenState extends State<TXAProfileScreen>
                         onTap: () {
                           Navigator.pop(context);
                           Navigator.push(context, MaterialPageRoute(builder: (_) => const TXALogViewerScreen()));
+                        },
+                      ),
+                      Divider(color: TXATheme.cardBorder),
+
+                      // ─── 6.3 Đánh Giá Ứng Dụng 5⭐ (Rating) ───────────
+                      ListTile(
+                        contentPadding: EdgeInsets.zero,
+                        leading: const Icon(Icons.star_rounded, color: Color(0xFFFFD700)),
+                        title: Text(
+                          txaLang.getText('rating_menu_item'),
+                          style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+                        ),
+                        subtitle: Text(
+                          txaLang.getText('rating_subtitle'),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: TextStyle(color: TXATheme.textMuted, fontSize: 12),
+                        ),
+                        trailing: const Icon(Icons.arrow_forward_ios_rounded, color: Colors.white24, size: 16),
+                        onTap: () {
+                          Navigator.pop(context);
+                          TXARatingModal.show(context);
                         },
                       ),
                       Divider(color: TXATheme.cardBorder),

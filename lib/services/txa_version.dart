@@ -5,12 +5,46 @@ class TXAVersion extends ChangeNotifier {
   TXAVersion._internal();
 
   static const String appName = 'Army';
-  static const String currentVersion = '1.6.0';
-  static const int buildNumber = 11;
+  static const String currentVersion = '1.7.0';
+  static const int buildNumber = 12;
   static const String releaseDate = '22/08/2026';
-  static const String fullVersionString = 'Bản 1.6.0+11';
+  static const String fullVersionString = 'Bản 1.7.0+12';
 
   static const List<Map<String, dynamic>> changelogData = [
+    {
+      'version': '1.7.0+12',
+      'date': '22/08/2026',
+      'title': 'Bộ Sưu Tập 25 Icon App 3D Độc Quyền & Trải Nghiệm Mượt Mà 📱✨',
+      'subtitle': 'Biến hóa màn hình chính cực chất với 25 mẫu Icon 3D dập nổi sang trọng, mở khóa trải nghiệm 30 ngày thả ga và tối ưu hóa độ mượt toàn diện.',
+      'badge': 'BẢN CẬP NHẬT LỚN',
+      'features': [
+        {
+          'icon': '📱',
+          'title': 'Kho Biểu Tượng 3D Sống Động (25 Phong Cách)',
+          'description': 'Tự do biến hóa icon ứng dụng ngoài màn hình chính điện thoại với 25 mẫu thiết kế 3D sắc nét, từ phong cách Cổ Điển, Trắng Tinh Khôi đến các mẫu VIP Hoàng Gia lấp lánh.',
+        },
+        {
+          'icon': '🎬',
+          'title': 'Xem Video Ngắn Dùng Thả Ga 30 Ngày',
+          'description': 'Trải nghiệm trọn bộ các mẫu biểu tượng VIP cao cấp trong suốt 1 tháng chỉ với 1 lượt xem video ngắn, theo dõi số ngày còn lại trực quan và tiện lợi.',
+        },
+        {
+          'icon': '👑',
+          'title': 'Đặc Quyền Mở Khóa Trọn Bộ Hội Viên Gold Pass',
+          'description': 'Hội viên Gold Pass thoải mái chuyển đổi và sử dụng vĩnh viễn trọn bộ 25 mẫu biểu tượng 3D độc quyền không giới hạn.',
+        },
+        {
+          'icon': '⚡',
+          'title': 'Đổi Biểu Tượng Tức Thì & Tự Động Hóa',
+          'description': 'Tốc độ chuyển đổi biểu tượng siêu mượt mà, tự động ghi nhớ mẫu icon bạn yêu thích và vận hành ổn định trên mọi dòng máy.',
+        },
+        {
+          'icon': '🌐',
+          'title': 'Giao Diện Đa Ngôn Ngữ Tinh Tế',
+          'description': 'Mọi thông tin hướng dẫn, nhãn biểu tượng và thông báo đều được chăm chút tỉ mỉ, hiển thị rõ ràng và đẹp mắt theo ngôn ngữ Tiếng Việt & Tiếng Anh.',
+        },
+      ],
+    },
     {
       'version': '1.6.0+11',
       'date': '22/08/2026',

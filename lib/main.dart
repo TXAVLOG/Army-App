@@ -23,6 +23,7 @@ import 'services/txa_admob_service.dart';
 import 'services/txa_in_app_update_service.dart';
 import 'services/txa_analytics.dart';
 import 'services/txa_supabase_service.dart';
+import 'services/txa_rating_service.dart';
 
 class MyHttpOverrides extends HttpOverrides {
   @override
@@ -140,6 +141,7 @@ void main(List<String> args) {
       safeInit('TXAScreenSecurity', () => TXAScreenSecurity.instance.init()),
       safeInit('TXAAdMobService', () => TXAAdMobService.instance.init()),
       safeInit('TXAInAppUpdateService', () => TXAInAppUpdateService.instance.checkForUpdates()),
+      safeInit('TXARatingService', () => TXARatingService.instance.init()),
     // ignore: body_might_complete_normally_catch_error
     ]).catchError((e) {
       debugPrint('Background services init warning: $e');
