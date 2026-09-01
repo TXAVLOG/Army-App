@@ -2524,16 +2524,15 @@ class _PhotoPreviewScreenState extends State<PhotoPreviewScreen> {
                                   ),
                                 ],
                               ),
-                                  ],
-                                ),
-                              ),
-                            ),
+                            ],
                           ),
                         ),
                       ),
                     ),
                   ),
+                ),
               ),
+            ),
 
                 const SizedBox(height: 10),
 
@@ -2752,10 +2751,11 @@ class _PhotoPreviewScreenState extends State<PhotoPreviewScreen> {
               ],
             ),
           ),
-        );
-      },
-    );
-  }
+        ),
+      );
+    },
+  );
+}
 
   Widget _buildRecipientItem({
     required String name,
