@@ -96,6 +96,12 @@ if ($buildAab) {
 
 # 5. Build Windows Desktop Setup via Inno Setup Compiler (ISCC)
 if ($buildWin) {
+    # Free up memory held by Java/Gradle Daemons if Android was built previously
+    if (Test-Path "android\gradlew.bat") {
+        Write-Host "`n🧹 Freeing Gradle memory before Windows build..." -ForegroundColor Gray
+        & "android\gradlew.bat" --stop | Out-Null
+    }
+
     Write-Host "`n💻 Building Release Windows App Binary..." -ForegroundColor Green
     flutter build windows --release
     if ($LASTEXITCODE -ne 0) {
