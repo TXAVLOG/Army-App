@@ -1,8 +1,10 @@
+import 'dart:io';
 import 'package:flutter/material.dart';
 import '../theme/txa_theme.dart';
 import '../services/txa_language.dart';
 import '../services/txa_analytics.dart';
 import '../services/txa_iap_service.dart';
+import '../widgets/txa_toast.dart';
 import 'package:in_app_purchase/in_app_purchase.dart';
 
 class TXAGoldPassPaywallScreen extends StatefulWidget {
@@ -291,8 +293,8 @@ class _TXAGoldPassPaywallScreenState extends State<TXAGoldPassPaywallScreen> {
                   onPressed: () async {
                     if (selectedProduct != null) {
                       await iapService.buySubscription(selectedProduct, context);
-                    } else {
-                      // Trigger iOS/fallback notification
+                    } else if (Platform.isIOS) {
+                      // Trigger iOS notice
                       await iapService.buySubscription(
                         ProductDetails(
                           id: _isYearlySelected ? TXAIAPService.yearlyProductId : TXAIAPService.monthlyProductId,
@@ -303,6 +305,12 @@ class _TXAGoldPassPaywallScreenState extends State<TXAGoldPassPaywallScreen> {
                           currencyCode: 'USD',
                         ),
                         context,
+                      );
+                    } else {
+                      TXAToast.show(
+                        context,
+                        txaLang.getText('iap_unavailable_store_toast'),
+                        icon: Icons.info_outline_rounded,
                       );
                     }
                   },

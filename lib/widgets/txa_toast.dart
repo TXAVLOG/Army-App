@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../services/txa_language.dart';
 import '../theme/txa_theme.dart';
+import '../main.dart';
 
 class TXAToast {
   static void show(
@@ -9,7 +10,8 @@ class TXAToast {
     IconData icon = Icons.info_outline,
     Color? backgroundColor,
   }) {
-    final overlay = Overlay.of(context);
+    final overlay = Overlay.maybeOf(context) ?? navigatorKey.currentState?.overlay;
+    if (overlay == null) return;
     late OverlayEntry entry;
 
     entry = OverlayEntry(
@@ -18,7 +20,9 @@ class TXAToast {
         icon: icon,
         backgroundColor: backgroundColor,
         onDismiss: () {
-          entry.remove();
+          try {
+            entry.remove();
+          } catch (_) {}
         },
       ),
     );
@@ -46,7 +50,8 @@ class TXAToast {
     required VoidCallback onDecline,
     required VoidCallback onTap,
   }) {
-    final overlay = Overlay.of(context);
+    final overlay = Overlay.maybeOf(context) ?? navigatorKey.currentState?.overlay;
+    if (overlay == null) return;
     late OverlayEntry entry;
 
     entry = OverlayEntry(
@@ -56,19 +61,27 @@ class TXAToast {
         avatar: avatar,
         avatarColor: avatarColor,
         onAccept: () {
-          entry.remove();
+          try {
+            entry.remove();
+          } catch (_) {}
           onAccept();
         },
         onDecline: () {
-          entry.remove();
+          try {
+            entry.remove();
+          } catch (_) {}
           onDecline();
         },
         onTap: () {
-          entry.remove();
+          try {
+            entry.remove();
+          } catch (_) {}
           onTap();
         },
         onDismiss: () {
-          entry.remove();
+          try {
+            entry.remove();
+          } catch (_) {}
         },
       ),
     );
@@ -83,7 +96,8 @@ class TXAToast {
     required String avatarColor,
     required VoidCallback onTap,
   }) {
-    final overlay = Overlay.of(context);
+    final overlay = Overlay.maybeOf(context) ?? navigatorKey.currentState?.overlay;
+    if (overlay == null) return;
     late OverlayEntry entry;
 
     entry = OverlayEntry(
@@ -92,11 +106,15 @@ class TXAToast {
         avatar: avatar,
         avatarColor: avatarColor,
         onTap: () {
-          entry.remove();
+          try {
+            entry.remove();
+          } catch (_) {}
           onTap();
         },
         onDismiss: () {
-          entry.remove();
+          try {
+            entry.remove();
+          } catch (_) {}
         },
       ),
     );

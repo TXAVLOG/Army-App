@@ -258,28 +258,9 @@ class _LocketMainScreenState extends State<LocketMainScreen> with WidgetsBinding
   }
 
   void _goToFeed() {
-    final txaAuth = TXAAuthService.instance;
-    final currentUsername = txaAuth.currentUser?.username ?? '';
-    final visiblePosts = TXAFeedService.instance.getVisiblePostsForUser(currentUsername);
-    
-    int initialIndex = 0;
-    if (currentUsername.isNotEmpty) {
-      final unreadIndex = visiblePosts.indexWhere(
-        (p) => !p.readBy.contains(currentUsername) && p.senderUsername != currentUsername
-      );
-      if (unreadIndex != -1) {
-        initialIndex = unreadIndex;
-      } else {
-        final friendIndex = visiblePosts.indexWhere((p) => p.senderUsername != currentUsername);
-        if (friendIndex != -1) {
-          initialIndex = friendIndex;
-        }
-      }
-    }
-
     Navigator.of(context).push<String>(
       MaterialPageRoute(
-        builder: (_) => LocketFeedScreen(initialIndex: initialIndex),
+        builder: (_) => const LocketFeedScreen(initialIndex: 0),
       ),
     ).then((result) {
       _focusNode.requestFocus();

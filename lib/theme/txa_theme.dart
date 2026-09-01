@@ -80,9 +80,7 @@ class TXATheme {
   static ThemeData get appTheme {
     final bg = background;
     final card = cardBg;
-    final activeTheme = TXACameraThemeService.instance.currentThemeData;
-    final isLight = activeTheme.id == 'system_light';
-    final brightness = isLight ? Brightness.light : Brightness.dark;
+    const brightness = Brightness.dark;
 
     final primaryTextColor = textPrimary;
     final secondaryTextColor = textSecondary;
@@ -95,7 +93,7 @@ class TXATheme {
       colorScheme: ColorScheme(
         brightness: brightness,
         primary: accentColor,
-        onPrimary: isLight ? Colors.white : Colors.black,
+        onPrimary: Colors.black,
         secondary: actionBlue,
         onSecondary: Colors.white,
         error: statusRed,
@@ -103,7 +101,7 @@ class TXATheme {
         surface: card,
         onSurface: primaryTextColor,
       ),
-      textTheme: (isLight ? ThemeData.light() : ThemeData.dark()).textTheme.apply(
+      textTheme: ThemeData.dark().textTheme.apply(
             fontFamily: 'Outfit',
             bodyColor: primaryTextColor,
             displayColor: primaryTextColor,
@@ -142,7 +140,7 @@ class TXATheme {
       elevatedButtonTheme: ElevatedButtonThemeData(
         style: ElevatedButton.styleFrom(
           backgroundColor: accentColor,
-          foregroundColor: isLight ? Colors.white : Colors.black,
+          foregroundColor: Colors.black,
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(24),
           ),
@@ -154,18 +152,18 @@ class TXATheme {
         padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
         margin: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
         decoration: BoxDecoration(
-          color: isLight ? const Color(0xFFE2E8F0) : const Color(0xFF18181F),
+          color: const Color(0xFF18181F),
           borderRadius: BorderRadius.circular(12),
           border: Border.all(
-            color: isLight ? Colors.black.withAlpha(20) : Colors.white.withAlpha(45),
+            color: Colors.white.withAlpha(45),
             width: 1.2,
           ),
-          boxShadow: [
+          boxShadow: const [
             BoxShadow(
-              color: isLight ? Colors.black12 : Colors.black87,
+              color: Colors.black87,
               blurRadius: 12,
               spreadRadius: 1,
-              offset: const Offset(0, 4),
+              offset: Offset(0, 4),
             ),
           ],
         ),

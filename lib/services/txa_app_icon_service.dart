@@ -3,9 +3,24 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'txa_auth_service.dart';
 import 'txa_achievement_service.dart';
 import 'txa_language.dart';
+import 'txa_festival_manager.dart';
 
 import 'package:flutter/services.dart';
 import 'txa_logger.dart';
+
+class TXAIconChangeResult {
+  final bool success;
+  final String iconId;
+  final String? errorMessage;
+  final String? appliedAlias;
+
+  const TXAIconChangeResult({
+    required this.success,
+    required this.iconId,
+    this.errorMessage,
+    this.appliedAlias,
+  });
+}
 
 class TXAAppIconItem {
   final String id;
@@ -47,6 +62,18 @@ class TXAAppIconService extends ChangeNotifier {
   final Map<String, DateTime> _adUnlockedUntil = {};
 
   static const List<TXAAppIconItem> icons = [
+    // ─── Special Festival Icons (Lễ Hội Đặc Biệt) ─────────────
+    TXAAppIconItem(
+      id: 'national_day_29',
+      nameVi: 'Quốc Khánh 2/9 🇻🇳',
+      nameEn: 'Vietnam National Day 🇻🇳',
+      emoji: '🇻🇳',
+      assetPath: 'assets/icons/army_vietnam_flag_vip.png',
+      gradient: [Color(0xFFD32F2F), Color(0xFFFFC72C)],
+      isVip: false, // Miễn phí cho toàn thể người dùng
+      badge: 'LỄ HỘI',
+    ),
+
     // ─── Free Starter Icons (5 Mẫu) ───────────────────────────
     TXAAppIconItem(
       id: 'default_gold',
@@ -351,7 +378,24 @@ class TXAAppIconService extends ChangeNotifier {
       await prefs.setString(_keySelectedIcon, 'default_gold');
     }
 
+    // Auto-apply festival icon if in active holiday period
+    await checkAndAutoApplyFestivalIcon();
+
     notifyListeners();
+  }
+
+  /// Tự động kích hoạt icon lễ hội (Quốc Khánh 2/9) nếu đang trong dịp lễ
+  Future<void> checkAndAutoApplyFestivalIcon() async {
+    final now = DateTime.now();
+    if (TXAFestivalManager.isNationalDay29Period(now)) {
+      final prefs = await SharedPreferences.getInstance();
+      final lastAutoYear = prefs.getInt('txa_auto_applied_national_29_year');
+      if (lastAutoYear != now.year) {
+        TXALogger.logApp('🇻🇳 [AppIcon] Phát hiện mùa lễ Quốc Khánh 2/9 (${now.day}/${now.month}). Tự động kích hoạt Icon Quốc Khánh 2/9!');
+        await selectIcon('national_day_29');
+        await prefs.setInt('txa_auto_applied_national_29_year', now.year);
+      }
+    }
   }
 
   /// Mở khóa icon qua Ads trong 30 ngày (cộng dồn nếu còn hạn)
@@ -391,11 +435,12 @@ class TXAAppIconService extends ChangeNotifier {
     return false;
   }
 
-  Future<bool> selectIcon(String iconId) async {
+  Future<TXAIconChangeResult> selectIcon(String iconId) async {
     final target = icons.firstWhere((i) => i.id == iconId, orElse: () => icons.first);
     if (!isIconUnlocked(target)) {
-      TXALogger.logApp('Từ chối đổi icon: $iconId chưa mở khóa (VIP: ${target.isVip})');
-      return false;
+      final msg = 'Icon $iconId chưa mở khóa (VIP: ${target.isVip})';
+      TXALogger.logApp('⚠️ [AppIcon] Từ chối đổi icon: $msg');
+      return TXAIconChangeResult(success: false, iconId: iconId, errorMessage: msg);
     }
 
     _selectedIconId = iconId;
@@ -408,21 +453,30 @@ class TXAAppIconService extends ChangeNotifier {
 
     // Invoke Native launcher icon change on Android / iOS
     try {
-      await _channel.invokeMethod('changeAppIcon', {'iconName': iconId});
-      TXALogger.logApp('Đổi icon app thành công sang: $iconId (${target.nameVi})');
+      TXALogger.logApp('🔄 [AppIcon] Đang yêu cầu hệ thống đổi Launcher Icon sang: $iconId (${target.nameVi})...');
+      final result = await _channel.invokeMethod('changeAppIcon', {'iconName': iconId});
+      final appliedAlias = result is Map ? result['appliedAlias']?.toString() : null;
+      TXALogger.logApp('✅ [AppIcon] Đổi icon launcher thành công sang: $iconId (${target.nameVi}) [Alias: $appliedAlias]');
+      return TXAIconChangeResult(
+        success: true,
+        iconId: iconId,
+        appliedAlias: appliedAlias,
+      );
     } on PlatformException catch (e) {
-      TXALogger.logError('Lỗi nền tảng khi đổi app icon sang $iconId: ${e.message}', extraInfo: {
+      final errorMsg = 'Lỗi nền tảng (${e.code}): ${e.message}';
+      TXALogger.logError('❌ [AppIcon] $errorMsg', extraInfo: {
         'code': e.code,
         'details': e.details?.toString(),
         'targetIcon': iconId,
       });
+      return TXAIconChangeResult(success: false, iconId: iconId, errorMessage: errorMsg);
     } catch (e, stack) {
-      TXALogger.logError('Lỗi không xác định khi đổi app icon sang $iconId: $e', stackTrace: stack, extraInfo: {
+      final errorMsg = 'Lỗi không xác định khi đổi icon: $e';
+      TXALogger.logError('❌ [AppIcon] $errorMsg', stackTrace: stack, extraInfo: {
         'targetIcon': iconId,
       });
+      return TXAIconChangeResult(success: false, iconId: iconId, errorMessage: errorMsg);
     }
-
-    return true;
   }
 }
 

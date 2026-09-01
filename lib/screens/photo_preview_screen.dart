@@ -23,6 +23,7 @@ import '../services/txa_google_play_services.dart';
 import '../widgets/txa_toast.dart';
 import '../widgets/txa_network_image.dart';
 import '../services/txa_weather_service.dart';
+import '../services/txa_camera_theme_service.dart';
 
 class AppMouseScrollBehavior extends MaterialScrollBehavior {
   @override
@@ -1326,6 +1327,48 @@ class _PhotoPreviewScreenState extends State<PhotoPreviewScreen> {
     );
   }
 
+  Widget _buildCapturedImage() {
+    Widget mainImage;
+    final path = widget.imagePath;
+    if (path != null && path.isNotEmpty) {
+      if (path.startsWith('http')) {
+        mainImage = TXANetworkImage(url: path, fit: BoxFit.cover);
+      } else if (path.startsWith('assets/')) {
+        mainImage = Image.asset(path, fit: BoxFit.cover);
+      } else if (File(path).existsSync()) {
+        mainImage = Image.file(File(path), fit: BoxFit.cover);
+      } else {
+        mainImage = _buildFallbackImage();
+      }
+    } else {
+      mainImage = _buildFallbackImage();
+    }
+
+    if (_isBlurOverlay) {
+      return TXABlurDotsOverlay(blur: 15.0, child: mainImage);
+    }
+    return mainImage;
+  }
+
+  Widget _buildFallbackImage() {
+    return Container(
+      color: const Color(0xFF1C1C26),
+      child: Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(Icons.image_rounded, size: 64, color: TXATheme.primaryYellow),
+            const SizedBox(height: 10),
+            Text(
+              'Army Captured Photo',
+              style: TextStyle(color: TXATheme.textSecondary, fontSize: 15, fontWeight: FontWeight.w600),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final txaLang = TXALanguage.instance;
@@ -1337,115 +1380,102 @@ class _PhotoPreviewScreenState extends State<PhotoPreviewScreen> {
     final formattedTime = TXAFormat.formatTime(DateTime.now());
 
     return AnimatedBuilder(
-      animation: Listenable.merge([txaLang, txaFormat]),
+      animation: Listenable.merge([txaLang, txaFormat, TXACameraThemeService.instance]),
       builder: (context, _) {
+        final camTheme = TXACameraThemeService.instance;
+        final themeFrame = widget.isRollcall
+            ? BoxDecoration(
+                borderRadius: BorderRadius.circular(28),
+                border: Border.all(
+                  color: Colors.amber,
+                  width: 3.5,
+                ),
+                boxShadow: const [
+                  BoxShadow(
+                    color: Color(0xB3FFC107),
+                    blurRadius: 16,
+                    spreadRadius: 2,
+                  ),
+                ],
+              )
+            : camTheme.getFrameDecoration();
+
         return Scaffold(
           resizeToAvoidBottomInset: true,
           backgroundColor: TXATheme.background,
-          body: SafeArea(
-            child: Column(
-              children: [
-                // 1. Top Bar
-                Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      const SizedBox(width: 44),
-                      Text(
-                        txaLang.getText('send_to'),
-                        style: TextStyle(
-                          fontSize: 18,
-                          fontWeight: FontWeight.bold,
-                          color: TXATheme.textPrimary,
-                        ),
-                      ),
-                      GestureDetector(
-                        onTap: _onSave,
-                        child: Container(
-                          width: 44,
-                          height: 44,
-                          decoration: const BoxDecoration(
-                            shape: BoxShape.circle,
-                            color: Colors.transparent,
-                          ),
-                          child: Icon(
-                            Icons.file_download_outlined,
+          body: GestureDetector(
+            onTap: () => FocusScope.of(context).unfocus(),
+            behavior: HitTestBehavior.translucent,
+            child: SafeArea(
+              child: Column(
+                children: [
+                  // 1. Top Bar
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        const SizedBox(width: 44),
+                        Text(
+                          txaLang.getText('send_to'),
+                          style: TextStyle(
+                            fontSize: 18,
+                            fontWeight: FontWeight.bold,
                             color: TXATheme.textPrimary,
-                            size: 28,
                           ),
                         ),
-                      ),
-                    ],
+                        GestureDetector(
+                          onTap: _onSave,
+                          child: Container(
+                            width: 44,
+                            height: 44,
+                            decoration: const BoxDecoration(
+                              shape: BoxShape.circle,
+                              color: Colors.transparent,
+                            ),
+                            child: Icon(
+                              Icons.file_download_outlined,
+                              color: TXATheme.textPrimary,
+                              size: 28,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
                   ),
-                ),
 
-                // 2. Photo Viewfinder Frame with Swipeable Pages (Page 0: Caption, Page 1: Voice)
-                Expanded(
-                  child: Center(
-                    child: ConstrainedBox(
-                      constraints: BoxConstraints(
-                        maxWidth: 350,
-                        maxHeight: MediaQuery.of(context).size.height * 0.55,
-                      ),
-                      child: AspectRatio(
-                        aspectRatio: isSquare ? 1.0 : 3 / 4,
-                        child: Padding(
-                          padding: const EdgeInsets.symmetric(horizontal: 6),
-                          child: ClipRRect(
-                            borderRadius: BorderRadius.circular(28),
-                          child: PageView(
-                            controller: _pageController,
-                            scrollBehavior: AppMouseScrollBehavior(),
-                            onPageChanged: (index) {
-                              setState(() {
-                                _currentPage = index;
-                              });
-                            },
-                            children: [
-                              // --- PAGE 0: Text Caption View (xem trước.png) ---
-                              Stack(
-                                alignment: Alignment.center,
-                                fit: StackFit.expand,
-                                children: [
-                                  // Captured Image
-                                  (() {
-                                    final mainImage = widget.imagePath != null && File(widget.imagePath!).existsSync()
-                                        ? Image.file(File(widget.imagePath!), fit: BoxFit.cover)
-                                        : Container(
-                                            color: const Color(0xFF1C1C26),
-                                            child: Center(
-                                              child: Column(
-                                                mainAxisAlignment: MainAxisAlignment.center,
-                                                children: [
-                                                  Icon(
-                                                    Icons.image_rounded,
-                                                    size: 64,
-                                                    color: TXATheme.primaryYellow,
-                                                  ),
-                                                  SizedBox(height: 10),
-                                                  Text(
-                                                    'Army Captured Photo',
-                                                    style: TextStyle(
-                                                      color: TXATheme.textSecondary,
-                                                      fontSize: 15,
-                                                      fontWeight: FontWeight.w600,
-                                                    ),
-                                                  ),
-                                                ],
-                                              ),
-                                            ),
-                                          );
-                                    if (_isBlurOverlay) {
-                                      return TXABlurDotsOverlay(
-                                        blur: 15.0,
-                                        child: mainImage,
-                                      );
-                                    }
-                                    return mainImage;
-                                  })(),
-
-
+                  // 2. Photo Viewfinder Frame with Swipeable Pages (Page 0: Caption, Page 1: Voice)
+                  Expanded(
+                    child: Center(
+                      child: ConstrainedBox(
+                        constraints: BoxConstraints(
+                          maxWidth: 350,
+                          maxHeight: MediaQuery.of(context).size.height * 0.55,
+                        ),
+                        child: AspectRatio(
+                          aspectRatio: isSquare ? 1.0 : 3 / 4,
+                          child: Padding(
+                            padding: const EdgeInsets.symmetric(horizontal: 14),
+                            child: Container(
+                              decoration: themeFrame,
+                              child: ClipRRect(
+                                borderRadius: BorderRadius.circular(24),
+                                child: PageView(
+                                  controller: _pageController,
+                                  scrollBehavior: AppMouseScrollBehavior(),
+                                  onPageChanged: (index) {
+                                    setState(() {
+                                      _currentPage = index;
+                                    });
+                                  },
+                                  children: [
+                                    // --- PAGE 0: Text Caption View (xem trước.png) ---
+                                    Stack(
+                                      alignment: Alignment.center,
+                                      fit: StackFit.expand,
+                                      children: [
+                                        // Captured Image
+                                        _buildCapturedImage(),
 
                                   // Privacy Eye Toggle
                                   Positioned(
@@ -2494,13 +2524,15 @@ class _PhotoPreviewScreenState extends State<PhotoPreviewScreen> {
                                   ),
                                 ],
                               ),
-                            ],
+                                  ],
+                                ),
+                              ),
+                            ),
                           ),
                         ),
                       ),
                     ),
                   ),
-                ),
               ),
 
                 const SizedBox(height: 10),

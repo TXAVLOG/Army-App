@@ -5,12 +5,41 @@ class TXAVersion extends ChangeNotifier {
   TXAVersion._internal();
 
   static const String appName = 'Army';
-  static const String currentVersion = '1.7.0';
-  static const int buildNumber = 12;
-  static const String releaseDate = '22/08/2026';
-  static const String fullVersionString = 'Bản 1.7.0+12';
+  static const String currentVersion = '1.7.1';
+  static const int buildNumber = 13;
+  static const String releaseDate = '01/09/2026';
+  static const String fullVersionString = 'Bản 1.7.1+13';
 
   static const List<Map<String, dynamic>> changelogData = [
+    {
+      'version': '1.7.1+13',
+      'date': '01/09/2026',
+      'title': 'Hoàn Thiện Bộ Đổi Icon Trên iOS & Android + Mừng Quốc Khánh 2/9 🇻🇳✨',
+      'subtitle': 'Khắc phục triệt để tính năng đổi App Icon trên cả Android và iOS, thêm Icon đặc biệt chào mừng Quốc Khánh 2/9 và tối ưu độ ổn định hệ thống.',
+      'badge': 'BẢN SỬA LỖI & NÂNG CẤP',
+      'features': [
+        {
+          'icon': '🇻🇳',
+          'title': 'Icon Quốc Khánh 2/9 Tự Động Kích Hoạt',
+          'description': 'Mẫu Icon Cờ Đỏ Sao Vàng Hoàng Gia đặc biệt chào đón Tết Độc Lập 2/9, tự động xuất hiện và mở khóa miễn phí cho toàn bộ người dùng.',
+        },
+        {
+          'icon': '📱',
+          'title': 'Sửa Triệt Để Đổi Icon Trên Android & iOS',
+          'description': 'Đồng bộ 26 bộ Icon chất lượng cao cho cả Android (Dynamic Aliases) và iOS (Alternate Icons), chuyển đổi biểu tượng màn hình chính tức thì không lo lỗi.',
+        },
+        {
+          'icon': '🛡️',
+          'title': 'Giám Sát Hệ Thống TXALogger Toàn Diện',
+          'description': 'Theo dõi và ghi nhận trạng thái đổi icon, mở khóa qua video ngắn và tự động hồi phục icon chuẩn xác.',
+        },
+        {
+          'icon': '⚡',
+          'title': 'Tối Ưu Hiệu Năng & Trải Nghiệm Mượt Mà',
+          'description': 'Tối ưu bộ nhớ đệm hình ảnh và thời gian phản hồi khi duyệt bộ sưu tập 26 mẫu biểu tượng 3D dập nổi.',
+        },
+      ],
+    },
     {
       'version': '1.7.0+12',
       'date': '22/08/2026',

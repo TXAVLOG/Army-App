@@ -53,14 +53,7 @@ class TXACameraThemeData {
 class TXACameraThemeService extends ChangeNotifier {
   static final TXACameraThemeService instance = TXACameraThemeService._internal();
 
-  TXACameraThemeService._internal() {
-    // Tự động lắng nghe khi hệ thống chuyển đổi Sáng/Tối (Light/Dark mode)
-    WidgetsBinding.instance.platformDispatcher.onPlatformBrightnessChanged = () {
-      if (_currentTheme == 'default' || _currentTheme == 'system') {
-        notifyListeners();
-      }
-    };
-  }
+  TXACameraThemeService._internal();
 
   static const String _keyTheme = 'txa_camera_theme_name';
 
@@ -378,8 +371,7 @@ class TXACameraThemeService extends ChangeNotifier {
 
   TXACameraThemeData get currentThemeData {
     if (_currentTheme == 'default' || _currentTheme == 'system') {
-      final isDark = WidgetsBinding.instance.platformDispatcher.platformBrightness == Brightness.dark;
-      return isDark ? systemDarkTheme : systemLightTheme;
+      return systemDarkTheme;
     }
     return themes.firstWhere((t) => t.id == _currentTheme, orElse: () => systemDarkTheme);
   }

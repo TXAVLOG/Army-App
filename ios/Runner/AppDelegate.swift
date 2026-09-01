@@ -34,17 +34,30 @@ import UIKit
   private func changeAppIcon(iconName: String, result: @escaping FlutterResult) {
     DispatchQueue.main.async {
       guard UIApplication.shared.supportsAlternateIcons else {
-        result(FlutterError(code: "NOT_SUPPORTED", message: "iOS device does not support alternate icons", details: nil))
+        result(FlutterError(code: "NOT_SUPPORTED", message: "iOS device does not support alternate icons or CFBundleIcons not configured", details: nil))
         return
       }
       
       let targetIconName: String? = (iconName == "default_gold" || iconName.isEmpty) ? nil : iconName
       
+      if UIApplication.shared.alternateIconName == targetIconName {
+        result([
+          "success": true,
+          "appliedAlias": targetIconName ?? "primary",
+          "iconName": iconName
+        ])
+        return
+      }
+      
       UIApplication.shared.setAlternateIconName(targetIconName) { error in
         if let error = error {
           result(FlutterError(code: "ICON_ERROR", message: error.localizedDescription, details: nil))
         } else {
-          result(true)
+          result([
+            "success": true,
+            "appliedAlias": targetIconName ?? "primary",
+            "iconName": iconName
+          ])
         }
       }
     }

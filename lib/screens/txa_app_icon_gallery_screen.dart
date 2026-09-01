@@ -549,17 +549,29 @@ class _TXAAppIconGalleryScreenState extends State<TXAAppIconGalleryScreen> {
               height: 32,
               child: ElevatedButton(
                 onPressed: () async {
-                  final success = await iconService.selectIcon(item.id);
-                  if (success && context.mounted) {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(
-                        content: Text(
-                          lang.getText('app_icon_applied_toast').replaceAll('%name%', item.getName(isVi)),
+                  final result = await iconService.selectIcon(item.id);
+                  if (context.mounted) {
+                    if (result.success) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(
+                          content: Text(
+                            lang.getText('app_icon_applied_toast').replaceAll('%name%', item.getName(isVi)),
+                          ),
+                          backgroundColor: const Color(0xFFFFD700),
+                          behavior: SnackBarBehavior.floating,
                         ),
-                        backgroundColor: const Color(0xFFFFD700),
-                        behavior: SnackBarBehavior.floating,
-                      ),
-                    );
+                      );
+                    } else {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(
+                          content: Text(
+                            lang.getText('app_icon_applied_failed').replaceAll('%reason%', result.errorMessage ?? 'Không xác định'),
+                          ),
+                          backgroundColor: const Color(0xFFE53935),
+                          behavior: SnackBarBehavior.floating,
+                        ),
+                      );
+                    }
                   }
                 },
                 style: ElevatedButton.styleFrom(
