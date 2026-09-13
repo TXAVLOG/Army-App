@@ -288,7 +288,7 @@ $caption
                         border: Border.all(color: TXATheme.cardBorder),
                       ),
                       child: TXANetworkImage(
-                        url: photo ?? '',
+                        url: photo,
                         fit: BoxFit.cover,
                       ),
                     ),
@@ -702,7 +702,7 @@ $caption
                         border: Border.all(color: Colors.white10),
                       ),
                       child: TXANetworkImage(
-                        url: photo ?? '',
+                        url: photo,
                         fit: BoxFit.cover,
                       ),
                     ),

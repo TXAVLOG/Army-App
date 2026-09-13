@@ -332,11 +332,11 @@ class TXAFeedService extends ChangeNotifier {
     }).toList();
 
     final loverUsername = txaAuth.currentUser?.loverUsername ?? '';
-    final isLover = (String u) =>
+    bool isLover(String u) =>
         (loverUsername.isNotEmpty && u == loverUsername) ||
         loversList.any((f) => f['username'] == u);
 
-    final isBestFriend = (String u) => bestFriendUsernames.contains(u);
+    bool isBestFriend(String u) => bestFriendUsernames.contains(u);
 
     // Bảng index thứ tự bạn bè theo danh sách kéo thả trong modal bạn bè
     final friendOrderMap = <String, int>{};

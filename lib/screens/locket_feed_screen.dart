@@ -2016,6 +2016,7 @@ class _LocketFeedScreenState extends State<LocketFeedScreen> {
                                                   List<Color>? gradColors;
                                                   Color bgColor = Colors.black
                                                       .withAlpha(200);
+                                                  Color textColor = Colors.white;
 
                                                   if (currentPost.moodEmoji
                                                       .startsWith(
@@ -2082,8 +2083,6 @@ class _LocketFeedScreenState extends State<LocketFeedScreen> {
                                                         0xFF000000;
                                                     bgColor = Color(val);
                                                   }
-                                                  Color textColor =
-                                                      Colors.white;
                                                   if (currentPost
                                                           .stickerTextColor !=
                                                       null) {
