@@ -66,7 +66,10 @@ class UserModel {
     this.fcmToken,
   });
 
+  bool get isAdmin => role == 'admin';
+
   bool get isVipCurrentlyActive {
+    if (isAdmin) return true;
     if (!isVipActive) return false;
     if (vipExpiryDate == null) return false;
     try {
@@ -153,6 +156,7 @@ class TXAAuthService extends ChangeNotifier {
   Timer? _presenceTimer;
   UserModel? get currentUser => _currentUser;
   bool get isLoggedIn => _currentUser != null;
+  bool get isAdmin => _currentUser?.isAdmin ?? false;
 
   String? _highlightRequestId;
   String? get highlightRequestId => _highlightRequestId;

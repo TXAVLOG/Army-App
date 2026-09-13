@@ -118,10 +118,21 @@ class TXAFestivalManager {
     return !checkDate.isBefore(start) && !checkDate.isAfter(end);
   }
 
+  /// Kiểm tra xem ngày có rơi vào mùa Tết Trung Thu không (từ cuối tháng 8 đến giữa tháng 10)
+  static bool isMidAutumnPeriod(DateTime date) {
+    final start = DateTime(date.year, 8, 25);
+    final end = DateTime(date.year, 10, 15);
+    final checkDate = DateTime(date.year, date.month, date.day);
+    return !checkDate.isBefore(start) && !checkDate.isAfter(end);
+  }
+
   /// Trả về theme đề xuất dựa theo ngày hiện tại
   static String getRecommendedThemeId(DateTime date) {
     if (isTetPeriod(date)) {
       return 'tet';
+    }
+    if (isMidAutumnPeriod(date)) {
+      return 'mid_autumn';
     }
     if (isNationalDayPeriod(date) || isNationalDay29Period(date)) {
       return 'national';
@@ -156,6 +167,10 @@ class TXAFestivalManager {
   /// Trả về caption lễ hội cho các ngày lễ lớn khác của Việt Nam
   static String getHolidayCaption(String key, String langCode) {
     final txaLang = TXALanguage.instance;
+    if (key.startsWith('__mid_autumn_')) {
+      final indexStr = key.replaceAll('__mid_autumn_', '').replaceAll('__', '');
+      return txaLang.getText('mid_autumn_caption_$indexStr');
+    }
     if (key == '__holiday_30_4_1_5__') {
       return txaLang.getText('holiday_30_4_1_5');
     }

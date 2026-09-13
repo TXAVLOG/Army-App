@@ -35,6 +35,7 @@ import 'txa_love_invitation_screen.dart';
 import 'txa_love_dashboard_screen.dart';
 import 'txa_love_feed_screen.dart';
 import 'txa_rollcall_responses_screen.dart';
+import '../services/txa_logger.dart';
 
 class LocketMainScreen extends StatefulWidget {
   const LocketMainScreen({super.key});
@@ -82,6 +83,7 @@ class _LocketMainScreenState extends State<LocketMainScreen> with WidgetsBinding
   final GlobalKey _profileKey = GlobalKey();
   final GlobalKey _friendsKey = GlobalKey();
   final GlobalKey _shutterKey = GlobalKey();
+  bool _isShutterPressed = false;
 
   Future<void> _checkAndShowCoachMarkTour({bool force = false}) async {
     final prefs = await SharedPreferences.getInstance();
@@ -209,14 +211,20 @@ class _LocketMainScreenState extends State<LocketMainScreen> with WidgetsBinding
 
     if (_cameraController != null && _isCameraInitialized) {
       try {
-        await _cameraController!.setZoomLevel(targetZoom);
+        final minZ = await _cameraController!.getMinZoomLevel();
+        final maxZ = await _cameraController!.getMaxZoomLevel();
+        final clampedZoom = targetZoom.clamp(minZ, maxZ);
+        await _cameraController!.setZoomLevel(clampedZoom);
+        TXALogger.log('Zoom applied: target=$targetZoom, clamped=$clampedZoom, range=[$minZ - $maxZ]', type: 'camera');
       } catch (e) {
+        TXALogger.log('Lỗi zoom camera: $e', type: 'camera');
         debugPrint('Zoom set level error: $e');
       }
     }
   }
 
   void _changeZoom(bool zoomIn) {
+    HapticFeedback.selectionClick();
     if (zoomIn) {
       _zoomIndex = (_zoomIndex + 1) % _zoomLevels.length;
     } else {
@@ -226,6 +234,7 @@ class _LocketMainScreenState extends State<LocketMainScreen> with WidgetsBinding
   }
 
   void _selectZoomPreset(int index) {
+    HapticFeedback.lightImpact();
     final txaLang = TXALanguage.instance;
     if (index >= 0 && index < _zoomLevels.length) {
       _setZoomValue(_zoomLevels[index]);
@@ -511,12 +520,29 @@ class _LocketMainScreenState extends State<LocketMainScreen> with WidgetsBinding
     try {
       await controller.initialize();
       double minZoom = 1.0;
+      double maxZoom = 1.0;
       try {
         minZoom = await controller.getMinZoomLevel();
-      } catch (_) {}
+        maxZoom = await controller.getMaxZoomLevel();
+      } catch (e) {
+        TXALogger.log('Lỗi đọc zoom camera API: $e', type: 'camera');
+      }
 
-      // Hiện mức zoom 0.5x chỉ khi phần cứng camera có hỗ trợ góc rộng (minZoom ≤ 0.6)
-      final bool hasUltraWide = minZoom <= 0.6;
+      final isRearCamera = _cameras[index].lensDirection == CameraLensDirection.back;
+      final backCameras = _cameras.where((c) => c.lensDirection == CameraLensDirection.back).toList();
+      final bool hasMultiBackLens = backCameras.length > 1;
+      // Hỗ trợ 0.5x nếu máy có minZoom <= 0.8 HOẶC có ống kính sau phụ
+      final bool hasUltraWide = isRearCamera && (minZoom <= 0.8 || hasMultiBackLens);
+
+      // Ghi log chi tiết API phần cứng camera vào TXALogger
+      final camDetails = _cameras.asMap().entries.map((e) => '[#${e.key}: name=${e.value.name}, lens=${e.value.lensDirection.name}, orient=${e.value.sensorOrientation}]').join(', ');
+      TXALogger.log(
+        '📷 [Camera API Info] index=$index, activeName=${_cameras[index].name}, lens=${_cameras[index].lensDirection.name}, '
+        'minZoom=$minZoom, maxZoom=$maxZoom, hasUltraWide=$hasUltraWide (minZoom<=0.8: ${minZoom <= 0.8}, multiBackLens: $hasMultiBackLens, backCount: ${backCameras.length}), '
+        'allCameras: $camDetails',
+        type: 'camera',
+      );
+
       final List<double> newZoomLevels = hasUltraWide
           ? [0.5, 1.0, 1.5, 2.0, 3.0]
           : [1.0, 1.5, 2.0, 3.0];
@@ -1606,13 +1632,29 @@ class _LocketMainScreenState extends State<LocketMainScreen> with WidgetsBinding
                             waitDuration: const Duration(milliseconds: 250),
                             child: GestureDetector(
                               key: _shutterKey,
-                              onTap: canCapture ? _onShutterPressed : null,
+                              onTapDown: canCapture ? (_) {
+                                setState(() => _isShutterPressed = true);
+                                HapticFeedback.mediumImpact();
+                              } : null,
+                              onTapUp: canCapture ? (_) {
+                                setState(() => _isShutterPressed = false);
+                                _onShutterPressed();
+                              } : null,
+                              onTapCancel: () {
+                                if (_isShutterPressed) {
+                                  setState(() => _isShutterPressed = false);
+                                }
+                              },
                               child: Opacity(
                                 opacity: canCapture ? 1.0 : 0.4,
-                                child: Container(
-                                  width: 88,
-                                  height: 88,
-                                  padding: const EdgeInsets.all(6),
+                                child: AnimatedScale(
+                                  scale: _isShutterPressed ? 0.90 : 1.0,
+                                  duration: const Duration(milliseconds: 120),
+                                  curve: Curves.easeOutBack,
+                                  child: Container(
+                                    width: 88,
+                                    height: 88,
+                                    padding: const EdgeInsets.all(6),
                                   decoration: BoxDecoration(
                                     shape: BoxShape.circle,
                                     border: Border.all(
@@ -1653,7 +1695,8 @@ class _LocketMainScreenState extends State<LocketMainScreen> with WidgetsBinding
                                 ),
                               ),
                             ),
-                          );
+                          ),
+                        );
                         }
                       ),
 
@@ -1985,9 +2028,13 @@ class _LocketMainScreenState extends State<LocketMainScreen> with WidgetsBinding
                                         ],
                                       ),
                                       child: Center(
-                                        child: Text(
-                                          avatar,
-                                          style: const TextStyle(fontSize: 22),
+                                        child: AnimatedScale(
+                                          scale: _isBubbleDragging ? 1.15 : 1.0,
+                                          duration: const Duration(milliseconds: 200),
+                                          child: Text(
+                                            avatar,
+                                            style: const TextStyle(fontSize: 22),
+                                          ),
                                         ),
                                       ),
                                     ),

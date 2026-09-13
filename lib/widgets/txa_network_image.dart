@@ -21,8 +21,19 @@ class TXANetworkImage extends StatefulWidget {
     this.errorBuilder,
   });
 
-  // Cache tĩnh trong bộ nhớ RAM để truy cập tức thì 0ms
+  // Cache tĩnh trong bộ nhớ RAM với giới hạn LRU 50 ảnh để truy cập tức thì mà không gây tràn RAM hay lag GC
   static final Map<String, Uint8List> _memoryCache = {};
+  static const int _maxMemoryCacheEntries = 50;
+
+  static void _addToMemoryCache(String key, Uint8List bytes) {
+    if (_memoryCache.containsKey(key)) {
+      _memoryCache.remove(key);
+    } else if (_memoryCache.length >= _maxMemoryCacheEntries) {
+      final oldestKey = _memoryCache.keys.first;
+      _memoryCache.remove(oldestKey);
+    }
+    _memoryCache[key] = bytes;
+  }
 
   // Xóa cache RAM khi cần
   static void clearCache() {
@@ -81,11 +92,13 @@ class _TXANetworkImageState extends State<TXANetworkImage> {
       return;
     }
 
-    // 1. Kiểm tra RAM Cache trước (0ms load)
+    // 1. Kiểm tra RAM Cache trước (0ms load) và cập nhật thứ tự MRU
     if (TXANetworkImage._memoryCache.containsKey(cleanUrl)) {
+      final cachedBytes = TXANetworkImage._memoryCache.remove(cleanUrl)!;
+      TXANetworkImage._memoryCache[cleanUrl] = cachedBytes;
       if (mounted) {
         setState(() {
-          _imageBytes = TXANetworkImage._memoryCache[cleanUrl];
+          _imageBytes = cachedBytes;
           _error = null;
           _isLoading = false;
         });
@@ -109,7 +122,7 @@ class _TXANetworkImageState extends State<TXANetworkImage> {
       try {
         final bytes = await cacheFile.readAsBytes();
         if (bytes.isNotEmpty) {
-          TXANetworkImage._memoryCache[cleanUrl] = bytes;
+          TXANetworkImage._addToMemoryCache(cleanUrl, bytes);
           if (mounted) {
             setState(() {
               _imageBytes = bytes;
@@ -135,7 +148,7 @@ class _TXANetworkImageState extends State<TXANetworkImage> {
 
         if (response.statusCode == 200) {
           final bytes = response.bodyBytes;
-          TXANetworkImage._memoryCache[cleanUrl] = bytes;
+          TXANetworkImage._addToMemoryCache(cleanUrl, bytes);
 
           // Lưu xuống Disk Cache ở background (không block UI)
           if (cacheFile != null) {

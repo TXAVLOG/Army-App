@@ -5,12 +5,46 @@ class TXAVersion extends ChangeNotifier {
   TXAVersion._internal();
 
   static const String appName = 'Army';
-  static const String currentVersion = '1.7.1';
-  static const int buildNumber = 13;
-  static const String releaseDate = '01/09/2026';
-  static const String fullVersionString = 'Bản 1.7.1+13';
+  static const String currentVersion = '1.8.0';
+  static const int buildNumber = 14;
+  static const String releaseDate = '13/09/2026';
+  static const String fullVersionString = 'Bản 1.8.0+14';
 
   static const List<Map<String, dynamic>> changelogData = [
+    {
+      'version': '1.8.0+14',
+      'date': '13/09/2026',
+      'title': 'Trải Nghiệm Locket Chuẩn Đỉnh Cao, Tết Trung Thu 🥮 & Đặc Quyền VIP 👑✨',
+      'subtitle': 'Nút chụp ảnh nảy đàn hồi Locket haptic, thả tim bay bung lụa 💛, phóng to ảnh bằng 2 ngón tay, bộ giao diện đón Tết Trung Thu và đặc quyền Gold Pass Lifetime cho Admin.',
+      'badge': 'BẢN NÂNG CẤP LỚN',
+      'features': [
+        {
+          'icon': '📸',
+          'title': 'Nút Chụp Đàn Hồi & Nâng Cấp Camera 0.5x',
+          'description': 'Nút chụp ảnh nảy phản hồi xúc giác (Haptic Spring) chân thực phong cách Locket, tự động phát hiện phần cứng hỗ trợ góc siêu rộng 0.5x cực sắc nét.',
+        },
+        {
+          'icon': '💛',
+          'title': 'Chạm Đúp Thả Tim Bay & Thu Phóng Ảnh Bảng Tin',
+          'description': 'Chạm đúp (Double-tap) ảnh để bắn tim vàng bung lụa rực rỡ, hỗ trợ dùng 2 ngón tay thu phóng ảnh (Pinch-to-zoom) siêu mượt không lo vỡ nét.',
+        },
+        {
+          'icon': '🥮',
+          'title': 'Bộ Giao Diện & Khung Ảnh Tết Trung Thu',
+          'description': 'Đón Rằm Tháng 8 rộn ràng với khung viền ánh trăng vàng, biểu tượng nút chụp Bánh Trung Thu độc quyền và phụ kiện rằm trăng sáng.',
+        },
+        {
+          'icon': '👑',
+          'title': 'Đặc Quyền Hội Viên Gold Pass Lifetime',
+          'description': 'Tài khoản Quản trị viên & VIP tự động nhận thẻ đặc quyền Vĩnh viễn, đổi ngay 26 mẫu Icon 3D chỉ với 1 chạm không cần xem quảng cáo.',
+        },
+        {
+          'icon': '📱',
+          'title': 'Sửa Triệt Để Đổi Icon Trên Màn Hình Android',
+          'description': 'Cơ chế kích hoạt thông minh giúp việc chuyển đổi Icon ứng dụng trên launcher Android mượt mà, không còn bị sinh biểu tượng trùng lặp.',
+        },
+      ],
+    },
     {
       'version': '1.7.1+13',
       'date': '01/09/2026',

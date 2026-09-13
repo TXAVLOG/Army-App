@@ -184,6 +184,32 @@ class TXACameraThemeService extends ChangeNotifier {
       samplePhotoUrl: 'https://images.unsplash.com/photo-1539571696357-5a69c17a67c6?q=80&w=600&auto=format&fit=crop',
     ),
 
+    // 2.5 Mid-Autumn — Trung Thu Trăng Rằm 🥮🌕
+    TXACameraThemeData(
+      id: 'mid_autumn',
+      name: 'Trung Thu Trăng Rằm',
+      icon: '🥮',
+      appBgColor:      Color(0xFF130E24),
+      appCardBg:       Color(0xFF1F1738),
+      appCardBorder:   Color(0xFFFFB703),
+      accentColor:     Color(0xFFFFB703),
+      cameraBgColor:   Color(0xFF1F1738),
+      overlayColor:    Color(0xFFFFB703),
+      overlayOpacity:  0.08,
+      frameDecoration: BoxDecoration(
+        borderRadius: BorderRadius.all(Radius.circular(30)),
+        border: Border.fromBorderSide(BorderSide(color: Color(0xFFFFB703), width: 3.5)),
+        boxShadow: [
+          BoxShadow(color: Color(0x99FFB703), blurRadius: 22, spreadRadius: 2),
+          BoxShadow(color: Color(0x44FB8500), blurRadius: 10, spreadRadius: 1),
+        ],
+      ),
+      shutterBorderColor: Color(0xFFFFB703),
+      shutterFillColor: Color(0xFFFFD166),
+      shutterInnerIcon: '🥮',
+      samplePhotoUrl: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?q=80&w=600&auto=format&fit=crop',
+    ),
+
     // 3. Neon Pink — Nền tím hồng Cyber, viền hồng neon phát sáng
     TXACameraThemeData(
       id: 'pink',

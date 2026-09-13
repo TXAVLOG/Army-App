@@ -31,6 +31,7 @@ import 'package:emoji_picker_flutter/emoji_picker_flutter.dart';
 import '../services/txa_share_service.dart';
 import '../widgets/txa_native_ad_feed_card.dart';
 import '../services/txa_iap_service.dart';
+import '../services/txa_camera_theme_service.dart';
 class AppMouseScrollBehavior extends MaterialScrollBehavior {
   @override
   Set<PointerDeviceKind> get dragDevices => {
@@ -59,6 +60,22 @@ class _LocketFeedScreenState extends State<LocketFeedScreen> {
 
   AudioPlayer? _feedAudioPlayer;
   String? _playingPostId;
+  String? _heartBurstPostId;
+
+  void _onDoubleTapPhoto(LocketPostModel post) {
+    HapticFeedback.mediumImpact();
+    setState(() {
+      _heartBurstPostId = post.id;
+    });
+    _onAddReaction(post, '💛');
+    Future.delayed(const Duration(milliseconds: 700), () {
+      if (mounted && _heartBurstPostId == post.id) {
+        setState(() {
+          _heartBurstPostId = null;
+        });
+      }
+    });
+  }
 
   void _openGoogleMaps(String locationText) async {
     final cleanLocation = locationText.replaceAll('📍', '').trim();
@@ -1364,67 +1381,125 @@ class _LocketFeedScreenState extends State<LocketFeedScreen> {
                                     padding: const EdgeInsets.symmetric(
                                       horizontal: 20,
                                     ),
-                                    child: ClipRRect(
-                                      borderRadius: BorderRadius.circular(28),
-                                      child: Stack(
-                                        fit: StackFit.expand,
-                                        children: [
-                                          (() {
-                                            final Widget mainImageWidget =
-                                                currentPost.photoPath
-                                                    .startsWith('assets/')
-                                                ? Image.asset(
-                                                    currentPost.photoPath,
-                                                    fit: BoxFit.cover,
-                                                  )
-                                                : currentPost.photoPath
-                                                      .startsWith('http')
-                                                ? TXANetworkImage(
-                                                    url: currentPost.photoPath,
-                                                    fit: BoxFit.cover,
-                                                    loadingBuilder: (ctx) {
-                                                      return Container(
-                                                        color: const Color(
-                                                          0xFF1E1E24,
-                                                        ),
-                                                        child: const Center(
-                                                          child:
-                                                              CircularProgressIndicator(
-                                                                color: Color(
-                                                                  0xFF42A5F5,
-                                                                ),
+                                    child: GestureDetector(
+                                      onDoubleTap: () => _onDoubleTapPhoto(currentPost),
+                                      child: Container(
+                                        decoration: BoxDecoration(
+                                          borderRadius: BorderRadius.circular(28),
+                                          border: Border.all(
+                                            color: TXACameraThemeService.instance.currentTheme == 'mid_autumn' ||
+                                                    currentPost.moodEmoji.contains('🥮') ||
+                                                    currentPost.caption.contains('Trung Thu')
+                                                ? const Color(0xFFFFB703)
+                                                : Colors.white.withAlpha(25),
+                                            width: TXACameraThemeService.instance.currentTheme == 'mid_autumn' ||
+                                                    currentPost.moodEmoji.contains('🥮')
+                                                ? 2.5
+                                                : 1.2,
+                                          ),
+                                          boxShadow: [
+                                            BoxShadow(
+                                              color: (TXACameraThemeService.instance.currentTheme == 'mid_autumn' ||
+                                                          currentPost.moodEmoji.contains('🥮')
+                                                      ? const Color(0xFFFFB703)
+                                                      : Colors.black)
+                                                  .withAlpha(60),
+                                              blurRadius: 16,
+                                              spreadRadius: 1,
+                                            ),
+                                          ],
+                                        ),
+                                        child: ClipRRect(
+                                          borderRadius: BorderRadius.circular(26),
+                                          child: Stack(
+                                            fit: StackFit.expand,
+                                            children: [
+                                              InteractiveViewer(
+                                                minScale: 1.0,
+                                                maxScale: 3.5,
+                                                clipBehavior: Clip.none,
+                                                child: (() {
+                                                  final Widget mainImageWidget =
+                                                      currentPost.photoPath
+                                                          .startsWith('assets/')
+                                                      ? Image.asset(
+                                                          currentPost.photoPath,
+                                                          fit: BoxFit.cover,
+                                                        )
+                                                      : currentPost.photoPath
+                                                            .startsWith('http')
+                                                      ? TXANetworkImage(
+                                                          url: currentPost.photoPath,
+                                                          fit: BoxFit.cover,
+                                                          loadingBuilder: (ctx) {
+                                                            return Container(
+                                                              color: const Color(
+                                                                0xFF1E1E24,
                                                               ),
+                                                              child: const Center(
+                                                                child:
+                                                                    CircularProgressIndicator(
+                                                                      color: Color(
+                                                                        0xFF42A5F5,
+                                                                      ),
+                                                                    ),
+                                                              ),
+                                                            );
+                                                          },
+                                                        )
+                                                      : Image.file(
+                                                          File(currentPost.photoPath),
+                                                          fit: BoxFit.cover,
+                                                        );
+
+                                                  if (currentPost.isBlurOverlay ==
+                                                          true &&
+                                                      !_revealedPostIds.contains(
+                                                        currentPost.id,
+                                                      )) {
+                                                    return GestureDetector(
+                                                      onTap: () {
+                                                        setState(() {
+                                                          _revealedPostIds.add(
+                                                            currentPost.id,
+                                                          );
+                                                        });
+                                                      },
+                                                      child: TXABlurDotsOverlay(
+                                                        blur: 15.0,
+                                                        child: mainImageWidget,
+                                                      ),
+                                                    );
+                                                  }
+                                                  return mainImageWidget;
+                                                })(),
+                                              ),
+
+                                              // Heart Burst Animation khi double-tap
+                                              if (_heartBurstPostId == currentPost.id)
+                                                Center(
+                                                  child: TweenAnimationBuilder<double>(
+                                                    tween: Tween<double>(begin: 0.0, end: 1.0),
+                                                    duration: const Duration(milliseconds: 650),
+                                                    curve: Curves.elasticOut,
+                                                    builder: (context, val, child) {
+                                                      return Transform.scale(
+                                                        scale: val * 1.5,
+                                                        child: Opacity(
+                                                          opacity: (1.0 - (val - 0.7).clamp(0.0, 0.3) / 0.3).clamp(0.0, 1.0),
+                                                          child: const Icon(
+                                                            Icons.favorite_rounded,
+                                                            color: Color(0xFFFFC72C),
+                                                            size: 88,
+                                                            shadows: [
+                                                              BoxShadow(color: Colors.black54, blurRadius: 20, spreadRadius: 4),
+                                                            ],
+                                                          ),
                                                         ),
                                                       );
                                                     },
-                                                    
-                                                  )
-                                                : Image.file(
-                                                    File(currentPost.photoPath),
-                                                    fit: BoxFit.cover,
-                                                  );
-
-                                            if (currentPost.isBlurOverlay ==
-                                                    true &&
-                                                !_revealedPostIds.contains(
-                                                  currentPost.id,
-                                                )) {
-                                              return GestureDetector(
-                                                onTap: () {
-                                                  setState(() {
-                                                    _revealedPostIds.add(
-                                                      currentPost.id,
-                                                    );
-                                                  });
-                                                },
-                                                child: TXABlurDotsOverlay(
-                                                  blur: 15.0,
-                                                  child: mainImageWidget,
+                                                  ),
                                                 ),
-                                              );
-                                            }
-                                            return mainImageWidget;
-                                          })(),
 
                                           // Pháo hoa Tết Đinh Mùi 2027
                                           if (currentPost.moodEmoji ==
@@ -2147,8 +2222,10 @@ class _LocketFeedScreenState extends State<LocketFeedScreen> {
                                 ),
                               ),
                             ),
+                          ),
+                        ),
                             
-                            const SizedBox(height: 12),
+                const SizedBox(height: 12),
 
                             // Dòng thông tin người gửi: Avatar, Tên, Thời gian
                             Padding(
@@ -2412,20 +2489,20 @@ class _LocketFeedScreenState extends State<LocketFeedScreen> {
                           ],
                         );
 
-                        if (isSnow) {
-                          return Stack(
-                            fit: StackFit.expand,
-                            children: [
-                              postItem,
-                              IgnorePointer(
-                                child: TXASnowEffect(
-                                  isPlaying: _currentIndex == index,
-                                ),
-                              ),
-                            ],
-                          );
-                        }
-                        return postItem;
+                        final Widget wrappedItem = isSnow
+                            ? Stack(
+                                fit: StackFit.expand,
+                                children: [
+                                  postItem,
+                                  IgnorePointer(
+                                    child: TXASnowEffect(
+                                      isPlaying: _currentIndex == index,
+                                    ),
+                                  ),
+                                ],
+                              )
+                            : postItem;
+                        return RepaintBoundary(child: wrappedItem);
                       },
                     ),
                   ),

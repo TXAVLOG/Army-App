@@ -33,6 +33,7 @@ class TXAIAPService extends ChangeNotifier {
 
   bool get isVipActive {
     final user = TXAAuthService.instance.currentUser;
+    if (user?.isAdmin == true) return true;
     return user?.isVipCurrentlyActive ?? false;
   }
 

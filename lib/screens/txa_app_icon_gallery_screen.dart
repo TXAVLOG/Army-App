@@ -543,7 +543,7 @@ class _TXAAppIconGalleryScreenState extends State<TXAAppIconGalleryScreen> {
                 ),
               ),
             )
-          else if (isUnlocked)
+          else if (isUnlocked || TXAAuthService.instance.currentUser?.isAdmin == true)
             SizedBox(
               width: double.infinity,
               height: 32,

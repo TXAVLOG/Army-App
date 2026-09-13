@@ -64,6 +64,16 @@ class TXAAppIconService extends ChangeNotifier {
   static const List<TXAAppIconItem> icons = [
     // ─── Special Festival Icons (Lễ Hội Đặc Biệt) ─────────────
     TXAAppIconItem(
+      id: 'mid_autumn_moon',
+      nameVi: 'Trung Thu Trăng Rằm 🥮',
+      nameEn: 'Mid-Autumn Mooncake 🥮',
+      emoji: '🥮',
+      assetPath: 'assets/icons/army_golden_king_vip.png',
+      gradient: [Color(0xFFFF9E00), Color(0xFFFFD166)],
+      isVip: false, // Miễn phí cho toàn thể người dùng vui Trung Thu
+      badge: 'TRUNG THU',
+    ),
+    TXAAppIconItem(
       id: 'national_day_29',
       nameVi: 'Quốc Khánh 2/9 🇻🇳',
       nameEn: 'Vietnam National Day 🇻🇳',
@@ -329,7 +339,9 @@ class TXAAppIconService extends ChangeNotifier {
 
   bool isIconUnlocked(TXAAppIconItem item) {
     if (!item.isVip) return true;
-    final isVip = TXAAuthService.instance.currentUser?.isVipCurrentlyActive ?? false;
+    final user = TXAAuthService.instance.currentUser;
+    if (user?.isAdmin == true) return true;
+    final isVip = user?.isVipCurrentlyActive ?? false;
     if (isVip) return true;
     final expiry = _adUnlockedUntil[item.id];
     if (expiry != null && DateTime.now().isBefore(expiry)) {
@@ -340,7 +352,9 @@ class TXAAppIconService extends ChangeNotifier {
 
   /// Trả về số ngày còn lại nếu icon mở khóa qua Ads, null nếu mở vĩnh viễn hoặc chưa mở
   int? getAdRemainingDays(String iconId) {
-    final isVip = TXAAuthService.instance.currentUser?.isVipCurrentlyActive ?? false;
+    final user = TXAAuthService.instance.currentUser;
+    if (user?.isAdmin == true) return null;
+    final isVip = user?.isVipCurrentlyActive ?? false;
     if (isVip) return null;
     final expiry = _adUnlockedUntil[iconId];
     if (expiry != null && DateTime.now().isBefore(expiry)) {

@@ -97,27 +97,42 @@ class MainActivity: FlutterFragmentActivity() {
                     try {
                         val pm = packageManager
                         android.util.Log.d("TXAAppIcon", "Đang chuyển đổi launcher alias sang: $targetAlias (Yêu cầu icon: $iconName)")
-                        
-                        // 1. Kích hoạt target alias trước để tránh trạng thái không có icon nào hiển thị
                         val targetComp = android.content.ComponentName(packageName, targetAlias)
+
+                        // 1. Nếu icon này đã đang được bật rồi thì không làm gì để tránh tạo shortcut trùng
+                        val currentTargetState = pm.getComponentEnabledSetting(targetComp)
+                        if (currentTargetState == android.content.pm.PackageManager.COMPONENT_ENABLED_STATE_ENABLED) {
+                            android.util.Log.d("TXAAppIcon", "Alias $targetAlias đã đang kích hoạt, bỏ qua không gửi intent mới.")
+                            result.success(mapOf(
+                                "success" to true,
+                                "appliedAlias" to targetAlias,
+                                "iconName" to iconName
+                            ))
+                            return@setMethodCallHandler
+                        }
+
+                        // 2. Tìm và tắt duy nhất alias đang hoạt động trước (tránh 2 launcher cùng active gây sinh thêm app mới)
+                        for ((_, aliasComponent) in aliasMap) {
+                            if (aliasComponent != targetAlias) {
+                                val comp = android.content.ComponentName(packageName, aliasComponent)
+                                if (pm.getComponentEnabledSetting(comp) == android.content.pm.PackageManager.COMPONENT_ENABLED_STATE_ENABLED) {
+                                    pm.setComponentEnabledSetting(
+                                        comp,
+                                        android.content.pm.PackageManager.COMPONENT_ENABLED_STATE_DISABLED,
+                                        android.content.pm.PackageManager.DONT_KILL_APP
+                                    )
+                                    android.util.Log.d("TXAAppIcon", "Đã tắt alias cũ: $aliasComponent")
+                                }
+                            }
+                        }
+
+                        // 3. Kích hoạt alias mới
                         pm.setComponentEnabledSetting(
                             targetComp,
                             android.content.pm.PackageManager.COMPONENT_ENABLED_STATE_ENABLED,
                             android.content.pm.PackageManager.DONT_KILL_APP
                         )
-
-                        // 2. Vô hiệu hóa các alias còn lại
-                        for ((_, aliasComponent) in aliasMap) {
-                            if (aliasComponent != targetAlias) {
-                                val comp = android.content.ComponentName(packageName, aliasComponent)
-                                pm.setComponentEnabledSetting(
-                                    comp,
-                                    android.content.pm.PackageManager.COMPONENT_ENABLED_STATE_DISABLED,
-                                    android.content.pm.PackageManager.DONT_KILL_APP
-                                )
-                            }
-                        }
-                        android.util.Log.d("TXAAppIcon", "Đã kích hoạt alias $targetAlias thành công!")
+                        android.util.Log.d("TXAAppIcon", "Đã kích hoạt alias mới $targetAlias thành công!")
                         result.success(mapOf(
                             "success" to true,
                             "appliedAlias" to targetAlias,

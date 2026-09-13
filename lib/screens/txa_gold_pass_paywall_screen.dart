@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../theme/txa_theme.dart';
 import '../services/txa_language.dart';
 import '../services/txa_analytics.dart';
+import '../services/txa_auth_service.dart';
 import '../services/txa_iap_service.dart';
 import '../widgets/txa_toast.dart';
 import 'package:in_app_purchase/in_app_purchase.dart';
@@ -38,6 +39,9 @@ class _TXAGoldPassPaywallScreenState extends State<TXAGoldPassPaywallScreen> {
   Widget build(BuildContext context) {
     final txaLang = TXALanguage.instance;
     final iapService = TXAIAPService.instance;
+    final authService = TXAAuthService.instance;
+    final isAdmin = authService.isAdmin;
+    final isVip = authService.currentUser?.isVipCurrentlyActive == true || isAdmin || iapService.isVipActive;
 
     // Find products
     ProductDetails? monthlyProduct;
@@ -138,92 +142,152 @@ class _TXAGoldPassPaywallScreenState extends State<TXAGoldPassPaywallScreen> {
                   fontWeight: FontWeight.w500,
                 ),
               ),
-              const SizedBox(height: 32),
+              const SizedBox(height: 28),
 
-              // Toggle Month vs Year
-              Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  // Monthly Option
-                  GestureDetector(
-                    onTap: () => setState(() => _isYearlySelected = false),
-                    child: Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 14),
-                      decoration: BoxDecoration(
-                        color: !_isYearlySelected ? const Color(0xFFFFD700) : Colors.transparent,
-                        borderRadius: BorderRadius.circular(14),
-                        border: Border.all(
-                          color: !_isYearlySelected ? const Color(0xFFFFD700) : Colors.white24,
-                        ),
-                      ),
-                      child: Text(
-                        txaLang.getText('monthly_plan'),
-                        style: TextStyle(
-                          color: !_isYearlySelected ? Colors.black : Colors.white,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
+              // VIP / Admin Active Card OR Plan Toggle
+              if (isVip) ...[
+                Container(
+                  width: double.infinity,
+                  padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 18),
+                  decoration: BoxDecoration(
+                    gradient: const LinearGradient(
+                      colors: [Color(0xFF352605), Color(0xFF1E1602)],
+                      begin: Alignment.topLeft,
+                      end: Alignment.bottomRight,
                     ),
-                  ),
-                  const SizedBox(width: 16),
-
-                  // Yearly Option with floating badge
-                  Stack(
-                    clipBehavior: Clip.none,
-                    children: [
-                      GestureDetector(
-                        onTap: () => setState(() => _isYearlySelected = true),
-                        child: Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 14),
-                          decoration: BoxDecoration(
-                            color: _isYearlySelected ? const Color(0xFFFFD700) : Colors.transparent,
-                            borderRadius: BorderRadius.circular(14),
-                            border: Border.all(
-                              color: _isYearlySelected ? const Color(0xFFFFD700) : Colors.white24,
-                            ),
-                          ),
-                          child: Text(
-                            txaLang.getText('yearly_plan'),
-                            style: TextStyle(
-                              color: _isYearlySelected ? Colors.black : Colors.white,
-                              fontWeight: FontWeight.bold,
-                            ),
-                          ),
-                        ),
+                    borderRadius: BorderRadius.circular(20),
+                    border: Border.all(color: const Color(0xFFFFD700), width: 1.6),
+                    boxShadow: [
+                      BoxShadow(
+                        color: const Color(0xFFFFD700).withAlpha(60),
+                        blurRadius: 18,
+                        spreadRadius: 1,
                       ),
-
-                      // Floating Discount Badge
-                      Positioned(
-                        top: -12,
-                        right: -10,
-                        child: Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                          decoration: BoxDecoration(
-                            color: Colors.redAccent,
-                            borderRadius: BorderRadius.circular(8),
-                            boxShadow: const [
-                              BoxShadow(
-                                color: Colors.black26,
-                                blurRadius: 4,
-                                offset: Offset(0, 2),
-                              )
-                            ],
-                          ),
-                          child: Text(
-                            txaLang.getText('save_percentage').replaceAll('%count%', '45'),
+                    ],
+                  ),
+                  child: Column(
+                    children: [
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          const Icon(Icons.verified_rounded, color: Color(0xFFFFD700), size: 22),
+                          const SizedBox(width: 8),
+                          Text(
+                            isAdmin
+                                ? txaLang.getText('admin_vip_active_title')
+                                : (txaLang.isVietnamese ? '👑 GOLD PASS ĐANG HOẠT ĐỘNG' : '👑 GOLD PASS ACTIVE'),
                             style: const TextStyle(
-                              color: Colors.white,
-                              fontSize: 9,
+                              color: Color(0xFFFFD700),
+                              fontSize: 15,
                               fontWeight: FontWeight.w900,
+                              letterSpacing: 0.5,
                             ),
                           ),
+                        ],
+                      ),
+                      const SizedBox(height: 8),
+                      Text(
+                        isAdmin
+                            ? txaLang.getText('admin_vip_active_sub')
+                            : (txaLang.isVietnamese
+                                ? 'Tài khoản của bạn đã được kích hoạt trọn bộ đặc quyền VIP cao cấp nhất.'
+                                : 'All premium VIP privileges are active on your account.'),
+                        textAlign: TextAlign.center,
+                        style: const TextStyle(
+                          color: Colors.white70,
+                          fontSize: 13,
+                          height: 1.4,
                         ),
                       ),
                     ],
                   ),
-                ],
-              ),
-              const SizedBox(height: 32),
+                ),
+              ] else ...[
+                // Toggle Month vs Year
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    // Monthly Option
+                    GestureDetector(
+                      onTap: () => setState(() => _isYearlySelected = false),
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 14),
+                        decoration: BoxDecoration(
+                          color: !_isYearlySelected ? const Color(0xFFFFD700) : Colors.transparent,
+                          borderRadius: BorderRadius.circular(14),
+                          border: Border.all(
+                            color: !_isYearlySelected ? const Color(0xFFFFD700) : Colors.white24,
+                          ),
+                        ),
+                        child: Text(
+                          txaLang.getText('monthly_plan'),
+                          style: TextStyle(
+                            color: !_isYearlySelected ? Colors.black : Colors.white,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 16),
+
+                    // Yearly Option with floating badge
+                    Stack(
+                      clipBehavior: Clip.none,
+                      children: [
+                        GestureDetector(
+                          onTap: () => setState(() => _isYearlySelected = true),
+                          child: Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 14),
+                            decoration: BoxDecoration(
+                              color: _isYearlySelected ? const Color(0xFFFFD700) : Colors.transparent,
+                              borderRadius: BorderRadius.circular(14),
+                              border: Border.all(
+                                color: _isYearlySelected ? const Color(0xFFFFD700) : Colors.white24,
+                              ),
+                            ),
+                            child: Text(
+                              txaLang.getText('yearly_plan'),
+                              style: TextStyle(
+                                color: _isYearlySelected ? Colors.black : Colors.white,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                          ),
+                        ),
+
+                        // Floating Discount Badge
+                        Positioned(
+                          top: -12,
+                          right: -10,
+                          child: Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                            decoration: BoxDecoration(
+                              color: Colors.redAccent,
+                              borderRadius: BorderRadius.circular(8),
+                              boxShadow: const [
+                                BoxShadow(
+                                  color: Colors.black26,
+                                  blurRadius: 4,
+                                  offset: Offset(0, 2),
+                                )
+                              ],
+                            ),
+                            child: Text(
+                              txaLang.getText('save_percentage').replaceAll('%count%', '45'),
+                              style: const TextStyle(
+                                color: Colors.white,
+                                fontSize: 9,
+                                fontWeight: FontWeight.w900,
+                              ),
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+              ],
+              const SizedBox(height: 28),
 
               // Plan features
               _buildFeatureRow(Icons.block_rounded, txaLang.getText('vip_feature_adfree')),
@@ -232,104 +296,138 @@ class _TXAGoldPassPaywallScreenState extends State<TXAGoldPassPaywallScreen> {
               _buildFeatureRow(Icons.music_note_rounded, txaLang.getText('vip_feature_spotify')),
               _buildFeatureRow(Icons.download_done_rounded, txaLang.getText('vip_feature_watermark')),
               _buildFeatureRow(Icons.security_rounded, txaLang.getText('vip_feature_security')),
-
-              const SizedBox(height: 40),
-
-              // Pricing details & Subscribe button
-              if (_isYearlySelected) ...[
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  crossAxisAlignment: CrossAxisAlignment.baseline,
-                  textBaseline: TextBaseline.alphabetic,
-                  children: [
-                    Text(
-                      originalYearlyPrice,
-                      style: const TextStyle(
-                        color: Colors.white38,
-                        fontSize: 17,
-                        fontWeight: FontWeight.w600,
-                        decoration: TextDecoration.lineThrough,
-                        decorationColor: Colors.white54,
-                        decorationThickness: 2,
-                      ),
-                    ),
-                    const SizedBox(width: 10),
-                    Text(
-                      displayPrice,
-                      style: const TextStyle(
-                        color: Color(0xFFFFD700),
-                        fontSize: 24,
-                        fontWeight: FontWeight.w900,
-                        letterSpacing: 0.3,
-                      ),
-                    ),
-                  ],
+              if (isAdmin)
+                _buildFeatureRow(
+                  Icons.admin_panel_settings_rounded,
+                  txaLang.isVietnamese
+                      ? 'Quyền Admin: Quản trị hệ thống, kiểm duyệt và toàn quyền tính năng'
+                      : 'Admin Authority: Full management & system control',
                 ),
-                const SizedBox(height: 6),
-                Text(
-                  txaLang.getText('yearly_discount_hint').replaceAll('%count%', '45'),
-                  style: TextStyle(
-                    color: const Color(0xFFFFD700).withAlpha(220),
-                    fontSize: 12,
-                    fontWeight: FontWeight.w600,
+
+              const SizedBox(height: 32),
+
+              // Pricing details & Subscribe button OR Active Status Button
+              if (isVip) ...[
+                SizedBox(
+                  width: double.infinity,
+                  height: 56,
+                  child: ElevatedButton.icon(
+                    onPressed: () => Navigator.pop(context),
+                    icon: const Icon(Icons.check_circle_rounded, color: Colors.black, size: 22),
+                    label: Text(
+                      isAdmin
+                          ? txaLang.getText('admin_vip_active_btn')
+                          : (txaLang.isVietnamese ? 'Đặc quyền đang hoạt động' : 'Privilege Active'),
+                      style: const TextStyle(
+                        color: Colors.black,
+                        fontSize: 16,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: const Color(0xFFFFD700),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(16),
+                      ),
+                    ),
                   ),
                 ),
               ] else ...[
-                Text(
-                  displayPrice,
-                  style: const TextStyle(
-                    color: Colors.white,
-                    fontSize: 22,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-              ],
-              const SizedBox(height: 16),
-
-              SizedBox(
-                width: double.infinity,
-                height: 56,
-                child: ElevatedButton(
-                  onPressed: () async {
-                    if (selectedProduct != null) {
-                      await iapService.buySubscription(selectedProduct, context);
-                    } else if (Platform.isIOS) {
-                      // Trigger iOS notice
-                      await iapService.buySubscription(
-                        ProductDetails(
-                          id: _isYearlySelected ? TXAIAPService.yearlyProductId : TXAIAPService.monthlyProductId,
-                          title: 'Gold Pass',
-                          description: 'Premium subscription',
-                          price: displayPrice,
-                          rawPrice: _isYearlySelected ? 6.99 : 0.99,
-                          currencyCode: 'USD',
+                if (_isYearlySelected) ...[
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    crossAxisAlignment: CrossAxisAlignment.baseline,
+                    textBaseline: TextBaseline.alphabetic,
+                    children: [
+                      Text(
+                        originalYearlyPrice,
+                        style: const TextStyle(
+                          color: Colors.white38,
+                          fontSize: 17,
+                          fontWeight: FontWeight.w600,
+                          decoration: TextDecoration.lineThrough,
+                          decorationColor: Colors.white54,
+                          decorationThickness: 2,
                         ),
-                        context,
-                      );
-                    } else {
-                      TXAToast.show(
-                        context,
-                        txaLang.getText('iap_unavailable_store_toast'),
-                        icon: Icons.info_outline_rounded,
-                      );
-                    }
-                  },
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: const Color(0xFFFFD700),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(16),
+                      ),
+                      const SizedBox(width: 10),
+                      Text(
+                        displayPrice,
+                        style: const TextStyle(
+                          color: Color(0xFFFFD700),
+                          fontSize: 24,
+                          fontWeight: FontWeight.w900,
+                          letterSpacing: 0.3,
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 6),
+                  Text(
+                    txaLang.getText('yearly_discount_hint').replaceAll('%count%', '45'),
+                    style: TextStyle(
+                      color: const Color(0xFFFFD700).withAlpha(220),
+                      fontSize: 12,
+                      fontWeight: FontWeight.w600,
                     ),
                   ),
-                  child: Text(
-                    txaLang.getText('subscribe_now'),
+                ] else ...[
+                  Text(
+                    displayPrice,
                     style: const TextStyle(
-                      color: Colors.black,
-                      fontSize: 16,
+                      color: Colors.white,
+                      fontSize: 22,
                       fontWeight: FontWeight.bold,
                     ),
                   ),
+                ],
+                const SizedBox(height: 16),
+
+                SizedBox(
+                  width: double.infinity,
+                  height: 56,
+                  child: ElevatedButton(
+                    onPressed: () async {
+                      if (selectedProduct != null) {
+                        await iapService.buySubscription(selectedProduct, context);
+                      } else if (Platform.isIOS) {
+                        // Trigger iOS notice
+                        await iapService.buySubscription(
+                          ProductDetails(
+                            id: _isYearlySelected ? TXAIAPService.yearlyProductId : TXAIAPService.monthlyProductId,
+                            title: 'Gold Pass',
+                            description: 'Premium subscription',
+                            price: displayPrice,
+                            rawPrice: _isYearlySelected ? 6.99 : 0.99,
+                            currencyCode: 'USD',
+                          ),
+                          context,
+                        );
+                      } else {
+                        TXAToast.show(
+                          context,
+                          txaLang.getText('iap_unavailable_store_toast'),
+                          icon: Icons.info_outline_rounded,
+                        );
+                      }
+                    },
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: const Color(0xFFFFD700),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(16),
+                      ),
+                    ),
+                    child: Text(
+                      txaLang.getText('subscribe_now'),
+                      style: const TextStyle(
+                        color: Colors.black,
+                        fontSize: 16,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  ),
                 ),
-              ),
+              ],
             ],
           ),
         ),

@@ -200,6 +200,19 @@ class _PhotoPreviewScreenState extends State<PhotoPreviewScreen> {
       });
     }
 
+    // Trung Thu caption: Hiện trong mùa Trung Thu (cuối tháng 8 đến giữa tháng 10)
+    if (TXAFestivalManager.isMidAutumnPeriod(now)) {
+      for (int i = 1; i <= 10; i++) {
+        specialItems.add({
+          'label': '__mid_autumn_${i}__',
+          'displayText': TXAFestivalManager.getHolidayCaption('__mid_autumn_${i}__', langCode),
+          'color': const Color(0xFFFFB703),
+          'gradient': [const Color(0xFFFFB703), const Color(0xFFFB8500)],
+          'textColor': Colors.black,
+        });
+      }
+    }
+
     // 20/11 caption: Gần ngày mới hiện (13/11 đến 21/11)
     if (TXAFestivalManager.isTeachersDayPeriod(now)) {
       specialItems.add({
