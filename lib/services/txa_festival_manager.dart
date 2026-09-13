@@ -167,17 +167,24 @@ class TXAFestivalManager {
   /// Trả về caption lễ hội cho các ngày lễ lớn khác của Việt Nam
   static String getHolidayCaption(String key, String langCode) {
     final txaLang = TXALanguage.instance;
-    if (key.startsWith('__mid_autumn_')) {
-      final indexStr = key.replaceAll('__mid_autumn_', '').replaceAll('__', '');
-      return txaLang.getText('mid_autumn_caption_$indexStr');
+    if (key.contains('mid_autumn')) {
+      final match = RegExp(r'(\d+)').firstMatch(key);
+      if (match != null) {
+        final indexStr = match.group(1);
+        final text = txaLang.getText('mid_autumn_caption_$indexStr');
+        if (text.isNotEmpty && !text.contains('mid_autumn_caption')) {
+          return text;
+        }
+      }
+      return txaLang.getText('holiday_mid_autumn');
     }
-    if (key == '__holiday_30_4_1_5__') {
+    if (key.contains('30_4') || key.contains('1_5')) {
       return txaLang.getText('holiday_30_4_1_5');
     }
-    if (key == '__holiday_2_9__') {
+    if (key.contains('2_9')) {
       return txaLang.getText('holiday_2_9');
     }
-    if (key == '__holiday_20_11__') {
+    if (key.contains('20_11')) {
       return txaLang.getText('holiday_20_11');
     }
     return '';

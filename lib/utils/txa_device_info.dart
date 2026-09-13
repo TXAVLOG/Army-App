@@ -2,10 +2,31 @@ import 'dart:io';
 import 'package:flutter/foundation.dart';
 import 'package:device_info_plus/device_info_plus.dart';
 import 'package:battery_plus/battery_plus.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import '../services/txa_version.dart';
 import '../services/txa_language.dart';
 
 class TXADeviceInfo {
+  /// Unique installation ID cache key
+  static const String _keyInstallId = 'txa_device_install_id';
+
+  /// Get or create a persistent unique installation identifier for anonymous user tracking
+  static Future<String> getInstallationId() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      var id = prefs.getString(_keyInstallId);
+      if (id == null || id.isEmpty || !id.startsWith('tarmy_')) {
+        final randTime = DateTime.now().millisecondsSinceEpoch.toRadixString(36);
+        final randMicro = (DateTime.now().microsecondsSinceEpoch % 100000).toRadixString(36);
+        id = 'tarmy_${randTime}_$randMicro';
+        await prefs.setString(_keyInstallId, id);
+      }
+      return id;
+    } catch (_) {
+      return 'tarmy_device';
+    }
+  }
+
   /// Check if the device is Rooted (Android) or Jailbroken (iOS)
   static Future<bool> checkIsRootedOrJailbroken() async {
     if (kIsWeb) return false;
@@ -57,6 +78,108 @@ class TXADeviceInfo {
     } catch (_) {}
 
     return false;
+  }
+
+  /// Fetch standardized, machine-readable hardware, system, and diagnostic data
+  static Future<Map<String, dynamic>> getRawDiagnosticData() async {
+    final Map<String, dynamic> data = {
+      'platform': Platform.operatingSystem,
+      'isWeb': kIsWeb,
+    };
+
+    try {
+      final installId = await getInstallationId();
+      data['installId'] = installId;
+
+      final isRooted = await checkIsRootedOrJailbroken();
+      data['isRootedOrJailbroken'] = isRooted;
+
+      // Screen resolution & pixel ratio
+      try {
+        final views = PlatformDispatcher.instance.views;
+        if (views.isNotEmpty) {
+          final view = views.first;
+          final size = view.physicalSize;
+          final ratio = view.devicePixelRatio;
+          final dpWidth = (size.width / ratio).round();
+          final dpHeight = (size.height / ratio).round();
+          data['screen'] = '${size.width.toInt()}x${size.height.toInt()} px (${dpWidth}x$dpHeight dp @${ratio.toStringAsFixed(1)}x)';
+          data['screenWidth'] = size.width.toInt();
+          data['screenHeight'] = size.height.toInt();
+          data['devicePixelRatio'] = ratio;
+        }
+      } catch (_) {}
+
+      // Timezone, Locale & Processors
+      final now = DateTime.now();
+      final timeZone = now.timeZoneName;
+      final timeOffset = now.timeZoneOffset;
+      final offsetHours = timeOffset.inHours.toString().padLeft(2, '0');
+      final offsetMins = (timeOffset.inMinutes % 60).abs().toString().padLeft(2, '0');
+      final sign = timeOffset.isNegative ? '-' : '+';
+      data['timezone'] = '$timeZone (UTC$sign$offsetHours:$offsetMins)';
+      data['locale'] = Platform.localeName;
+      data['cpuCores'] = '${Platform.numberOfProcessors} Cores';
+
+      // Battery Level & Status
+      try {
+        final battery = Battery();
+        final batteryLevel = await battery.batteryLevel;
+        final batteryState = await battery.batteryState;
+        final isCharging = batteryState == BatteryState.charging || batteryState == BatteryState.full;
+        data['batteryLevel'] = '$batteryLevel% (${isCharging ? "Đang sạc" : "Đang dùng pin"})';
+        data['batteryPercent'] = batteryLevel;
+        data['isCharging'] = isCharging;
+      } catch (_) {
+        data['batteryLevel'] = 'N/A';
+      }
+
+      // OS & Hardware details
+      final deviceInfoPlugin = DeviceInfoPlugin();
+      if (Platform.isAndroid) {
+        final androidInfo = await deviceInfoPlugin.androidInfo;
+        data['os'] = 'Android';
+        data['osVersion'] = 'Android ${androidInfo.version.release} (SDK ${androidInfo.version.sdkInt})';
+        data['device'] = '${androidInfo.manufacturer.toUpperCase()} ${androidInfo.model} (${androidInfo.device})';
+        data['model'] = androidInfo.model;
+        data['brand'] = androidInfo.brand.toUpperCase();
+        data['manufacturer'] = androidInfo.manufacturer.toUpperCase();
+        data['boardHardware'] = '${androidInfo.board} / ${androidInfo.hardware}';
+        data['fingerprint'] = androidInfo.fingerprint;
+        data['display'] = androidInfo.display;
+        data['isPhysicalDevice'] = androidInfo.isPhysicalDevice;
+      } else if (Platform.isIOS) {
+        final iosInfo = await deviceInfoPlugin.iosInfo;
+        data['os'] = 'iOS';
+        data['osVersion'] = '${iosInfo.systemName} ${iosInfo.systemVersion}';
+        data['device'] = '${iosInfo.name} (${iosInfo.utsname.machine})';
+        data['model'] = iosInfo.model;
+        data['brand'] = 'APPLE';
+        data['utsMachine'] = iosInfo.utsname.machine;
+        data['isPhysicalDevice'] = iosInfo.isPhysicalDevice;
+      } else if (Platform.isWindows) {
+        final windowsInfo = await deviceInfoPlugin.windowsInfo;
+        data['os'] = 'Windows';
+        data['osVersion'] = 'Windows ${windowsInfo.productName} (Build ${windowsInfo.buildNumber})';
+        data['device'] = windowsInfo.computerName;
+        data['model'] = windowsInfo.productName;
+        data['brand'] = 'Microsoft';
+        data['ram'] = '${(windowsInfo.systemMemoryInMegabytes / 1024).toStringAsFixed(1)} GB RAM';
+        data['cpuCores'] = '${windowsInfo.numberOfCores} Cores';
+        data['isPhysicalDevice'] = true;
+      }
+
+      // App Metadata
+      data['appName'] = TXAVersion.appName;
+      data['appVersion'] = TXAVersion.currentVersion;
+      data['buildNumber'] = TXAVersion.buildNumber;
+      data['fullVersionString'] = TXAVersion.fullVersionString;
+      data['releaseDate'] = TXAVersion.releaseDate;
+    } catch (e) {
+      data['diagnosticError'] = e.toString();
+    }
+
+    return data;
   }
 
   /// Fetch comprehensive hardware, system, root status and diagnostic metadata

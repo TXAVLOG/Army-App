@@ -216,15 +216,15 @@ class _TXALoveFeedScreenState extends State<TXALoveFeedScreen> {
                                         width: 38,
                                         height: 38,
                                         decoration: BoxDecoration(
-                                          color: Color(int.tryParse(post.senderAvatarColor) ?? 0xFF607D8B),
+                                          color: Color(int.tryParse(post.effectiveSenderAvatarColor) ?? 0xFF607D8B),
                                           shape: BoxShape.circle,
                                         ),
                                         child: ClipOval(
-                                          child: post.senderAvatar.startsWith('http')
-                                              ? TXANetworkImage(url: post.senderAvatar, fit: BoxFit.cover)
+                                          child: post.effectiveSenderAvatar.startsWith('http')
+                                              ? TXANetworkImage(url: post.effectiveSenderAvatar, fit: BoxFit.cover)
                                               : Center(
                                                   child: Text(
-                                                    post.senderAvatar,
+                                                    post.effectiveSenderAvatar,
                                                     style: const TextStyle(fontSize: 18),
                                                   ),
                                                 ),

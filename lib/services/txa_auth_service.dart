@@ -18,6 +18,7 @@ import 'txa_config.dart';
 import 'txa_logger.dart';
 import 'txa_notification_service.dart';
 import 'txa_analytics.dart';
+import 'txa_feed_service.dart';
 
 class UserModel {
   final String id;
@@ -792,11 +793,46 @@ class TXAAuthService extends ChangeNotifier {
 
     // Update database
     try {
-      await TXASupabaseService.instance.client.from('txa_users').update({
+      final supabase = TXASupabaseService.instance.client;
+      await supabase.from('txa_users').update({
         'avatar': newAvatar,
         'avatarBgColor': newColorHex,
         'avatarbgcolor': newColorHex,
       }).eq('id', _currentUser!.id);
+
+      // Cập nhật tất cả các bài đăng cũ của user trên Supabase
+      try {
+        await supabase.from('txa_posts').update({
+          'senderAvatar': newAvatar,
+          'senderavatar': newAvatar,
+          'senderAvatarColor': newColorHex,
+          'senderavatarcolor': newColorHex,
+        }).eq('senderUsername', _currentUser!.username);
+      } catch (postErr) {
+        debugPrint('Update posts senderAvatar error: $postErr');
+      }
+
+      // Cập nhật bảng kết bạn để bạn bè thấy avatar mới
+      try {
+        await supabase.from('txa_friend_requests').update({
+          'fromAvatar': newAvatar,
+          'fromavatar': newAvatar,
+          'fromAvatarColor': newColorHex,
+          'fromavatarcolor': newColorHex,
+        }).eq('from', _currentUser!.username);
+
+        await supabase.from('txa_friend_requests').update({
+          'toAvatar': newAvatar,
+          'toavatar': newAvatar,
+          'toAvatarColor': newColorHex,
+          'toavatarcolor': newColorHex,
+        }).eq('to', _currentUser!.username);
+      } catch (friendErr) {
+        debugPrint('Update friend_requests avatar error: $friendErr');
+      }
+
+      // Cập nhật local feed cache ngay lập tức trong RAM
+      TXAFeedService.instance.updateSenderAvatar(_currentUser!.username, newAvatar, newColorHex);
 
       // Update local accounts fallback
       final prefs = await SharedPreferences.getInstance();
@@ -996,6 +1032,13 @@ class TXAAuthService extends ChangeNotifier {
   List<Map<String, dynamic>> get bestFriendsList => _friends.where((f) => f['isBestFriend'] == true).toList();
   List<Map<String, dynamic>> get loversList => _friends.where((f) => f['isLover'] == true).toList();
 
+  Map<String, dynamic>? getFriendByUsername(String targetUsername) {
+    for (final f in _friends) {
+      if (f['username'] == targetUsername) return f;
+    }
+    return null;
+  }
+
   Future<void> _loadFriendsFromPrefs() async {
     final prefs = await SharedPreferences.getInstance();
     final rawJsonStr = prefs.getString(_keyFriendsList);
@@ -1149,6 +1192,44 @@ class TXAAuthService extends ChangeNotifier {
         }
       }
 
+      if (friendUsernames.isNotEmpty) {
+        try {
+          final usersData = await supabase
+              .from('txa_users')
+              .select('username, avatar, avatarBgColor, avatarbgcolor')
+              .inFilter('username', friendUsernames.toList());
+
+          final Map<String, Map<String, String>> latestInfo = {};
+          for (var u in usersData) {
+            final un = u['username']?.toString();
+            final av = u['avatar']?.toString();
+            final col = (u['avatarBgColor'] ?? u['avatarbgcolor'])?.toString();
+            if (un != null) {
+              latestInfo[un] = {
+                'avatar': av ?? '',
+                'color': col ?? '',
+              };
+            }
+          }
+
+          for (int i = 0; i < newFriends.length; i++) {
+            final un = newFriends[i]['username'] as String?;
+            if (un != null && latestInfo.containsKey(un)) {
+              final av = latestInfo[un]!['avatar'];
+              final col = latestInfo[un]!['color'];
+              if (av != null && av.isNotEmpty) {
+                newFriends[i]['avatar'] = av;
+              }
+              if (col != null && col.isNotEmpty) {
+                newFriends[i]['bgColor'] = int.tryParse(col) ?? newFriends[i]['bgColor'];
+              }
+            }
+          }
+        } catch (e) {
+          debugPrint('Sync latest friends avatars error: $e');
+        }
+      }
+
       _friends.clear();
       _friends.addAll(newFriends);
       await _saveFriendsToPrefs();
@@ -1219,6 +1300,29 @@ class TXAAuthService extends ChangeNotifier {
       'createdTime': DateTime.now().toIso8601String(),
       'createdtime': DateTime.now().toIso8601String(),
     });
+
+    // Bắn thông báo In-App qua txa_notifications
+    try {
+      final notiBody = txaLang.getText('noti_friend_req_body').replaceAll('%sender%', fromUsername);
+      await supabase.from('txa_notifications').insert({
+        'type': 'friend_request',
+        'sender': fromUsername,
+        'receiver': toUsername,
+        'content': notiBody,
+        'createdTime': DateTime.now().toIso8601String(),
+        'read': false,
+      });
+      // Bắn push notification nền
+      TXANotificationService.instance.sendBackgroundPushNotification(
+        targetUsername: toUsername,
+        title: txaLang.getText('noti_friend_req_title'),
+        body: notiBody,
+        data: {'type': 'friend_request', 'sender': fromUsername},
+      );
+    } catch (e) {
+      debugPrint('Friend request notification error: $e');
+    }
+
     return {'success': true, 'message': txaLang.getText('friend_request_sent_to').replaceFirst('%user%', toUsername)};
   }
 
@@ -1246,7 +1350,6 @@ class TXAAuthService extends ChangeNotifier {
     await supabase.from('txa_friend_requests').update({'status': 'accepted'}).eq('id', requestId);
 
     // Gửi ngược lại request accepted cho bên kia
-    final toUsername = _currentUser?.username ?? '';
     await supabase.from('txa_friend_requests').insert({
       'from': toUsername,
       'fromAvatar': _currentUser?.avatar ?? '👤',
@@ -1256,6 +1359,28 @@ class TXAAuthService extends ChangeNotifier {
       'status': 'accepted_auto',
       'createdTime': DateTime.now().toIso8601String(),
     });
+
+    // Bắn thông báo In-App cho người gửi kết bạn biết là mình đã chấp nhận
+    try {
+      final notiBody = txaLang.getText('noti_friend_accept_body').replaceAll('%sender%', toUsername);
+      await supabase.from('txa_notifications').insert({
+        'type': 'friend_accepted',
+        'sender': toUsername,
+        'receiver': fromUsername,
+        'content': notiBody,
+        'createdTime': DateTime.now().toIso8601String(),
+        'read': false,
+      });
+      // Bắn push notification nền
+      TXANotificationService.instance.sendBackgroundPushNotification(
+        targetUsername: fromUsername,
+        title: txaLang.getText('noti_friend_accept_title'),
+        body: notiBody,
+        data: {'type': 'friend_accepted', 'sender': toUsername},
+      );
+    } catch (e) {
+      debugPrint('Friend accept notification error: $e');
+    }
 
     notifyListeners();
   }
@@ -1376,6 +1501,7 @@ class TXAAuthService extends ChangeNotifier {
     final item = _friends.removeAt(oldIndex);
     _friends.insert(newIndex, item);
     await _saveFriendsToPrefs();
+    TXAFeedService.instance.clearVisiblePostsCache();
     notifyListeners();
   }
 
@@ -1669,6 +1795,28 @@ class TXAAuthService extends ChangeNotifier {
         'createdTime': DateTime.now().toIso8601String(),
       });
 
+      // Bắn thông báo In-App qua txa_notifications
+      try {
+        final notiBody = txaLang.getText('noti_love_invite_body').replaceAll('%sender%', fromUsername);
+        await supabase.from('txa_notifications').insert({
+          'type': 'love_invitation',
+          'sender': fromUsername,
+          'receiver': targetUsername,
+          'content': notiBody,
+          'createdTime': DateTime.now().toIso8601String(),
+          'read': false,
+        });
+        // Bắn push notification nền
+        TXANotificationService.instance.sendBackgroundPushNotification(
+          targetUsername: targetUsername,
+          title: txaLang.getText('noti_love_invite_title'),
+          body: notiBody,
+          data: {'type': 'love_invitation', 'sender': fromUsername},
+        );
+      } catch (e) {
+        debugPrint('Love invitation notification error: $e');
+      }
+
       return {
         'success': true,
         'message': txaLang.getText('love_invite_sent_success_to').replaceFirst('%user%', targetUsername)
@@ -1748,6 +1896,28 @@ class TXAAuthService extends ChangeNotifier {
 
       // 7. Đồng bộ lại dữ liệu local của mình
       await syncCurrentUserFromFirestore();
+
+      // Bắn thông báo In-App cho người gửi lời mời yêu biết là mình đã chấp nhận
+      try {
+        final notiBody = txaLang.getText('noti_love_accept_body').replaceAll('%sender%', myUsername);
+        await supabase.from('txa_notifications').insert({
+          'type': 'love_accepted',
+          'sender': myUsername,
+          'receiver': senderUsername,
+          'content': notiBody,
+          'createdTime': DateTime.now().toIso8601String(),
+          'read': false,
+        });
+        // Bắn push notification nền
+        TXANotificationService.instance.sendBackgroundPushNotification(
+          targetUsername: senderUsername,
+          title: txaLang.getText('noti_love_accept_title'),
+          body: notiBody,
+          data: {'type': 'love_accepted', 'sender': myUsername},
+        );
+      } catch (e) {
+        debugPrint('Love accept notification error: $e');
+      }
 
       return {'success': true, 'loveId': loveId};
     } catch (e) {

@@ -105,6 +105,8 @@ class _TXAAppIconGalleryScreenState extends State<TXAAppIconGalleryScreen> {
         final currentIcon = iconService.currentIcon;
         final unlockedCount = iconService.unlockedIconsCount;
         final totalCount = TXAAppIconService.icons.length;
+        final freeCount = TXAAppIconService.icons.where((i) => !i.isVip).length;
+        final vipCount = TXAAppIconService.icons.where((i) => i.isVip).length;
         final filteredList = _getFilteredIcons();
 
         return Scaffold(
@@ -117,7 +119,7 @@ class _TXAAppIconGalleryScreenState extends State<TXAAppIconGalleryScreen> {
               onPressed: () => Navigator.pop(context),
             ),
             title: Text(
-              lang.getText('app_icon_gallery_title'),
+              lang.getText('app_icon_gallery_title').replaceAll('%total%', totalCount.toString()),
               style: const TextStyle(
                 color: Colors.white,
                 fontWeight: FontWeight.bold,
@@ -233,7 +235,7 @@ class _TXAAppIconGalleryScreenState extends State<TXAAppIconGalleryScreen> {
                             const SizedBox(height: 4),
                             Text(
                               isVip
-                                  ? lang.getText('app_icon_all_unlocked')
+                                  ? lang.getText('app_icon_all_unlocked').replaceAll('%total%', vipCount.toString())
                                   : lang.getText('app_icon_unlocked_banner')
                                       .replaceAll('%unlocked%', unlockedCount.toString())
                                       .replaceAll('%total%', totalCount.toString()),
@@ -276,13 +278,13 @@ class _TXAAppIconGalleryScreenState extends State<TXAAppIconGalleryScreen> {
                     ),
                     const SizedBox(width: 8),
                     _buildFilterChip(
-                      label: lang.getText('app_icon_filter_free').replaceAll('%count%', '5'),
+                      label: lang.getText('app_icon_filter_free').replaceAll('%count%', freeCount.toString()),
                       selected: _filter == TXAAppIconFilter.free,
                       onTap: () => setState(() => _filter = TXAAppIconFilter.free),
                     ),
                     const SizedBox(width: 8),
                     _buildFilterChip(
-                      label: lang.getText('app_icon_filter_vip').replaceAll('%count%', '20'),
+                      label: lang.getText('app_icon_filter_vip').replaceAll('%count%', vipCount.toString()),
                       selected: _filter == TXAAppIconFilter.vip,
                       onTap: () => setState(() => _filter = TXAAppIconFilter.vip),
                       isGold: true,

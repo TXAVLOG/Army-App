@@ -1,3 +1,4 @@
+import 'dart:io';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -402,7 +403,9 @@ ${widget.entry.rawLine}
 
     try {
       await Clipboard.setData(ClipboardData(text: clipboardText));
-      HapticFeedback.mediumImpact();
+      if (!kIsWeb && (Platform.isAndroid || Platform.isIOS)) {
+        try { HapticFeedback.mediumImpact(); } catch (_) {}
+      }
       if (mounted) {
         TXAToast.show(context, txaLang.getText('log_copied'), icon: Icons.check_circle_rounded);
       }

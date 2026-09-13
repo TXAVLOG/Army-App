@@ -51,15 +51,21 @@ class TXADeepLinkService {
     }
 
     // 4. Listen to incoming links (warm start for other platforms)
-    _linkSubscription = _appLinks.uriLinkStream.listen(
-      (uri) {
-        debugPrint('Warm start Deep Link received: $uri');
-        _processUri(uri);
-      },
-      onError: (err) {
-        debugPrint('Deep Link stream error: $err');
-      },
-    );
+    if (kIsWeb || !Platform.isWindows) {
+      try {
+        _linkSubscription = _appLinks.uriLinkStream.listen(
+          (uri) {
+            debugPrint('Warm start Deep Link received: $uri');
+            _processUri(uri);
+          },
+          onError: (err) {
+            debugPrint('Deep Link stream error: $err');
+          },
+        );
+      } catch (e) {
+        debugPrint('AppLinks subscription error: $e');
+      }
+    }
   }
 
   Future<bool> _checkSingleInstance(List<String> args) async {
@@ -103,22 +109,27 @@ class TXADeepLinkService {
 
       return true; // Keep running
     } catch (e) {
-      // Failed to bind -> Another instance is already running!
-      debugPrint('Another instance is running, forwarding link: $deepLink');
+      debugPrint('DeepLink single-instance bind notice: $e');
       
       if (deepLink != null) {
         try {
-          final socket = await Socket.connect(InternetAddress.loopbackIPv4, _lockPort);
+          final socket = await Socket.connect(
+            InternetAddress.loopbackIPv4,
+            _lockPort,
+            timeout: const Duration(milliseconds: 800),
+          );
           socket.write(deepLink);
           await socket.flush();
           socket.close();
+          // Successfully forwarded link to running instance -> exit this runner
+          exit(0);
         } catch (err) {
-          debugPrint('Failed to forward link: $err');
+          debugPrint('Failed to forward link to existing instance: $err');
         }
       }
       
-      // Exit second instance immediately
-      exit(0);
+      // Do NOT unconditionally call exit(0). Allow app to keep running even if port binding had a notice!
+      return true;
     }
   }
 

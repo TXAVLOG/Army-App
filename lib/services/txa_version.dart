@@ -5,12 +5,46 @@ class TXAVersion extends ChangeNotifier {
   TXAVersion._internal();
 
   static const String appName = 'Army';
-  static const String currentVersion = '1.8.0';
-  static const int buildNumber = 14;
+  static const String currentVersion = '1.8.1';
+  static const int buildNumber = 15;
   static const String releaseDate = '13/09/2026';
-  static const String fullVersionString = 'Bản 1.8.0+14';
+  static const String fullVersionString = 'Bản 1.8.1+15';
 
   static const List<Map<String, dynamic>> changelogData = [
+    {
+      'version': '1.8.1+15',
+      'date': '13/09/2026',
+      'title': 'Khắc Phục Ổn Định Windows 🖥️, Chặn Tự Thả Tim 💛 & Nâng Cấp Báo Lỗi 🛡️',
+      'subtitle': 'Khắc phục triệt để crash webcam trên Windows, chặn tự thả tim bài của chính mình, bổ sung đầy đủ thông số máy cho báo cáo ẩn danh và tối ưu gói cước đa nền tảng.',
+      'badge': 'BẢN SỬA LỖI & ỔN ĐỊNH',
+      'features': [
+        {
+          'icon': '💛',
+          'title': 'Chặn Tự Thả Cảm Xúc Bài Viết Của Chính Mình',
+          'description': 'Khắc phục lỗi chạm đúp (Double-tap) tự thả tim bài của chính mình, bổ sung lớp bảo vệ toàn diện trên cả giao diện và cơ sở dữ liệu Supabase.',
+        },
+        {
+          'icon': '🖥️',
+          'title': 'Tối Ưu Camera & Khắc Phục Crash Trên Windows',
+          'description': 'Cấu hình độ phân giải webcam trung bình và cơ chế đóng camera an toàn, chấm dứt hoàn toàn hiện tượng tràn bộ nhớ texture DirectX gây crash app sau 1-2 phút.',
+        },
+        {
+          'icon': '💳',
+          'title': 'Giao Diện Gói Cước Thích Ứng Windows',
+          'description': 'Ẩn các nút thanh toán IAP/IAU không tương thích trên Windows, bổ sung bảng hướng dẫn đa ngôn ngữ thông minh chuẩn TXALanguage.',
+        },
+        {
+          'icon': '🔍',
+          'title': 'Nâng Cấp Chi Tiết Chẩn Đoán TXALogger',
+          'description': 'Báo cáo lỗi tự động gửi kèm mã máy định danh vĩnh viễn (tarmy_xxxx), thông số CPU, RAM, pin, màn hình và hệ điều hành chi tiết lên bảng txa_reports.',
+        },
+        {
+          'icon': '🌐',
+          'title': 'Giảm Tải Tần Suất Giám Sát Mạng',
+          'description': 'Giãn chu kỳ kiểm tra kết nối mạng từ 3 giây lên 10 giây, giảm tải CPU và tránh cạn kiệt socket mạng trên hệ điều hành máy tính.',
+        },
+      ],
+    },
     {
       'version': '1.8.0+14',
       'date': '13/09/2026',

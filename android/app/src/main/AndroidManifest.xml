@@ -67,6 +67,19 @@
         
         <!-- Dynamic Launcher Activity Aliases for App Icons -->
         <activity-alias
+            android:name=".MainActivityMidAutumn"
+            android:enabled="false"
+            android:exported="true"
+            android:icon="@mipmap/ic_launcher_mid_autumn_moon"
+            android:label="Army"
+            android:targetActivity=".MainActivity">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+        </activity-alias>
+
+        <activity-alias
             android:name=".MainActivityNationalDay"
             android:enabled="false"
             android:exported="true"

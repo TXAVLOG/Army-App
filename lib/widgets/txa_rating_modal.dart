@@ -1,3 +1,5 @@
+import 'dart:io';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import '../services/txa_language.dart';
@@ -157,7 +159,9 @@ class _TXARatingModalState extends State<TXARatingModal> {
 
                   return GestureDetector(
                     onTap: () {
-                      HapticFeedback.lightImpact();
+                      if (!kIsWeb && (Platform.isAndroid || Platform.isIOS)) {
+                        try { HapticFeedback.lightImpact(); } catch (_) {}
+                      }
                       setState(() {
                         _selectedStars = starNum;
                       });

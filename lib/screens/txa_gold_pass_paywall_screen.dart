@@ -72,34 +72,35 @@ class _TXAGoldPassPaywallScreenState extends State<TXAGoldPassPaywallScreen> {
           onPressed: () => Navigator.pop(context),
         ),
         actions: [
-          TextButton(
-            onPressed: iapService.isRestoring
-                ? null
-                : () async {
-                    await iapService.restorePurchases(context);
-                  },
-            child: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                if (iapService.isRestoring) ...[
-                  const SizedBox(
-                    width: 13,
-                    height: 13,
-                    child: CircularProgressIndicator(strokeWidth: 2, color: Color(0xFFFFD700)),
+          if (!Platform.isWindows)
+            TextButton(
+              onPressed: iapService.isRestoring
+                  ? null
+                  : () async {
+                      await iapService.restorePurchases(context);
+                    },
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  if (iapService.isRestoring) ...[
+                    const SizedBox(
+                      width: 13,
+                      height: 13,
+                      child: CircularProgressIndicator(strokeWidth: 2, color: Color(0xFFFFD700)),
+                    ),
+                    const SizedBox(width: 8),
+                  ],
+                  Text(
+                    txaLang.getText('restore_purchases'),
+                    style: TextStyle(
+                      color: iapService.isRestoring ? const Color(0xFFFFD700) : Colors.white70,
+                      fontSize: 13,
+                      fontWeight: iapService.isRestoring ? FontWeight.bold : FontWeight.normal,
+                    ),
                   ),
-                  const SizedBox(width: 8),
                 ],
-                Text(
-                  txaLang.getText('restore_purchases'),
-                  style: TextStyle(
-                    color: iapService.isRestoring ? const Color(0xFFFFD700) : Colors.white70,
-                    fontSize: 13,
-                    fontWeight: iapService.isRestoring ? FontWeight.bold : FontWeight.normal,
-                  ),
-                ),
-              ],
+              ),
             ),
-          ),
         ],
       ),
       body: SafeArea(
@@ -202,6 +203,8 @@ class _TXAGoldPassPaywallScreenState extends State<TXAGoldPassPaywallScreen> {
                     ],
                   ),
                 ),
+              ] else if (Platform.isWindows) ...[
+                // Trên Windows: ẩn chọn gói thanh toán di động
               ] else ...[
                 // Toggle Month vs Year
                 Row(
@@ -329,6 +332,55 @@ class _TXAGoldPassPaywallScreenState extends State<TXAGoldPassPaywallScreen> {
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(16),
                       ),
+                    ),
+                  ),
+                ),
+              ] else if (Platform.isWindows) ...[
+                Container(
+                  width: double.infinity,
+                  padding: const EdgeInsets.all(16),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFFFD700).withAlpha(18),
+                    borderRadius: BorderRadius.circular(16),
+                    border: Border.all(color: const Color(0xFFFFD700).withAlpha(80)),
+                  ),
+                  child: Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const Icon(Icons.laptop_chromebook_rounded, color: Color(0xFFFFD700), size: 24),
+                      const SizedBox(width: 14),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              txaLang.getText('windows_iap_unsupported_title'),
+                              style: const TextStyle(color: Color(0xFFFFD700), fontSize: 14, fontWeight: FontWeight.bold),
+                            ),
+                            const SizedBox(height: 6),
+                            Text(
+                              txaLang.getText('windows_iap_unsupported_desc'),
+                              style: const TextStyle(color: Colors.white70, fontSize: 12, height: 1.4),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 16),
+                SizedBox(
+                  width: double.infinity,
+                  height: 52,
+                  child: OutlinedButton(
+                    onPressed: () => Navigator.pop(context),
+                    style: OutlinedButton.styleFrom(
+                      side: const BorderSide(color: Colors.white24),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                    ),
+                    child: Text(
+                      txaLang.getText('close'),
+                      style: const TextStyle(color: Colors.white, fontSize: 15, fontWeight: FontWeight.bold),
                     ),
                   ),
                 ),

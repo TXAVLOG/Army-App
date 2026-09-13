@@ -1,3 +1,5 @@
+import 'dart:io';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import '../theme/txa_theme.dart';
@@ -59,7 +61,11 @@ class _TXACameraSettingsModalState extends State<TXACameraSettingsModal> {
   }
 
   void _selectFlashMode(int mode) {
-    HapticFeedback.lightImpact();
+    if (!kIsWeb && (Platform.isAndroid || Platform.isIOS)) {
+      try {
+        HapticFeedback.lightImpact();
+      } catch (_) {}
+    }
     setState(() {
       _currentFlashMode = mode;
     });
@@ -82,7 +88,11 @@ class _TXACameraSettingsModalState extends State<TXACameraSettingsModal> {
   }
 
   void _selectTimerSeconds(int seconds) {
-    HapticFeedback.lightImpact();
+    if (!kIsWeb && (Platform.isAndroid || Platform.isIOS)) {
+      try {
+        HapticFeedback.lightImpact();
+      } catch (_) {}
+    }
     setState(() {
       _currentTimerSeconds = seconds;
     });
@@ -272,103 +282,104 @@ class _TXACameraSettingsModalState extends State<TXACameraSettingsModal> {
                 padding: const EdgeInsets.symmetric(horizontal: 16),
                 child: Row(
                   crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    // ─── CỘT 1: ĐÈN FLASH ───
-                    Expanded(
-                      child: Container(
-                        padding: const EdgeInsets.all(12),
-                        decoration: BoxDecoration(
-                          color: Colors.white.withAlpha(8),
-                          borderRadius: BorderRadius.circular(20),
-                          border: Border.all(
-                            color: Colors.white.withAlpha(15),
-                            width: 1,
+                                    // ─── CỘT 1: ĐÈN FLASH (chỉ hiển thị trên thiết bị có hỗ trợ Flash) ───
+                    if (kIsWeb || !Platform.isWindows) ...[
+                      Expanded(
+                        child: Container(
+                          padding: const EdgeInsets.all(12),
+                          decoration: BoxDecoration(
+                            color: Colors.white.withAlpha(8),
+                            borderRadius: BorderRadius.circular(20),
+                            border: Border.all(
+                              color: Colors.white.withAlpha(15),
+                              width: 1,
+                            ),
                           ),
-                        ),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.stretch,
-                          children: [
-                            // Column Header
-                            Row(
-                              children: [
-                                const Icon(
-                                  Icons.bolt_rounded,
-                                  color: TXATheme.primaryYellow,
-                                  size: 18,
-                                ),
-                                const SizedBox(width: 6),
-                                Expanded(
-                                  child: Text(
-                                    txaLang.getText('flash_title').toUpperCase(),
-                                    style: const TextStyle(
-                                      color: TXATheme.primaryYellow,
-                                      fontSize: 12,
-                                      fontWeight: FontWeight.w900,
-                                      letterSpacing: 0.8,
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.stretch,
+                            children: [
+                              // Column Header
+                              Row(
+                                children: [
+                                  const Icon(
+                                    Icons.bolt_rounded,
+                                    color: TXATheme.primaryYellow,
+                                    size: 18,
+                                  ),
+                                  const SizedBox(width: 6),
+                                  Expanded(
+                                    child: Text(
+                                      txaLang.getText('flash_title').toUpperCase(),
+                                      style: const TextStyle(
+                                        color: TXATheme.primaryYellow,
+                                        fontSize: 12,
+                                        fontWeight: FontWeight.w900,
+                                        letterSpacing: 0.8,
+                                      ),
                                     ),
+                                  ),
+                                ],
+                              ),
+                              const SizedBox(height: 12),
+
+                              // Flash Items
+                              ...flashOptions.map((opt) {
+                                final mode = opt['mode'] as int;
+                                final isSelected = _currentFlashMode == mode;
+                                final title = opt['title'] as String;
+                                final icon = opt['icon'] as IconData;
+
+                                return _buildOptionTile(
+                                  title: title,
+                                  icon: icon,
+                                  isSelected: isSelected,
+                                  onTap: () => _selectFlashMode(mode),
+                                );
+                              }),
+
+                              if (!widget.isRearCamera) ...[
+                                const SizedBox(height: 8),
+                                Container(
+                                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
+                                  decoration: BoxDecoration(
+                                    color: Colors.orange.withAlpha(25),
+                                    borderRadius: BorderRadius.circular(10),
+                                    border: Border.all(
+                                      color: Colors.orange.withAlpha(60),
+                                      width: 1,
+                                    ),
+                                  ),
+                                  child: Row(
+                                    children: [
+                                      const Icon(
+                                        Icons.info_outline_rounded,
+                                        color: Colors.orangeAccent,
+                                        size: 13,
+                                      ),
+                                      const SizedBox(width: 5),
+                                      Expanded(
+                                        child: Text(
+                                          txaLang.getText('flash_rear_only_hint'),
+                                          style: TextStyle(
+                                            color: Colors.orange.shade200,
+                                            fontSize: 10,
+                                            fontWeight: FontWeight.w500,
+                                          ),
+                                        ),
+                                      ),
+                                    ],
                                   ),
                                 ),
                               ],
-                            ),
-                            const SizedBox(height: 12),
-
-                            // Flash Items
-                            ...flashOptions.map((opt) {
-                              final mode = opt['mode'] as int;
-                              final isSelected = _currentFlashMode == mode;
-                              final title = opt['title'] as String;
-                              final icon = opt['icon'] as IconData;
-
-                              return _buildOptionTile(
-                                title: title,
-                                icon: icon,
-                                isSelected: isSelected,
-                                onTap: () => _selectFlashMode(mode),
-                              );
-                            }),
-
-                            if (!widget.isRearCamera) ...[
-                              const SizedBox(height: 8),
-                              Container(
-                                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
-                                decoration: BoxDecoration(
-                                  color: Colors.orange.withAlpha(25),
-                                  borderRadius: BorderRadius.circular(10),
-                                  border: Border.all(
-                                    color: Colors.orange.withAlpha(60),
-                                    width: 1,
-                                  ),
-                                ),
-                                child: Row(
-                                  children: [
-                                    const Icon(
-                                      Icons.info_outline_rounded,
-                                      color: Colors.orangeAccent,
-                                      size: 13,
-                                    ),
-                                    const SizedBox(width: 5),
-                                    Expanded(
-                                      child: Text(
-                                        txaLang.getText('flash_rear_only_hint'),
-                                        style: TextStyle(
-                                          color: Colors.orange.shade200,
-                                          fontSize: 10,
-                                          fontWeight: FontWeight.w500,
-                                        ),
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                              ),
                             ],
-                          ],
+                          ),
                         ),
                       ),
-                    ),
-
-                    const SizedBox(width: 12),
+                      const SizedBox(width: 12),
+                    ],
 
                     // ─── CỘT 2: HẸN GIỜ CHỤP ───
+                    Expanded(Ờ CHỤP ───
                     Expanded(
                       child: Container(
                         padding: const EdgeInsets.all(12),

@@ -61,11 +61,67 @@ class MainActivity: FlutterFragmentActivity() {
             }
         }
 
+        MethodChannel(flutterEngine.dartExecutor.binaryMessenger, "vn.army.txa/media").setMethodCallHandler { call, result ->
+            when (call.method) {
+                "saveImageToGallery" -> {
+                    try {
+                        val bytes = call.argument<ByteArray>("bytes")
+                        val fileName = call.argument<String>("fileName") ?: "army_${System.currentTimeMillis()}.png"
+                        if (bytes == null) {
+                            result.error("INVALID_DATA", "Image bytes cannot be null", null)
+                            return@setMethodCallHandler
+                        }
+
+                        val contentValues = android.content.ContentValues().apply {
+                            put(android.provider.MediaStore.Images.Media.DISPLAY_NAME, fileName)
+                            put(android.provider.MediaStore.Images.Media.MIME_TYPE, "image/png")
+                            if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.Q) {
+                                put(android.provider.MediaStore.Images.Media.RELATIVE_PATH, android.os.Environment.DIRECTORY_PICTURES + "/Army")
+                                put(android.provider.MediaStore.Images.Media.IS_PENDING, 1)
+                            }
+                        }
+
+                        val uri = contentResolver.insert(android.provider.MediaStore.Images.Media.EXTERNAL_CONTENT_URI, contentValues)
+                        if (uri != null) {
+                            contentResolver.openOutputStream(uri)?.use { os ->
+                                os.write(bytes)
+                                os.flush()
+                            }
+                            if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.Q) {
+                                contentValues.clear()
+                                contentValues.put(android.provider.MediaStore.Images.Media.IS_PENDING, 0)
+                                contentResolver.update(uri, contentValues, null, null)
+                            } else {
+                                sendBroadcast(android.content.Intent(android.content.Intent.ACTION_MEDIA_SCANNER_SCAN_FILE, uri))
+                            }
+                            result.success(uri.toString())
+                        } else {
+                            result.error("URI_NULL", "Failed to create MediaStore entry", null)
+                        }
+                    } catch (e: Exception) {
+                        android.util.Log.e("TXAMedia", "Error saving image to gallery: ${e.message}", e)
+                        result.error("SAVE_FAILED", e.message, null)
+                    }
+                }
+                "scanFile" -> {
+                    val path = call.argument<String>("path")
+                    if (path != null) {
+                        android.media.MediaScannerConnection.scanFile(this, arrayOf(path), arrayOf("image/png"), null)
+                        result.success(true)
+                    } else {
+                        result.error("INVALID_PATH", "Path is null", null)
+                    }
+                }
+                else -> result.notImplemented()
+            }
+        }
+
         MethodChannel(flutterEngine.dartExecutor.binaryMessenger, "vn.army.txa/app_icon").setMethodCallHandler { call, result ->
             when (call.method) {
                 "changeAppIcon" -> {
                     val iconName = call.argument<String>("iconName") ?: "default_gold"
                     val aliasMap = mapOf(
+                        "mid_autumn_moon" to "vn.army.txa.MainActivityMidAutumn",
                         "national_day_29" to "vn.army.txa.MainActivityNationalDay",
                         "default_gold" to "vn.army.txa.MainActivityDefault",
                         "midnight_dark" to "vn.army.txa.MainActivityMidnight",

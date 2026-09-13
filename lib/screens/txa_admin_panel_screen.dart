@@ -1,3 +1,4 @@
+import 'package:flutter/services.dart';
 import 'package:flutter/material.dart';
 import '../services/txa_supabase_service.dart';
 import '../theme/txa_theme.dart';
@@ -8,6 +9,7 @@ import '../services/txa_streak_service.dart';
 import '../services/txa_language.dart';
 import '../services/txa_format.dart';
 import '../widgets/txa_toast.dart';
+import '../widgets/txa_network_image.dart';
 
 class TXAAdminPanelScreen extends StatefulWidget {
   const TXAAdminPanelScreen({super.key});
@@ -34,11 +36,13 @@ class _TXAAdminPanelScreenState extends State<TXAAdminPanelScreen> with SingleTi
     setState(() => _isLoading = true);
     final users = await TXAAuthService.instance.getAllUsersFromFirestore();
     final reports = await TXAFeedService.instance.getReportsFromFirestore();
-    setState(() {
-      _users = users;
-      _reports = reports;
-      _isLoading = false;
-    });
+    if (mounted) {
+      setState(() {
+        _users = users;
+        _reports = reports;
+        _isLoading = false;
+      });
+    }
   }
 
   @override
@@ -78,16 +82,270 @@ class _TXAAdminPanelScreenState extends State<TXAAdminPanelScreen> with SingleTi
 
   Future<void> _handleResolveReport(Map<String, dynamic> report) async {
     final txaLang = TXALanguage.instance;
-    final reporter = report['reporter'] ?? '@user';
+    final reporter = (report['reporter'] ?? '@user').toString();
+    final postSender = (report['postSender'] ?? report['postsender'])?.toString();
+    final isFromLogger = reporter == 'TXALogger' || reporter.startsWith('TXALogger');
+    final targetUsername = isFromLogger ? postSender : reporter;
+
     await TXAFeedService.instance.resolveReport(
-      reportId: report['id'],
+      reportId: (report['id'] ?? '').toString(),
       reporterUsername: reporter,
+      targetUsername: targetUsername,
     );
 
     if (mounted) {
-      TXAToast.show(context, txaLang.getText('admin_resolve_report_success').replaceAll('%reporter%', reporter));
+      final notifyTarget = (targetUsername != null && targetUsername.isNotEmpty && targetUsername != 'anonymous') ? targetUsername : reporter;
+      TXAToast.show(
+        context,
+        txaLang.getText('admin_resolve_report_success').replaceAll('%reporter%', notifyTarget),
+        icon: Icons.check_circle_rounded,
+      );
       _loadData();
     }
+  }
+
+  Future<void> _copyReportToClipboard(Map<String, dynamic> report) async {
+    final txaLang = TXALanguage.instance;
+    final id = report['id'] ?? 'N/A';
+    final reporter = report['reporter'] ?? 'N/A';
+    final target = (report['postSender'] ?? report['postsender']) ?? 'N/A';
+    final isResolved = report['status'] == 'resolved';
+    final status = isResolved ? txaLang.getText('admin_report_resolved') : txaLang.getText('admin_report_pending');
+    final time = (report['createdTime'] ?? report['createdtime']) ?? 'N/A';
+    final postId = report['postId'] ?? report['postid'];
+    final photo = (report['photoPath'] ?? report['photopath'])?.toString();
+    final caption = (report['caption']?.toString() ?? '').trim().isNotEmpty
+        ? report['caption'].toString()
+        : txaLang.getText('admin_report_no_content');
+
+    final text = '''=== BÁO CÁO ARMY (ID: $id) ===
+• Trạng thái: $status
+• Người báo cáo: $reporter
+• Đối tượng: $target
+• Thời gian: $time
+${postId != null ? '• Bài viết ID: $postId\n' : ''}${photo != null && photo.isNotEmpty ? '• Ảnh đính kèm: $photo\n' : ''}• Nội dung / Chi tiết:
+$caption
+==============================''';
+
+    await Clipboard.setData(ClipboardData(text: text));
+    if (mounted) {
+      TXAToast.show(context, txaLang.getText('admin_report_copied'), icon: Icons.copy_rounded);
+    }
+  }
+
+  void _showReportDetailModal(Map<String, dynamic> report) {
+    final txaLang = TXALanguage.instance;
+    final id = (report['id'] ?? 'N/A').toString();
+    final reporter = (report['reporter'] ?? 'N/A').toString();
+    final target = ((report['postSender'] ?? report['postsender']) ?? 'N/A').toString();
+    final isResolved = report['status'] == 'resolved';
+    final time = ((report['createdTime'] ?? report['createdtime']) ?? 'N/A').toString();
+    final postId = report['postId'] ?? report['postid'];
+    final photo = (report['photoPath'] ?? report['photopath'])?.toString();
+    final caption = (report['caption']?.toString() ?? '').trim().isNotEmpty
+        ? report['caption'].toString()
+        : txaLang.getText('admin_report_no_content');
+
+    final isLogger = reporter == 'TXALogger' || reporter.startsWith('TXALogger');
+    final isPostReport = postId != null && postId.toString().isNotEmpty;
+
+    final typeLabel = isLogger
+        ? txaLang.getText('admin_report_type_crash')
+        : (isPostReport ? txaLang.getText('admin_report_type_post') : txaLang.getText('admin_report_type_feedback'));
+    final typeColor = isLogger ? const Color(0xFFFF5252) : (isPostReport ? TXATheme.primaryYellow : const Color(0xFF42A5F5));
+
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        backgroundColor: const Color(0xFF1E1C24),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24), side: BorderSide(color: TXATheme.cardBorder)),
+        titlePadding: const EdgeInsets.fromLTRB(20, 18, 16, 0),
+        contentPadding: const EdgeInsets.fromLTRB(20, 14, 20, 12),
+        actionsPadding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+        title: Row(
+          children: [
+            Container(
+              padding: const EdgeInsets.all(8),
+              decoration: BoxDecoration(
+                color: typeColor.withAlpha(35),
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: Icon(
+                isLogger ? Icons.bug_report_rounded : (isPostReport ? Icons.flag_rounded : Icons.chat_bubble_outline_rounded),
+                color: typeColor,
+                size: 20,
+              ),
+            ),
+            const SizedBox(width: 10),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    txaLang.getText('admin_report_details_title'),
+                    style: const TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold),
+                  ),
+                  Text(
+                    typeLabel,
+                    style: TextStyle(color: typeColor, fontSize: 11, fontWeight: FontWeight.w600),
+                  ),
+                ],
+              ),
+            ),
+            IconButton(
+              icon: const Icon(Icons.close_rounded, color: Colors.white54, size: 20),
+              onPressed: () => Navigator.pop(ctx),
+            ),
+          ],
+        ),
+        content: SizedBox(
+          width: 500,
+          child: SingleChildScrollView(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Row(
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                      decoration: BoxDecoration(
+                        color: isResolved ? TXATheme.statusGreen.withAlpha(35) : TXATheme.statusRed.withAlpha(35),
+                        borderRadius: BorderRadius.circular(10),
+                        border: Border.all(color: isResolved ? TXATheme.statusGreen.withAlpha(80) : TXATheme.statusRed.withAlpha(80)),
+                      ),
+                      child: Text(
+                        isResolved ? txaLang.getText('admin_report_resolved') : txaLang.getText('admin_report_pending'),
+                        style: TextStyle(
+                          color: isResolved ? TXATheme.statusGreen : TXATheme.statusRed,
+                          fontSize: 11,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ),
+                    const Spacer(),
+                    Text(time, style: TextStyle(color: TXATheme.textMuted, fontSize: 11)),
+                  ],
+                ),
+                const SizedBox(height: 14),
+                Container(
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: Colors.white.withAlpha(8),
+                    borderRadius: BorderRadius.circular(14),
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        children: [
+                          const Icon(Icons.person_outline_rounded, size: 16, color: Colors.white54),
+                          const SizedBox(width: 6),
+                          Text(
+                            txaLang.getText('admin_report_by').replaceAll('%reporter%', reporter),
+                            style: const TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.w600),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 6),
+                      Row(
+                        children: [
+                          const Icon(Icons.near_me_outlined, size: 16, color: Colors.white54),
+                          const SizedBox(width: 6),
+                          Text(
+                            txaLang.getText('admin_report_target').replaceAll('%target%', target),
+                            style: const TextStyle(color: Colors.white70, fontSize: 12),
+                          ),
+                        ],
+                      ),
+                      if (postId != null) ...[
+                        const SizedBox(height: 6),
+                        Row(
+                          children: [
+                            const Icon(Icons.tag_rounded, size: 16, color: Colors.white54),
+                            const SizedBox(width: 6),
+                            Expanded(
+                              child: Text(
+                                'Post ID: $postId',
+                                style: TextStyle(color: TXATheme.textMuted, fontSize: 11),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ],
+                    ],
+                  ),
+                ),
+                if (photo != null && photo.isNotEmpty && photo.startsWith('http')) ...[
+                  const SizedBox(height: 12),
+                  ClipRRect(
+                    borderRadius: BorderRadius.circular(14),
+                    child: Container(
+                      height: 180,
+                      width: double.infinity,
+                      decoration: BoxDecoration(
+                        color: Colors.black38,
+                        borderRadius: BorderRadius.circular(14),
+                        border: Border.all(color: TXATheme.cardBorder),
+                      ),
+                      child: TXANetworkImage(
+                        imageUrl: photo,
+                        fit: BoxFit.cover,
+                      ),
+                    ),
+                  ),
+                ],
+                const SizedBox(height: 14),
+                Container(
+                  width: double.infinity,
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: Colors.black45,
+                    borderRadius: BorderRadius.circular(14),
+                    border: Border.all(color: Colors.white12),
+                  ),
+                  child: SelectableText(
+                    caption,
+                    style: const TextStyle(
+                      color: Color(0xFFE0E0E0),
+                      fontSize: 12,
+                      fontFamily: 'monospace',
+                      height: 1.45,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+        actions: [
+          IconButton(
+            tooltip: txaLang.getText('admin_copy_report_tooltip'),
+            icon: const Icon(Icons.copy_rounded, color: Colors.white70, size: 20),
+            onPressed: () => _copyReportToClipboard(report),
+          ),
+          if (!isResolved)
+            ElevatedButton.icon(
+              icon: const Icon(Icons.check_circle_outline_rounded, size: 16),
+              label: Text(txaLang.getText('admin_resolve_fcm_btn'), style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold)),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: TXATheme.primaryYellow,
+                foregroundColor: Colors.black,
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+              ),
+              onPressed: () {
+                Navigator.pop(ctx);
+                _handleResolveReport(report);
+              },
+            ),
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: Text(txaLang.getText('close_btn'), style: const TextStyle(color: Colors.white60)),
+          ),
+        ],
+      ),
+    );
   }
 
   @override
@@ -159,7 +417,11 @@ class _TXAAdminPanelScreenState extends State<TXAAdminPanelScreen> with SingleTi
           contentPadding: EdgeInsets.zero,
           leading: CircleAvatar(
             backgroundColor: Color(int.tryParse(user.avatarBgColor) ?? 0xFFF57C00),
-            child: Text(user.avatar, style: TextStyle(fontSize: 20)),
+            child: ClipOval(
+              child: user.avatar.startsWith('http')
+                  ? SizedBox(width: 40, height: 40, child: TXANetworkImage(url: user.avatar, fit: BoxFit.cover))
+                  : Center(child: Text(user.avatar, style: const TextStyle(fontSize: 20))),
+            ),
           ),
           title: Text(
             user.username,
@@ -323,78 +585,193 @@ class _TXAAdminPanelScreenState extends State<TXAAdminPanelScreen> with SingleTi
     return ListView.separated(
       padding: const EdgeInsets.all(16),
       itemCount: _reports.length,
-      separatorBuilder: (context, index) => Divider(color: TXATheme.cardBorder, height: 16),
+      separatorBuilder: (context, index) => const SizedBox(height: 14),
       itemBuilder: (ctx, idx) {
         final r = _reports[idx];
         final isResolved = r['status'] == 'resolved';
+        final reporter = (r['reporter'] ?? '@user').toString();
+        final target = ((r['postSender'] ?? r['postsender']) ?? '@user').toString();
+        final postId = r['postId'] ?? r['postid'];
+        final photo = (r['photoPath'] ?? r['photopath'])?.toString();
+        final rawCaption = (r['caption']?.toString() ?? '').trim();
+        final captionText = rawCaption.isNotEmpty ? rawCaption : txaLang.getText('admin_report_no_content');
+        final time = ((r['createdTime'] ?? r['createdtime']) ?? '').toString();
 
-        return Container(
-          padding: const EdgeInsets.all(12),
-          decoration: BoxDecoration(
-            color: TXATheme.cardBg,
-            borderRadius: BorderRadius.circular(20),
-            border: Border.all(color: TXATheme.cardBorder),
-          ),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Text(
-                    txaLang.getText('admin_report_by').replaceAll('%reporter%', r['reporter'] ?? '@user'),
-                    style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.white, fontSize: 13),
-                  ),
-                  Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                    decoration: BoxDecoration(
-                      color: isResolved ? TXATheme.statusGreen.withAlpha(40) : TXATheme.statusRed.withAlpha(40),
-                      borderRadius: BorderRadius.circular(10),
-                    ),
-                    child: Text(
-                      isResolved ? txaLang.getText('admin_report_resolved') : txaLang.getText('admin_report_pending'),
-                      style: TextStyle(
-                        color: isResolved ? TXATheme.statusGreen : TXATheme.statusRed,
-                        fontSize: 10,
-                        fontWeight: FontWeight.bold,
+        final isLogger = reporter == 'TXALogger' || reporter.startsWith('TXALogger');
+        final isPostReport = postId != null && postId.toString().isNotEmpty;
+
+        final typeLabel = isLogger
+            ? txaLang.getText('admin_report_type_crash')
+            : (isPostReport ? txaLang.getText('admin_report_type_post') : txaLang.getText('admin_report_type_feedback'));
+        final typeColor = isLogger ? const Color(0xFFFF5252) : (isPostReport ? TXATheme.primaryYellow : const Color(0xFF42A5F5));
+
+        return InkWell(
+          borderRadius: BorderRadius.circular(20),
+          onTap: () => _showReportDetailModal(r),
+          child: Container(
+            padding: const EdgeInsets.all(14),
+            decoration: BoxDecoration(
+              color: TXATheme.cardBg,
+              borderRadius: BorderRadius.circular(20),
+              border: Border.all(color: TXATheme.cardBorder),
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                // Top Row: Type Badge + Status + Copy Button
+                Row(
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                      decoration: BoxDecoration(
+                        color: typeColor.withAlpha(30),
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: Text(
+                        typeLabel,
+                        style: TextStyle(
+                          color: typeColor,
+                          fontSize: 10,
+                          fontWeight: FontWeight.bold,
+                        ),
                       ),
                     ),
-                  )
-                ],
-              ),
-              const SizedBox(height: 6),
-              Text(
-                txaLang.getText('admin_report_target').replaceAll('%target%', r['postSender'] ?? '@user'),
-                style: TextStyle(color: Colors.white70, fontSize: 12),
-              ),
-              if (r['caption'] != null && r['caption'].toString().isNotEmpty) ...[
-                const SizedBox(height: 6),
-                Text(
-                  txaLang.getText('admin_report_content').replaceAll('%content%', r['caption'].toString()),
-                  style: TextStyle(color: TXATheme.textMuted, fontSize: 12, fontStyle: FontStyle.italic),
+                    const Spacer(),
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                      decoration: BoxDecoration(
+                        color: isResolved ? TXATheme.statusGreen.withAlpha(40) : TXATheme.statusRed.withAlpha(40),
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: Text(
+                        isResolved ? txaLang.getText('admin_report_resolved') : txaLang.getText('admin_report_pending'),
+                        style: TextStyle(
+                          color: isResolved ? TXATheme.statusGreen : TXATheme.statusRed,
+                          fontSize: 10,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 4),
+                    IconButton(
+                      icon: const Icon(Icons.copy_rounded, color: Colors.white60, size: 18),
+                      padding: EdgeInsets.zero,
+                      constraints: const BoxConstraints(minWidth: 32, minHeight: 32),
+                      tooltip: txaLang.getText('admin_copy_report_tooltip'),
+                      onPressed: () => _copyReportToClipboard(r),
+                    ),
+                  ],
                 ),
-              ],
-              const SizedBox(height: 12),
-              Row(
-                mainAxisAlignment: MainAxisAlignment.end,
-                children: [
-                  if (!isResolved) ...[
-                    OutlinedButton(
-                      onPressed: () => _handleResolveReport(r),
-                      style: OutlinedButton.styleFrom(
-                        foregroundColor: TXATheme.primaryYellow,
-                        side: const BorderSide(color: TXATheme.primaryYellow),
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+                const SizedBox(height: 8),
+
+                // Reporter & Target
+                Row(
+                  children: [
+                    Expanded(
+                      child: Text(
+                        txaLang.getText('admin_report_by').replaceAll('%reporter%', reporter),
+                        style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.white, fontSize: 13),
+                        overflow: TextOverflow.ellipsis,
                       ),
-                      child: Text(txaLang.getText('admin_resolve_fcm_btn'), style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold)),
                     ),
-                  ] else ...[
-                    Text(txaLang.getText('admin_reporter_notified'), style: const TextStyle(color: Colors.white30, fontSize: 11)),
-                  ]
+                  ],
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  txaLang.getText('admin_report_target').replaceAll('%target%', target),
+                  style: const TextStyle(color: Colors.white70, fontSize: 12),
+                ),
+                if (time.isNotEmpty) ...[
+                  const SizedBox(height: 3),
+                  Text(
+                    time,
+                    style: TextStyle(color: TXATheme.textMuted, fontSize: 10),
+                  ),
                 ],
-              )
-            ],
+
+                // Photo Thumbnail Preview if present
+                if (photo != null && photo.isNotEmpty && photo.startsWith('http')) ...[
+                  const SizedBox(height: 8),
+                  ClipRRect(
+                    borderRadius: BorderRadius.circular(10),
+                    child: Container(
+                      height: 100,
+                      width: double.infinity,
+                      decoration: BoxDecoration(
+                        color: Colors.black26,
+                        borderRadius: BorderRadius.circular(10),
+                        border: Border.all(color: Colors.white10),
+                      ),
+                      child: TXANetworkImage(
+                        imageUrl: photo,
+                        fit: BoxFit.cover,
+                      ),
+                    ),
+                  ),
+                ],
+
+                // Caption / Content preview
+                const SizedBox(height: 8),
+                Container(
+                  width: double.infinity,
+                  padding: const EdgeInsets.all(10),
+                  decoration: BoxDecoration(
+                    color: Colors.black26,
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                  child: Text(
+                    captionText,
+                    style: TextStyle(
+                      color: rawCaption.isNotEmpty ? Colors.white70 : TXATheme.textMuted,
+                      fontSize: 11,
+                      fontFamily: isLogger ? 'monospace' : null,
+                      fontStyle: rawCaption.isNotEmpty ? FontStyle.normal : FontStyle.italic,
+                    ),
+                    maxLines: 3,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ),
+
+                const SizedBox(height: 12),
+                // Action Buttons Bottom
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.end,
+                  children: [
+                    TextButton.icon(
+                      icon: const Icon(Icons.open_in_new_rounded, size: 14),
+                      label: Text(txaLang.getText('admin_view_details_btn'), style: const TextStyle(fontSize: 11)),
+                      style: TextButton.styleFrom(
+                        foregroundColor: Colors.white70,
+                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                      ),
+                      onPressed: () => _showReportDetailModal(r),
+                    ),
+                    const SizedBox(width: 8),
+                    if (!isResolved) ...[
+                      ElevatedButton.icon(
+                        icon: const Icon(Icons.send_rounded, size: 13),
+                        label: Text(txaLang.getText('admin_resolve_fcm_btn'), style: const TextStyle(fontSize: 11, fontWeight: FontWeight.bold)),
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: TXATheme.primaryYellow,
+                          foregroundColor: Colors.black,
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                        ),
+                        onPressed: () => _handleResolveReport(r),
+                      ),
+                    ] else ...[
+                      Row(
+                        children: [
+                          const Icon(Icons.check_circle_rounded, color: TXATheme.statusGreen, size: 14),
+                          const SizedBox(width: 4),
+                          Text(txaLang.getText('admin_reporter_notified'), style: TextStyle(color: TXATheme.textMuted, fontSize: 11)),
+                        ],
+                      ),
+                    ]
+                  ],
+                )
+              ],
+            ),
           ),
         );
       },
@@ -558,7 +935,11 @@ class _TXAAdminPanelScreenState extends State<TXAAdminPanelScreen> with SingleTi
                               CircleAvatar(
                                 radius: 18,
                                 backgroundColor: Color(int.tryParse(user.avatarBgColor) ?? 0xFF42A5F5),
-                                child: Text(user.avatar, style: TextStyle(fontSize: 16)),
+                                child: ClipOval(
+                                  child: user.avatar.startsWith('http')
+                                      ? SizedBox(width: 36, height: 36, child: TXANetworkImage(url: user.avatar, fit: BoxFit.cover))
+                                      : Center(child: Text(user.avatar, style: const TextStyle(fontSize: 16))),
+                                ),
                               ),
                             ],
                           ),
@@ -832,7 +1213,11 @@ class _TXAAdminPanelScreenState extends State<TXAAdminPanelScreen> with SingleTi
               contentPadding: EdgeInsets.zero,
               leading: CircleAvatar(
                 backgroundColor: avatarBg,
-                child: Text(avatar, style: TextStyle(fontSize: 20)),
+                child: ClipOval(
+                  child: avatar.startsWith('http')
+                      ? SizedBox(width: 40, height: 40, child: TXANetworkImage(url: avatar, fit: BoxFit.cover))
+                      : Center(child: Text(avatar, style: const TextStyle(fontSize: 20))),
+                ),
               ),
               title: Row(
                 children: [

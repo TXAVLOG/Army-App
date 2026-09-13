@@ -144,6 +144,87 @@ class LocketPostModel {
       isRollcall: json['isRollcall'] == true || json['isrollcall'] == true,
     );
   }
+
+  /// Avatar có hiệu lực thời gian thực (luôn ưu tiên profile mới nhất thay vì cache cũ)
+  String get effectiveSenderAvatar {
+    final txaAuth = TXAAuthService.instance;
+    final curUser = txaAuth.currentUser;
+    if (curUser != null && senderUsername == curUser.username) {
+      if (curUser.avatar.isNotEmpty) return curUser.avatar;
+    }
+    final friend = txaAuth.getFriendByUsername(senderUsername);
+    if (friend != null) {
+      final fAv = friend['avatar']?.toString();
+      if (fAv != null && fAv.isNotEmpty && fAv != '👤') return fAv;
+    }
+    return senderAvatar.isNotEmpty ? senderAvatar : '🦊';
+  }
+
+  /// Màu nền Avatar có hiệu lực thời gian thực
+  String get effectiveSenderAvatarColor {
+    final txaAuth = TXAAuthService.instance;
+    final curUser = txaAuth.currentUser;
+    if (curUser != null && senderUsername == curUser.username) {
+      if (curUser.avatarBgColor.isNotEmpty) return curUser.avatarBgColor;
+    }
+    final friend = txaAuth.getFriendByUsername(senderUsername);
+    if (friend != null) {
+      final fCol = friend['bgColor'];
+      if (fCol != null) {
+        if (fCol is int) return '0x${fCol.toRadixString(16).toUpperCase()}';
+        return fCol.toString();
+      }
+    }
+    return senderAvatarColor.isNotEmpty ? senderAvatarColor : '0xFFF57C00';
+  }
+
+  LocketPostModel copyWith({
+    String? id,
+    String? senderUsername,
+    String? senderAvatar,
+    String? senderAvatarColor,
+    String? photoPath,
+    String? voicePath,
+    int? voiceDuration,
+    String? caption,
+    String? moodEmoji,
+    String? stickerBgColor,
+    String? stickerGradient,
+    String? stickerTextColor,
+    String? aspectRatio,
+    String? timestampText,
+    List<String>? recipients,
+    List<String>? readBy,
+    List<Map<String, String>>? reactions,
+    List<String>? quickEmojisOrder,
+    String? createdTime,
+    bool? isBlurOverlay,
+    bool? isRollcall,
+  }) {
+    return LocketPostModel(
+      id: id ?? this.id,
+      senderUsername: senderUsername ?? this.senderUsername,
+      senderAvatar: senderAvatar ?? this.senderAvatar,
+      senderAvatarColor: senderAvatarColor ?? this.senderAvatarColor,
+      photoPath: photoPath ?? this.photoPath,
+      voicePath: voicePath ?? this.voicePath,
+      voiceDuration: voiceDuration ?? this.voiceDuration,
+      caption: caption ?? this.caption,
+      moodEmoji: moodEmoji ?? this.moodEmoji,
+      stickerBgColor: stickerBgColor ?? this.stickerBgColor,
+      stickerGradient: stickerGradient ?? this.stickerGradient,
+      stickerTextColor: stickerTextColor ?? this.stickerTextColor,
+      aspectRatio: aspectRatio ?? this.aspectRatio,
+      timestampText: timestampText ?? this.timestampText,
+      recipients: recipients ?? this.recipients,
+      readBy: readBy ?? this.readBy,
+      reactions: reactions ?? this.reactions,
+      quickEmojisOrder: quickEmojisOrder ?? this.quickEmojisOrder,
+      createdTime: createdTime ?? this.createdTime,
+      isBlurOverlay: isBlurOverlay ?? this.isBlurOverlay,
+      isRollcall: isRollcall ?? this.isRollcall,
+    );
+  }
 }
 
 class TXAFeedService extends ChangeNotifier {
@@ -159,6 +240,24 @@ class TXAFeedService extends ChangeNotifier {
   void clearVisiblePostsCache() {
     _cachedVisiblePosts = null;
     _cachedUsername = null;
+  }
+
+  /// Cập nhật ngay lập tức avatar của toàn bộ bài đăng cũ thuộc về user trong RAM
+  void updateSenderAvatar(String username, String newAvatar, String newColorHex) {
+    bool changed = false;
+    for (int i = 0; i < _posts.length; i++) {
+      if (_posts[i].senderUsername == username) {
+        _posts[i] = _posts[i].copyWith(
+          senderAvatar: newAvatar,
+          senderAvatarColor: newColorHex,
+        );
+        changed = true;
+      }
+    }
+    if (changed) {
+      clearVisiblePostsCache();
+      notifyListeners();
+    }
   }
 
   Future<void> init() async {
@@ -232,26 +331,90 @@ class TXAFeedService extends ChangeNotifier {
       return false;
     }).toList();
 
-    // Sắp xếp theo thứ tự: Bài đăng của mình trước (0) -> Bạn thân (1) -> Người yêu (2) -> Bạn bình thường (3)
-    int getRank(LocketPostModel p) {
-      if (p.senderUsername == currentUsername) return 0;
-      if (bestFriendUsernames.contains(p.senderUsername)) return 1;
-      if (loverUsernames.contains(p.senderUsername)) return 2;
-      return 3;
+    final loverUsername = txaAuth.currentUser?.loverUsername ?? '';
+    final isLover = (String u) =>
+        (loverUsername.isNotEmpty && u == loverUsername) ||
+        loversList.any((f) => f['username'] == u);
+
+    final isBestFriend = (String u) => bestFriendUsernames.contains(u);
+
+    // Bảng index thứ tự bạn bè theo danh sách kéo thả trong modal bạn bè
+    final friendOrderMap = <String, int>{};
+    for (int i = 0; i < friendsList.length; i++) {
+      final uname = friendsList[i]['username'] as String?;
+      if (uname != null && uname.isNotEmpty) {
+        friendOrderMap[uname] = i;
+      }
     }
 
-    filtered.sort((a, b) {
-      final rankA = getRank(a);
-      final rankB = getRank(b);
-      if (rankA != rankB) {
-        return rankA.compareTo(rankB);
+    // Tách 2 nhóm:
+    // 1. Nhóm bài CHƯA XEM (và bài vừa đăng của chính mình nếu mới hơn bài chưa xem):
+    //    Sắp xếp chuẩn theo dòng thời gian tạo: b.createdTime.compareTo(a.createdTime). Bài nào đăng mới nhất sẽ luôn xuất hiện ở đầu bảng tin.
+    // 2. Nhóm bài ĐÃ XEM RỒI:
+    //    Sắp xếp theo thứ tự toàn danh sách bạn bè (kéo thả trong modal), ưu tiên lover -> best friend -> thứ tự friendsList -> thời gian.
+    final unreadPosts = <LocketPostModel>[];
+    final readPosts = <LocketPostModel>[];
+
+    // Tìm bài chưa xem của bạn bè để xác định mốc thời gian bài chưa xem cũ nhất
+    for (final post in filtered) {
+      final isFriendUnread = !post.readBy.contains(currentUsername) && post.senderUsername != currentUsername;
+      if (isFriendUnread) {
+        unreadPosts.add(post);
       }
+    }
+
+    String oldestUnreadTime = '';
+    if (unreadPosts.isNotEmpty) {
+      unreadPosts.sort((a, b) => a.createdTime.compareTo(b.createdTime));
+      oldestUnreadTime = unreadPosts.first.createdTime;
+    }
+    unreadPosts.clear();
+
+    for (final post in filtered) {
+      final isFriendUnread = !post.readBy.contains(currentUsername) && post.senderUsername != currentUsername;
+      final isOwnNewPost = post.senderUsername == currentUsername &&
+          (oldestUnreadTime.isEmpty || post.createdTime.compareTo(oldestUnreadTime) >= 0);
+
+      if (isFriendUnread || isOwnNewPost) {
+        unreadPosts.add(post);
+      } else {
+        readPosts.add(post);
+      }
+    }
+
+    // 1. Nhóm chưa xem: Sắp xếp theo dòng thời gian chuẩn (Timeline Chronological Order)
+    // Bài mới nhất luôn xuất hiện ở đầu bảng tin
+    unreadPosts.sort((a, b) {
       return b.createdTime.compareTo(a.createdTime);
     });
 
-    _cachedVisiblePosts = filtered;
+    // 2. Nhóm đã xem: Sắp xếp theo thứ tự danh sách bạn bè (kéo thả trong modal), ưu tiên lover -> best friend -> friendsList order
+    int getReadPriority(LocketPostModel p) {
+      if (p.senderUsername == currentUsername) return 0; // Bài của chính mình
+      if (isLover(p.senderUsername)) return 1;          // Ưu tiên 1: Người yêu
+      if (isBestFriend(p.senderUsername)) return 2;     // Ưu tiên 2: Bạn thân
+      final order = friendOrderMap[p.senderUsername];
+      if (order != null) {
+        return 3 + order;                               // Ưu tiên 3: Theo thứ tự kéo thả trong modal bạn bè
+      }
+      return 999999;                                   // Bạn bè khác
+    }
+
+    readPosts.sort((a, b) {
+      final prioA = getReadPriority(a);
+      final prioB = getReadPriority(b);
+      if (prioA != prioB) {
+        return prioA.compareTo(prioB);
+      }
+      // Trong cùng 1 người bạn / cùng mức ưu tiên: bài mới hơn xếp trước
+      return b.createdTime.compareTo(a.createdTime);
+    });
+
+    final sorted = [...unreadPosts, ...readPosts];
+
+    _cachedVisiblePosts = sorted;
     _cachedUsername = currentUsername;
-    return filtered;
+    return sorted;
   }
 
 
@@ -264,6 +427,18 @@ class TXAFeedService extends ChangeNotifier {
   // Mark post as read by current user
   Future<void> markPostAsRead(String postId, String currentUsername) async {
     try {
+      // 1. Cập nhật lạc quan (Optimistic update) trong RAM ngay lập tức
+      final postIndex = _posts.indexWhere((p) => p.id == postId);
+      if (postIndex != -1) {
+        if (!_posts[postIndex].readBy.contains(currentUsername)) {
+          final updatedReadBy = List<String>.from(_posts[postIndex].readBy)..add(currentUsername);
+          _posts[postIndex] = _posts[postIndex].copyWith(readBy: updatedReadBy);
+          clearVisiblePostsCache();
+          notifyListeners();
+        }
+      }
+
+      // 2. Cập nhật trên Supabase database
       final supabase = TXASupabaseService.instance.client;
       final doc = await supabase.from('txa_posts').select().eq('id', postId).maybeSingle();
       if (doc != null) {
@@ -424,6 +599,12 @@ class TXAFeedService extends ChangeNotifier {
       final doc = await supabase.from('txa_posts').select().eq('id', postId).maybeSingle();
       if (doc != null) {
         final postSender = doc['senderUsername'] as String? ?? '';
+        // Không cho phép tự thả cảm xúc vào bài viết của chính mình
+        if (postSender.isNotEmpty && postSender == senderUsername) {
+          debugPrint('TXAFeedService: Blocked self-reaction by $senderUsername on post $postId');
+          return;
+        }
+
         final reactions = List<Map<String, dynamic>>.from(
             doc['reactions']?.map((e) => Map<String, dynamic>.from(e as Map)) ?? []);
 
@@ -521,21 +702,32 @@ class TXAFeedService extends ChangeNotifier {
   Future<void> reportPost({
     required String postId,
     required String reporterUsername,
+    String? reason,
   }) async {
     try {
       final supabase = TXASupabaseService.instance.client;
       final postSnapshot = await supabase.from('txa_posts').select().eq('id', postId).maybeSingle();
       if (postSnapshot != null) {
         final postSender = postSnapshot['senderUsername'] ?? '@unknown';
+        final originalCaption = (postSnapshot['caption'] as String?)?.trim() ?? '';
+        final reasonStr = (reason != null && reason.trim().isNotEmpty) ? reason.trim() : 'Nội dung không phù hợp';
+        final photoUrl = postSnapshot['photoPath'] ?? '';
+        final formattedCaption = originalCaption.isNotEmpty
+            ? '🚩 [LÝ DO: $reasonStr]\n• Caption gốc: "$originalCaption"\n• Ảnh đính kèm: $photoUrl'
+            : '🚩 [LÝ DO: $reasonStr]\n• Bài viết ảnh khoảnh khắc (không có chữ)\n• Ảnh đính kèm: $photoUrl';
 
         await supabase.from('txa_reports').insert({
           'postId': postId,
+          'postid': postId,
           'postSender': postSender,
+          'postsender': postSender,
           'reporter': reporterUsername,
           'status': 'pending',
-          'photoPath': postSnapshot['photoPath'] ?? '',
-          'caption': postSnapshot['caption'] ?? '',
+          'photoPath': photoUrl,
+          'photopath': photoUrl,
+          'caption': formattedCaption,
           'createdTime': DateTime.now().toIso8601String(),
+          'createdtime': DateTime.now().toIso8601String(),
         });
       }
     } catch (e) {
@@ -558,21 +750,51 @@ class TXAFeedService extends ChangeNotifier {
   Future<void> resolveReport({
     required String reportId,
     required String reporterUsername,
+    String? targetUsername,
   }) async {
     try {
       final supabase = TXASupabaseService.instance.client;
       // 1. Update report status
       await supabase.from('txa_reports').update({'status': 'resolved'}).eq('id', reportId);
 
-      // 2. Add notification for reporter
-      final txaLang = TXALanguage.instance;
-      await supabase.from('txa_notifications').insert({
-        'recipientUsername': reporterUsername,
-        'title': txaLang.getText('report_resolved_title'),
-        'body': txaLang.getText('report_resolved_body'),
-        'createdTime': DateTime.now().toIso8601String(),
-        'read': false,
-      });
+      // 2. Determine target user to notify
+      final effectiveTarget = (targetUsername != null && targetUsername.isNotEmpty && targetUsername != 'anonymous' && targetUsername != '@unknown')
+          ? targetUsername
+          : ((reporterUsername != 'TXALogger' && reporterUsername != 'anonymous' && reporterUsername != '@unknown') ? reporterUsername : null);
+
+      if (effectiveTarget != null && effectiveTarget.isNotEmpty) {
+        final txaLang = TXALanguage.instance;
+        final title = txaLang.getText('report_resolved_title');
+        final body = txaLang.getText('report_resolved_body');
+
+        // Add to txa_notifications table with both receiver and recipientUsername fields
+        await supabase.from('txa_notifications').insert({
+          'recipientUsername': effectiveTarget,
+          'receiver': effectiveTarget,
+          'sender': '@admin',
+          'type': 'report_resolved',
+          'title': title,
+          'body': body,
+          'content': body,
+          'createdTime': DateTime.now().toIso8601String(),
+          'read': false,
+        });
+
+        // Send real FCM push notification
+        try {
+          await TXANotificationService.instance.sendBackgroundPushNotification(
+            targetUsername: effectiveTarget,
+            title: title,
+            body: body,
+            data: {
+              'type': 'report_resolved',
+              'reportId': reportId,
+            },
+          );
+        } catch (e) {
+          debugPrint('Error sending FCM push for resolved report: $e');
+        }
+      }
     } catch (e) {
       debugPrint('resolveReport error: $e');
     }

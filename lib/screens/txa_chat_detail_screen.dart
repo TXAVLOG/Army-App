@@ -1105,7 +1105,9 @@ class _TXAChatDetailScreenState extends State<TXAChatDetailScreen> {
                               key: Key('msg_${msg.id}_$idx'),
                               direction: isMe ? DismissDirection.endToStart : DismissDirection.startToEnd,
                               confirmDismiss: (dir) async {
-                                HapticFeedback.lightImpact();
+                                if (!kIsWeb && (Platform.isAndroid || Platform.isIOS)) {
+                                  try { HapticFeedback.lightImpact(); } catch (_) {}
+                                }
                                 setState(() {
                                   _replyingMessage = msg;
                                 });

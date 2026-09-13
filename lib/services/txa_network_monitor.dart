@@ -18,9 +18,9 @@ class TXANetworkMonitor extends ChangeNotifier {
 
   void startMonitoring() {
     _timer?.cancel();
-    // Check immediately, then check every 3 seconds
+    // Check immediately, then check every 10 seconds
     checkConnection();
-    _timer = Timer.periodic(const Duration(seconds: 3), (timer) {
+    _timer = Timer.periodic(const Duration(seconds: 10), (timer) {
       checkConnection();
     });
   }

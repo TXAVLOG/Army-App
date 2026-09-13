@@ -1462,13 +1462,13 @@ class _PhotoPreviewScreenState extends State<PhotoPreviewScreen> {
                     child: Center(
                       child: ConstrainedBox(
                         constraints: BoxConstraints(
-                          maxWidth: 350,
-                          maxHeight: MediaQuery.of(context).size.height * 0.55,
+                          maxWidth: (MediaQuery.of(context).size.width - 20).clamp(320.0, 540.0),
+                          maxHeight: MediaQuery.of(context).size.height * 0.65,
                         ),
                         child: AspectRatio(
                           aspectRatio: isSquare ? 1.0 : 3 / 4,
                           child: Padding(
-                            padding: const EdgeInsets.symmetric(horizontal: 14),
+                            padding: const EdgeInsets.symmetric(horizontal: 6),
                             child: Container(
                               decoration: themeFrame,
                               child: ClipRRect(
@@ -1487,8 +1487,13 @@ class _PhotoPreviewScreenState extends State<PhotoPreviewScreen> {
                                       alignment: Alignment.center,
                                       fit: StackFit.expand,
                                       children: [
-                                        // Captured Image
-                                        _buildCapturedImage(),
+                                        // Captured Image với Zoom
+                                        InteractiveViewer(
+                                          minScale: 1.0,
+                                          maxScale: 3.5,
+                                          clipBehavior: Clip.none,
+                                          child: _buildCapturedImage(),
+                                        ),
 
                                   // Privacy Eye Toggle
                                   Positioned(
@@ -1760,11 +1765,16 @@ class _PhotoPreviewScreenState extends State<PhotoPreviewScreen> {
                                                                           letterSpacing: -0.3,
                                                                         ),
                                                                       )
-                                                                    : (_selectedCustomSticker != null && _selectedCustomSticker!.startsWith('__holiday_'))
+                                                                    : ((_selectedCustomSticker ?? _selectedMoodEmoji) != null &&
+                                                                            ((_selectedCustomSticker ?? _selectedMoodEmoji)!.startsWith('__holiday_') ||
+                                                                                (_selectedCustomSticker ?? _selectedMoodEmoji)!.contains('mid_autumn')))
                                                                         ? TXAMarquee(
-                                                                            text: TXAFestivalManager.getHolidayCaption(_selectedCustomSticker!, txaLang.currentLanguage),
+                                                                            text: TXAFestivalManager.getHolidayCaption((_selectedCustomSticker ?? _selectedMoodEmoji)!, txaLang.currentLanguage),
                                                                             style: TextStyle(
-                                                                              color: _selectedStickerTextColor ?? Colors.white,
+                                                                              color: _selectedStickerTextColor ??
+                                                                                  ((_selectedCustomSticker ?? _selectedMoodEmoji)!.contains('mid_autumn')
+                                                                                      ? Colors.black
+                                                                                      : Colors.white),
                                                                               fontSize: 15,
                                                                               fontWeight: FontWeight.bold,
                                                                               letterSpacing: -0.3,
@@ -1839,42 +1849,13 @@ class _PhotoPreviewScreenState extends State<PhotoPreviewScreen> {
                                 alignment: Alignment.center,
                                 fit: StackFit.expand,
                                 children: [
-                                  // Captured Image
-                                  (() {
-                                    final mainImage = widget.imagePath != null && File(widget.imagePath!).existsSync()
-                                        ? Image.file(File(widget.imagePath!), fit: BoxFit.cover)
-                                        : Container(
-                                            color: const Color(0xFF1C1C26),
-                                            child: Center(
-                                              child: Column(
-                                                mainAxisAlignment: MainAxisAlignment.center,
-                                                children: [
-                                                  Icon(
-                                                    Icons.image_rounded,
-                                                    size: 64,
-                                                    color: TXATheme.primaryYellow,
-                                                  ),
-                                                  SizedBox(height: 10),
-                                                  Text(
-                                                    'Army Captured Photo',
-                                                    style: TextStyle(
-                                                      color: TXATheme.textSecondary,
-                                                      fontSize: 15,
-                                                      fontWeight: FontWeight.w600,
-                                                    ),
-                                                  ),
-                                                ],
-                                              ),
-                                            ),
-                                          );
-                                    if (_isBlurOverlay) {
-                                      return TXABlurDotsOverlay(
-                                        blur: 15.0,
-                                        child: mainImage,
-                                      );
-                                    }
-                                    return mainImage;
-                                  })(),
+                                  // Captured Image với Zoom
+                                  InteractiveViewer(
+                                    minScale: 1.0,
+                                    maxScale: 3.5,
+                                    clipBehavior: Clip.none,
+                                    child: _buildCapturedImage(),
+                                  ),
 
                                   // Sticker Pill trên nút Voice (Page 1)
                                   if (_selectedMoodEmoji != null || _selectedCustomSticker != null)
@@ -2040,11 +2021,16 @@ class _PhotoPreviewScreenState extends State<PhotoPreviewScreen> {
                                                                         letterSpacing: -0.3,
                                                                       ),
                                                                     )
-                                                                  : (_selectedCustomSticker != null && _selectedCustomSticker!.startsWith('__holiday_'))
+                                                                  : ((_selectedCustomSticker ?? _selectedMoodEmoji) != null &&
+                                                                          ((_selectedCustomSticker ?? _selectedMoodEmoji)!.startsWith('__holiday_') ||
+                                                                           (_selectedCustomSticker ?? _selectedMoodEmoji)!.contains('mid_autumn')))
                                                                       ? TXAMarquee(
-                                                                          text: TXAFestivalManager.getHolidayCaption(_selectedCustomSticker!, txaLang.currentLanguage),
+                                                                          text: TXAFestivalManager.getHolidayCaption((_selectedCustomSticker ?? _selectedMoodEmoji)!, txaLang.currentLanguage),
                                                                           style: TextStyle(
-                                                                            color: _selectedStickerTextColor ?? Colors.white,
+                                                                            color: _selectedStickerTextColor ??
+                                                                                ((_selectedCustomSticker ?? _selectedMoodEmoji)!.contains('mid_autumn')
+                                                                                    ? Colors.black
+                                                                                    : Colors.white),
                                                                             fontSize: 15,
                                                                             fontWeight: FontWeight.bold,
                                                                             letterSpacing: -0.3,

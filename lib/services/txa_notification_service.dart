@@ -65,6 +65,15 @@ class TXANotificationService extends ChangeNotifier {
         // 1. Đăng ký background message handler
         FirebaseMessaging.onBackgroundMessage(_firebaseMessagingBackgroundHandler);
 
+        // Cấu hình hiển thị thông báo khi app đang mở (Foreground)
+        try {
+          await FirebaseMessaging.instance.setForegroundNotificationPresentationOptions(
+            alert: true,
+            badge: true,
+            sound: true,
+          );
+        } catch (_) {}
+
         // 2. Lấy FCM Token thực tế
         _fcmToken = await FirebaseMessaging.instance.getToken();
         if (_fcmToken != null) {
@@ -157,12 +166,12 @@ class TXANotificationService extends ChangeNotifier {
       // 1. Lấy FCM Token của người nhận từ Supabase
       final userSnap = await TXASupabaseService.instance.client
           .from('txa_users')
-          .select('fcmToken')
+          .select('fcmToken, fcmtoken')
           .eq('username', targetUsername)
           .maybeSingle();
 
       if (userSnap == null) return;
-      final fcmToken = userSnap['fcmToken'] as String?;
+      final fcmToken = (userSnap['fcmToken'] ?? userSnap['fcmtoken']) as String?;
       if (fcmToken == null || fcmToken.isEmpty) {
         debugPrint('FCM Token of receiver is empty/null. Cannot send background push.');
         return;
@@ -360,6 +369,34 @@ class TXANotificationService extends ChangeNotifier {
       case 'reply':
         triggerReplyNotification(sender: sender);
         break;
+      case 'friend_request':
+        _addNotificationLog(
+          type: 'friend_request',
+          title: TXALanguage.instance.getText('noti_friend_req_title'),
+          body: TXALanguage.instance.getText('noti_friend_req_body').replaceAll('%sender%', sender),
+        );
+        break;
+      case 'friend_accepted':
+        _addNotificationLog(
+          type: 'friend_accepted',
+          title: TXALanguage.instance.getText('noti_friend_accept_title'),
+          body: TXALanguage.instance.getText('noti_friend_accept_body').replaceAll('%sender%', sender),
+        );
+        break;
+      case 'love_invitation':
+        _addNotificationLog(
+          type: 'love_invitation',
+          title: TXALanguage.instance.getText('noti_love_invite_title'),
+          body: TXALanguage.instance.getText('noti_love_invite_body').replaceAll('%sender%', sender),
+        );
+        break;
+      case 'love_accepted':
+        _addNotificationLog(
+          type: 'love_accepted',
+          title: TXALanguage.instance.getText('noti_love_accept_title'),
+          body: TXALanguage.instance.getText('noti_love_accept_body').replaceAll('%sender%', sender),
+        );
+        break;
       case 'reminder_morning':
         triggerScheduledDeadlineNotification(isMorning: true);
         break;
@@ -527,7 +564,14 @@ class _TXANotificationOverlayWidgetState extends State<_TXANotificationOverlayWi
         position: _offsetAnimation,
         child: Material(
           color: Colors.transparent,
-          child: Container(
+          child: GestureDetector(
+            onTap: () {
+              _dismiss();
+              if (widget.type == 'friend_request' || widget.type == 'friend_accepted') {
+                TXAAuthService.instance.setHighlightRequestId('open_friends_list');
+              }
+            },
+            child: Container(
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
             decoration: BoxDecoration(
               color: const Color(0xFF1E1E24),
@@ -588,6 +632,7 @@ class _TXANotificationOverlayWidgetState extends State<_TXANotificationOverlayWi
                 ),
               ],
             ),
+          ),
           ),
         ),
       ),

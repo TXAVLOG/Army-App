@@ -105,6 +105,15 @@
 			</dict>
 			<key>CFBundleAlternateIcons</key>
 			<dict>
+				<key>mid_autumn_moon</key>
+				<dict>
+					<key>CFBundleIconFiles</key>
+					<array>
+						<string>mid_autumn_moon</string>
+					</array>
+					<key>UIPrerenderedIcon</key>
+					<false/>
+				</dict>
 				<key>national_day_29</key>
 				<dict>
 					<key>CFBundleIconFiles</key>
@@ -345,6 +354,15 @@
 			</dict>
 			<key>CFBundleAlternateIcons</key>
 			<dict>
+				<key>mid_autumn_moon</key>
+				<dict>
+					<key>CFBundleIconFiles</key>
+					<array>
+						<string>mid_autumn_moon</string>
+					</array>
+					<key>UIPrerenderedIcon</key>
+					<false/>
+				</dict>
 				<key>national_day_29</key>
 				<dict>
 					<key>CFBundleIconFiles</key>

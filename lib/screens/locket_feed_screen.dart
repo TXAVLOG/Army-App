@@ -4,6 +4,7 @@ import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../services/txa_festival_manager.dart';
+import '../services/txa_logger.dart';
 import '../widgets/txa_marquee.dart';
 import '../widgets/txa_fireworks.dart';
 import '../widgets/txa_tet_countdown_widget.dart';
@@ -43,8 +44,9 @@ class AppMouseScrollBehavior extends MaterialScrollBehavior {
 
 class LocketFeedScreen extends StatefulWidget {
   final int initialIndex;
+  final String? initialPostId;
 
-  const LocketFeedScreen({super.key, this.initialIndex = 0});
+  const LocketFeedScreen({super.key, this.initialIndex = 0, this.initialPostId});
 
   @override
   State<LocketFeedScreen> createState() => _LocketFeedScreenState();
@@ -63,7 +65,15 @@ class _LocketFeedScreenState extends State<LocketFeedScreen> {
   String? _heartBurstPostId;
 
   void _onDoubleTapPhoto(LocketPostModel post) {
-    HapticFeedback.mediumImpact();
+    final currentUser = TXAAuthService.instance.currentUser;
+    final username = currentUser?.username ?? '@user';
+    if (post.senderUsername == username) {
+      return; // Không cho phép tự thả tim bài của chính mình
+    }
+
+    if (!kIsWeb && (Platform.isAndroid || Platform.isIOS)) {
+      try { HapticFeedback.mediumImpact(); } catch (_) {}
+    }
     setState(() {
       _heartBurstPostId = post.id;
     });
@@ -113,20 +123,43 @@ class _LocketFeedScreenState extends State<LocketFeedScreen> {
     }
   }
 
+  Future<bool> _ensureDirExists(Directory dir) async {
+    try {
+      if (!await dir.exists()) {
+        await dir.create(recursive: true);
+      }
+      return true;
+    } catch (_) {
+      return false;
+    }
+  }
+
   Future<void> _downloadAndSavePhoto(BuildContext context, String photoPath, String senderUsername) async {
     final txaLang = TXALanguage.instance;
-    try {
-      final myUser = TXAAuthService.instance.currentUser;
-      final isVip = myUser?.isVipActive == true || myUser?.role == 'admin';
+    final myUser = TXAAuthService.instance.currentUser;
+    final isVip = myUser?.isVipCurrentlyActive == true || myUser?.isAdmin == true || myUser?.isVipActive == true;
 
-      // 1. Get original bytes
+    // Phản hồi Toast ngay tức thì khi bấm để người dùng biết app đang tiến hành tải
+    if (context.mounted) {
+      TXAToast.show(
+        context,
+        txaLang.getText('downloading_photo'),
+        icon: Icons.downloading_rounded,
+        duration: const Duration(seconds: 2),
+      );
+    }
+
+    TXALogger.logApp('Bắt đầu tải và lưu ảnh bài viết từ @$senderUsername (URL: $photoPath, isVip: $isVip)');
+
+    try {
+      // 1. Tải raw bytes của ảnh
       List<int> bytes;
       if (photoPath.startsWith('http')) {
-        final response = await http.get(Uri.parse(photoPath));
+        final response = await http.get(Uri.parse(photoPath)).timeout(const Duration(seconds: 20));
         if (response.statusCode == 200) {
           bytes = response.bodyBytes;
         } else {
-          throw Exception('Failed to download image: HTTP ${response.statusCode}');
+          throw Exception('HTTP ${response.statusCode}');
         }
       } else if (photoPath.startsWith('assets/')) {
         final data = await rootBundle.load(photoPath);
@@ -136,38 +169,41 @@ class _LocketFeedScreenState extends State<LocketFeedScreen> {
         if (await file.exists()) {
           bytes = await file.readAsBytes();
         } else {
-          throw Exception('File not found');
+          throw Exception('File not found: $photoPath');
         }
       }
 
-      // 2. Decode the image
-      img.Image? originalImage = img.decodeImage(Uint8List.fromList(bytes));
-      if (originalImage == null) {
-        throw Exception('Failed to decode image');
-      }
+      Uint8List finalBytes;
 
-      // 3. Apply watermark if not VIP
-      final bool shouldWatermark = !isVip;
+      // 2. Phân quyền theo gói VIP Gold Pass:
+      // VIP: Lưu 100% ảnh gốc sạch (Clean Download, No Watermark, sắc nét nguyên bản)
+      // Thường: Gắn watermark thương hiệu "Armi • @senderUsername"
+      if (isVip) {
+        finalBytes = Uint8List.fromList(bytes);
+        TXALogger.logApp('VIP Gold Pass: Tải ảnh gốc 100% không watermark (@$senderUsername)');
+      } else {
+        img.Image? originalImage = img.decodeImage(Uint8List.fromList(bytes));
+        if (originalImage == null) {
+          throw Exception('Failed to decode image');
+        }
 
-      if (shouldWatermark) {
-        final text = "Armi @$senderUsername";
-        final font = img.arial24; // Built-in bitmap font
-        final textWidth = text.length * 14; // Approximate width in pixels
-        
-        final x = (originalImage.width - textWidth - 30).clamp(0, originalImage.width);
-        final y = (originalImage.height - 50).clamp(0, originalImage.height);
-        
-        // Draw black background rect for contrast
+        final text = "Armi • @$senderUsername";
+        final font = img.arial24;
+        final textWidth = text.length * 13;
+        final x = (originalImage.width - textWidth - 28).clamp(0, originalImage.width);
+        final y = (originalImage.height - 48).clamp(0, originalImage.height);
+
+        // Nền tối mờ cho watermark badge
         img.fillRect(
           originalImage,
-          x1: x - 10,
-          y1: y - 10,
-          x2: originalImage.width - 10,
-          y2: originalImage.height - 10,
-          color: img.ColorRgb8(0, 0, 0),
+          x1: (x - 12).clamp(0, originalImage.width),
+          y1: (y - 8).clamp(0, originalImage.height),
+          x2: (originalImage.width - 10).clamp(0, originalImage.width),
+          y2: (originalImage.height - 10).clamp(0, originalImage.height),
+          color: img.ColorRgb8(16, 14, 24),
         );
-        
-        // Draw the text (Armi yellow color: #FFC72C)
+
+        // Chữ watermark màu vàng đặc trưng Armi #FFC72C
         img.drawString(
           originalImage,
           text,
@@ -176,47 +212,112 @@ class _LocketFeedScreenState extends State<LocketFeedScreen> {
           y: y,
           color: img.ColorRgb8(255, 199, 44),
         );
+
+        finalBytes = Uint8List.fromList(img.encodePng(originalImage));
+        TXALogger.logApp('Tài khoản thường: Đã gắn watermark Armi @$senderUsername');
       }
 
-      // 4. Encode and save the image
-      final encodedBytes = img.encodePng(originalImage);
+      // 3. Lưu ảnh vào thiết bị / Thư viện Gallery
+      final fileName = 'army_${DateTime.now().millisecondsSinceEpoch}.png';
+      bool savedNatively = false;
 
-      // Save depending on platform
-      String savePath;
-      if (!kIsWeb && Platform.isWindows) {
-        final shell = Platform.environment['USERPROFILE'];
-        final downloadsDir = Directory('$shell\\Downloads');
-        if (!await downloadsDir.exists()) {
-          await downloadsDir.create(recursive: true);
+      // Trên Android: Sử dụng MediaStore qua Native MethodChannel để ảnh hiển thị ngay lập tức trong Bộ sưu tập (Gallery / Google Photos)
+      if (!kIsWeb && Platform.isAndroid) {
+        try {
+          const mediaChannel = MethodChannel('vn.army.txa/media');
+          final result = await mediaChannel.invokeMethod<String>('saveImageToGallery', {
+            'bytes': finalBytes,
+            'fileName': fileName,
+          });
+          if (result != null && result.isNotEmpty) {
+            savedNatively = true;
+            TXALogger.logApp('Đã lưu ảnh vào MediaStore Android qua native channel: $result');
+          }
+        } catch (nativeErr) {
+          TXALogger.logApp('Native MediaStore save fallback: $nativeErr');
         }
-        savePath = '${downloadsDir.path}\\army_${DateTime.now().millisecondsSinceEpoch}.png';
-      } else {
-        final appDocDir = await getExternalStorageDirectory() ?? await getApplicationDocumentsDirectory();
-        final galleryDir = Directory('${appDocDir.path}/ArmyPictures');
-        if (!await galleryDir.exists()) {
-          await galleryDir.create(recursive: true);
-        }
-        savePath = '${galleryDir.path}/army_${DateTime.now().millisecondsSinceEpoch}.png';
       }
 
-      final savedFile = File(savePath);
-      await savedFile.writeAsBytes(encodedBytes);
+      if (!savedNatively) {
+        String savePath;
+        if (!kIsWeb && Platform.isWindows) {
+          final shell = Platform.environment['USERPROFILE'];
+          final downloadsDir = Directory('$shell\\Downloads');
+          if (!await downloadsDir.exists()) {
+            await downloadsDir.create(recursive: true);
+          }
+          savePath = '${downloadsDir.path}\\$fileName';
+        } else if (!kIsWeb && Platform.isAndroid) {
+          final picturesDir = Directory('/storage/emulated/0/Pictures/Army');
+          if (await picturesDir.exists() || await _ensureDirExists(picturesDir)) {
+            savePath = '${picturesDir.path}/$fileName';
+          } else {
+            final appDocDir = await getExternalStorageDirectory() ?? await getApplicationDocumentsDirectory();
+            final galleryDir = Directory('${appDocDir.path}/ArmyPictures');
+            if (!await galleryDir.exists()) {
+              await galleryDir.create(recursive: true);
+            }
+            savePath = '${galleryDir.path}/$fileName';
+          }
+        } else {
+          final appDocDir = await getExternalStorageDirectory() ?? await getApplicationDocumentsDirectory();
+          final galleryDir = Directory('${appDocDir.path}/ArmyPictures');
+          if (!await galleryDir.exists()) {
+            await galleryDir.create(recursive: true);
+          }
+          savePath = '${galleryDir.path}/$fileName';
+        }
 
+        final savedFile = File(savePath);
+        await savedFile.writeAsBytes(finalBytes);
+        TXALogger.logApp('Đã lưu ảnh file thành công: $savePath');
+
+        if (!kIsWeb && Platform.isAndroid) {
+          try {
+            const mediaChannel = MethodChannel('vn.army.txa/media');
+            await mediaChannel.invokeMethod('scanFile', {'path': savePath});
+          } catch (_) {}
+        }
+      }
+
+      // 4. Thông báo Toast thành công theo quyền lợi VIP
+      if (context.mounted) {
+        if (isVip) {
+          TXAToast.show(
+            context,
+            txaLang.getText('vip_photo_saved_clean'),
+            icon: Icons.verified_rounded,
+            backgroundColor: const Color(0xFF221A04),
+            duration: const Duration(seconds: 3),
+          );
+        } else {
+          TXAToast.show(
+            context,
+            txaLang.getText('photo_saved_with_watermark'),
+            icon: Icons.download_done_rounded,
+            duration: const Duration(seconds: 3),
+          );
+        }
+      }
+    } catch (e, stack) {
+      TXALogger.logError(
+        'Lỗi tải và lưu ảnh bài viết từ @$senderUsername: $e',
+        stackTrace: stack,
+        extraInfo: {
+          'service': 'LocketFeed',
+          'action': 'downloadAndSavePhoto',
+          'photoPath': photoPath,
+          'senderUsername': senderUsername,
+          'isVip': isVip,
+        },
+      );
       if (context.mounted) {
         TXAToast.show(
           context,
-          txaLang.getText('image_saved_success'),
-          icon: Icons.download_done_rounded,
-        );
-      }
-    } catch (e) {
-      debugPrint('Error saving photo: $e');
-      if (context.mounted) {
-        TXAToast.show(
-          context,
-          '⚠️ ${txaLang.getText('share_error_prefix').replaceAll('%error%', e.toString())}',
+          txaLang.getText('download_photo_failed').replaceAll('%error%', e.toString()),
           icon: Icons.error_outline_rounded,
           backgroundColor: TXATheme.statusRed,
+          duration: const Duration(seconds: 4),
         );
       }
     }
@@ -230,8 +331,6 @@ class _LocketFeedScreenState extends State<LocketFeedScreen> {
   void initState() {
     super.initState();
     TXAAnalytics.logScreenView(screenName: TXAAnalytics.screenFeed);
-    _currentIndex = widget.initialIndex;
-    _pageController = PageController(initialPage: widget.initialIndex);
     _feedAudioPlayer = AudioPlayer();
     _feedAudioPlayer?.onPlayerComplete.listen((_) {
       if (mounted) {
@@ -260,6 +359,22 @@ class _LocketFeedScreenState extends State<LocketFeedScreen> {
         }
       }
     }
+
+    int targetIndex = widget.initialIndex;
+    if (widget.initialPostId != null) {
+      final found = feedItems.indexWhere(
+        (it) => it is LocketPostModel && it.id == widget.initialPostId,
+      );
+      if (found != -1) {
+        targetIndex = found;
+      }
+    } else if (targetIndex >= feedItems.length) {
+      targetIndex = feedItems.isNotEmpty ? feedItems.length - 1 : 0;
+    }
+
+    _currentIndex = targetIndex;
+    _pageController = PageController(initialPage: targetIndex);
+
     _markCurrentAsRead(feedItems);
   }
 
@@ -286,6 +401,36 @@ class _LocketFeedScreenState extends State<LocketFeedScreen> {
       }
       setState(() => _playingPostId = post.id);
     }
+  }
+
+  /// Chuyển mượt từ Grid View (Bong bóng / Lưới ảnh) sang trang bài viết chi tiết được chọn
+  void _selectPostFromGrid(LocketPostModel post, int fallbackIdx, List<dynamic> feedItems) {
+    int targetIndex = feedItems.indexOf(post);
+    if (targetIndex < 0 || targetIndex >= feedItems.length) {
+      targetIndex = fallbackIdx.clamp(0, feedItems.isNotEmpty ? feedItems.length - 1 : 0);
+    }
+
+    _currentIndex = targetIndex;
+    _isGridView = false;
+    _revealedPostIds.clear();
+
+    // Hủy và khởi tạo lại PageController với initialPage chính xác bài đăng được chọn
+    try {
+      _pageController.dispose();
+    } catch (_) {}
+    _pageController = PageController(initialPage: targetIndex);
+
+    setState(() {});
+
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted && _pageController.hasClients) {
+        if (_pageController.page?.round() != targetIndex) {
+          _pageController.jumpToPage(targetIndex);
+        }
+      }
+    });
+
+    _markCurrentAsRead(feedItems);
   }
 
   /// Helper: render ảnh post đúng cách bất kể path loại nào (assets/http/local)
@@ -435,8 +580,6 @@ class _LocketFeedScreenState extends State<LocketFeedScreen> {
       final item = feedItems[_currentIndex];
       if (item is LocketPostModel) {
         if (!item.readBy.contains(username) && item.senderUsername != username) {
-          TXAFeedService.instance.markAllPostsAsRead(username);
-        } else {
           TXAFeedService.instance.markPostAsRead(item.id, username);
         }
       }
@@ -447,6 +590,15 @@ class _LocketFeedScreenState extends State<LocketFeedScreen> {
     final txaLang = TXALanguage.instance;
     final currentUser = TXAAuthService.instance.currentUser;
     final username = currentUser?.username ?? '@user';
+
+    if (post.senderUsername == username) {
+      TXAToast.show(
+        context,
+        txaLang.getText('self_reaction_blocked'),
+        icon: Icons.info_outline_rounded,
+      );
+      return;
+    }
 
     // 1. Thả cảm xúc
     TXAFeedService.instance.addReaction(postId: post.id, senderUsername: username, emoji: emoji);
@@ -524,6 +676,7 @@ class _LocketFeedScreenState extends State<LocketFeedScreen> {
   void _showFeedOptionsModal(BuildContext context, LocketPostModel post) {
     final txaLang = TXALanguage.instance;
     final currentUser = TXAAuthService.instance.currentUser;
+    final isVip = currentUser?.isVipCurrentlyActive == true || currentUser?.isAdmin == true || currentUser?.isVipActive == true;
     final isAuthor = currentUser?.username == post.senderUsername;
 
     showModalBottomSheet(
@@ -532,7 +685,7 @@ class _LocketFeedScreenState extends State<LocketFeedScreen> {
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
       ),
-      builder: (context) {
+      builder: (sheetCtx) {
         return SafeArea(
           child: Container(
             padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
@@ -559,13 +712,45 @@ class _LocketFeedScreenState extends State<LocketFeedScreen> {
                 ),
                 const SizedBox(height: 16),
                 ListTile(
-                  leading: Icon(Icons.download_rounded, color: Color(0xFF42A5F5)),
-                  title: Text(
-                    txaLang.getText('download_photo'),
-                    style: TextStyle(color: TXATheme.textPrimary, fontWeight: FontWeight.w600),
+                  leading: Icon(
+                    isVip ? Icons.stars_rounded : Icons.download_rounded,
+                    color: isVip ? TXATheme.primaryYellow : const Color(0xFF42A5F5),
+                    size: 26,
+                  ),
+                  title: Row(
+                    children: [
+                      Text(
+                        txaLang.getText('download_photo'),
+                        style: TextStyle(color: TXATheme.textPrimary, fontWeight: FontWeight.w600),
+                      ),
+                      const SizedBox(width: 8),
+                      if (isVip)
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                          decoration: BoxDecoration(
+                            color: TXATheme.primaryYellow.withAlpha(50),
+                            borderRadius: BorderRadius.circular(6),
+                            border: Border.all(color: TXATheme.primaryYellow.withAlpha(150), width: 0.8),
+                          ),
+                          child: const Text(
+                            'VIP • KHÔNG WATERMARK',
+                            style: TextStyle(color: TXATheme.primaryYellow, fontSize: 9, fontWeight: FontWeight.bold),
+                          ),
+                        ),
+                    ],
+                  ),
+                  subtitle: Text(
+                    isVip
+                        ? (txaLang.currentLanguage == 'vi'
+                            ? 'Đặc quyền Gold Pass: Tải ảnh gốc 100% không watermark'
+                            : 'VIP Perk: Clean original photo without watermark')
+                        : (txaLang.currentLanguage == 'vi'
+                            ? 'Ảnh có watermark Armi (Nâng cấp VIP để tải ảnh sạch)'
+                            : 'With Armi watermark (Upgrade VIP for clean photo)'),
+                    style: const TextStyle(color: Colors.white38, fontSize: 11),
                   ),
                   onTap: () {
-                    Navigator.pop(context);
+                    Navigator.pop(sheetCtx);
                     _downloadAndSavePhoto(context, post.photoPath, post.senderUsername);
                   },
                 ),
@@ -577,19 +762,8 @@ class _LocketFeedScreenState extends State<LocketFeedScreen> {
                       style: const TextStyle(color: TXATheme.statusRed, fontWeight: FontWeight.w600),
                     ),
                     onTap: () {
-                      Navigator.pop(context);
-                      final currentUser = TXAAuthService.instance.currentUser;
-                      final reporterUsername = currentUser?.username ?? '@user';
-                      TXAFeedService.instance.reportPost(
-                        postId: post.id,
-                        reporterUsername: reporterUsername,
-                      );
-                      TXAToast.show(
-                        context,
-                        txaLang.getText('report_sent_success'),
-                        icon: Icons.flag_rounded,
-                        backgroundColor: TXATheme.statusRed,
-                      );
+                      Navigator.pop(sheetCtx);
+                      _showReportDialog(context, post);
                     },
                   ),
                 ListTile(
@@ -599,7 +773,7 @@ class _LocketFeedScreenState extends State<LocketFeedScreen> {
                     style: TextStyle(color: TXATheme.textPrimary, fontWeight: FontWeight.w600),
                   ),
                   onTap: () {
-                    Navigator.pop(context);
+                    Navigator.pop(sheetCtx);
                     TXAShareService.instance.sharePost(context, post);
                   },
                 ),
@@ -611,8 +785,7 @@ class _LocketFeedScreenState extends State<LocketFeedScreen> {
                       style: const TextStyle(color: TXATheme.statusRed, fontWeight: FontWeight.bold),
                     ),
                     onTap: () async {
-                      final nav = Navigator.of(context);
-                      nav.pop();
+                      Navigator.pop(sheetCtx);
                       await TXAFeedService.instance.deletePost(post.id);
                       if (context.mounted) {
                         TXAToast.show(
@@ -652,6 +825,77 @@ class _LocketFeedScreenState extends State<LocketFeedScreen> {
           ),
         );
       },
+  void _showReportDialog(BuildContext context, LocketPostModel post) {
+    final txaLang = TXALanguage.instance;
+    final currentUser = TXAAuthService.instance.currentUser;
+    final reporterUsername = currentUser?.username ?? '@user';
+
+    final reasons = [
+      txaLang.getText('report_reason_spam'),
+      txaLang.getText('report_reason_harassment'),
+      txaLang.getText('report_reason_inappropriate'),
+      txaLang.getText('report_reason_other'),
+    ];
+
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: TXATheme.cardBg,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+      ),
+      builder: (ctx) => SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Center(
+                child: Container(
+                  width: 40,
+                  height: 4,
+                  margin: const EdgeInsets.only(bottom: 16),
+                  decoration: BoxDecoration(
+                    color: Colors.white24,
+                    borderRadius: BorderRadius.circular(2),
+                  ),
+                ),
+              ),
+              Row(
+                children: [
+                  const Icon(Icons.flag_rounded, color: TXATheme.statusRed, size: 22),
+                  const SizedBox(width: 8),
+                  Text(
+                    txaLang.getText('report_reason_title'),
+                    style: const TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 12),
+              ...reasons.map((r) => ListTile(
+                contentPadding: EdgeInsets.zero,
+                leading: const Icon(Icons.radio_button_unchecked, color: Colors.white54, size: 20),
+                title: Text(r, style: const TextStyle(color: Colors.white, fontSize: 14)),
+                onTap: () {
+                  Navigator.pop(ctx);
+                  TXAFeedService.instance.reportPost(
+                    postId: post.id,
+                    reporterUsername: reporterUsername,
+                    reason: r,
+                  );
+                  TXAToast.show(
+                    context,
+                    txaLang.getText('report_sent_success'),
+                    icon: Icons.flag_rounded,
+                    backgroundColor: TXATheme.statusRed,
+                  );
+                },
+              )),
+              const SizedBox(height: 8),
+            ],
+          ),
+        ),
+      ),
     );
   }
 
@@ -1040,15 +1284,12 @@ class _LocketFeedScreenState extends State<LocketFeedScreen> {
                             ? (post.reactions.last['emoji'] ?? '😊').toString()
                             : '😊';
                         final avatarColor = Color(
-                          int.tryParse(post.senderAvatarColor) ?? 0xFF42A5F5,
+                          int.tryParse(post.effectiveSenderAvatarColor) ?? 0xFF42A5F5,
                         );
 
                         return GestureDetector(
                           onTap: () {
-                            setState(() {
-                              _currentIndex = idx;
-                              _isGridView = false;
-                            });
+                            _selectPostFromGrid(post, idx, feedItems);
                           },
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.center,
@@ -1159,14 +1400,14 @@ class _LocketFeedScreenState extends State<LocketFeedScreen> {
                                 showStreakBadge: true,
                                 child: Container(
                                   color: avatarColor.withValues(alpha: 0.2),
-                                  child: post.senderAvatar.startsWith('http')
+                                  child: post.effectiveSenderAvatar.startsWith('http')
                                       ? TXANetworkImage(
-                                          url: post.senderAvatar,
+                                          url: post.effectiveSenderAvatar,
                                           fit: BoxFit.cover,
                                         )
                                       : Center(
                                           child: Text(
-                                            post.senderAvatar,
+                                            post.effectiveSenderAvatar,
                                             style: const TextStyle(
                                               fontSize: 18,
                                             ),
@@ -1195,10 +1436,7 @@ class _LocketFeedScreenState extends State<LocketFeedScreen> {
                         // CHẾ ĐỘ LƯỚI ẢNH TIÊU CHUẨN
                         return GestureDetector(
                           onTap: () {
-                            setState(() {
-                              _currentIndex = idx;
-                              _isGridView = false;
-                            });
+                            _selectPostFromGrid(post, idx, feedItems);
                           },
                           child: ClipRRect(
                             borderRadius: BorderRadius.circular(16),
@@ -1220,7 +1458,7 @@ class _LocketFeedScreenState extends State<LocketFeedScreen> {
         final safeIndex = _currentIndex.clamp(0, visiblePosts.length - 1);
         final post = visiblePosts[safeIndex];
         final avatarColorVal =
-            int.tryParse(post.senderAvatarColor) ?? 0xFFF57C00;
+            int.tryParse(post.effectiveSenderAvatarColor) ?? 0xFFF57C00;
 
         return Scaffold(
           backgroundColor: TXATheme.background,
@@ -1371,15 +1609,15 @@ class _LocketFeedScreenState extends State<LocketFeedScreen> {
                             Center(
                               child: ConstrainedBox(
                                 constraints: BoxConstraints(
-                                  maxWidth: 350,
+                                  maxWidth: (MediaQuery.of(context).size.width - 20).clamp(320.0, 540.0),
                                   maxHeight:
-                                      MediaQuery.of(context).size.height * 0.55,
+                                      MediaQuery.of(context).size.height * 0.65,
                                 ),
                                 child: AspectRatio(
                                   aspectRatio: currentIsSquare ? 1.0 : 3 / 4,
                                   child: Padding(
                                     padding: const EdgeInsets.symmetric(
-                                      horizontal: 20,
+                                      horizontal: 6,
                                     ),
                                     child: GestureDetector(
                                       onDoubleTap: () => _onDoubleTapPhoto(currentPost),
@@ -1805,6 +2043,14 @@ class _LocketFeedScreenState extends State<LocketFeedScreen> {
                                                       const Color(0xFFFF3D00),
                                                     ];
                                                   }
+                                                  if (currentPost.moodEmoji
+                                                      .contains('mid_autumn')) {
+                                                    gradColors = [
+                                                      const Color(0xFFFFB703),
+                                                      const Color(0xFFFB8500),
+                                                    ];
+                                                    textColor = Colors.black;
+                                                  }
 
                                                   if (currentPost
                                                           .stickerGradient !=
@@ -2082,11 +2328,8 @@ class _LocketFeedScreenState extends State<LocketFeedScreen> {
                                                                             -0.3,
                                                                       ),
                                                                     )
-                                                                  : currentPost
-                                                                        .moodEmoji
-                                                                        .startsWith(
-                                                                          '__holiday_',
-                                                                        )
+                                                                  : (currentPost.moodEmoji.startsWith('__holiday_') ||
+                                                                     currentPost.moodEmoji.contains('mid_autumn'))
                                                                   ? TXAMarquee(
                                                                       text: TXAFestivalManager.getHolidayCaption(
                                                                         currentPost
@@ -2239,12 +2482,12 @@ class _LocketFeedScreenState extends State<LocketFeedScreen> {
                                     tier: _getFriendTier(currentPost.senderUsername),
                                     showStreakBadge: true,
                                     child: Container(
-                                      color: Color(avatarColorVal),
-                                      child: currentPost.senderAvatar.startsWith('http')
-                                          ? TXANetworkImage(url: currentPost.senderAvatar, fit: BoxFit.cover)
+                                      color: Color(int.tryParse(currentPost.effectiveSenderAvatarColor) ?? avatarColorVal),
+                                      child: currentPost.effectiveSenderAvatar.startsWith('http')
+                                          ? TXANetworkImage(url: currentPost.effectiveSenderAvatar, fit: BoxFit.cover)
                                           : Center(
                                               child: Text(
-                                                currentPost.senderAvatar,
+                                                currentPost.effectiveSenderAvatar,
                                                 style: const TextStyle(fontSize: 14),
                                               ),
                                             ),

@@ -1067,14 +1067,14 @@ class _TXARecapScreenState extends State<TXARecapScreen> {
                 child: Row(
                   children: [
                     CircleAvatar(
-                      backgroundColor: Color(int.tryParse(post.senderAvatarColor) ?? 0xFF42A5F5),
+                      backgroundColor: Color(int.tryParse(post.effectiveSenderAvatarColor) ?? 0xFF42A5F5),
                       radius: 16,
                       child: ClipOval(
-                        child: post.senderAvatar.startsWith('http')
-                            ? TXANetworkImage(url: post.senderAvatar, fit: BoxFit.cover)
+                        child: post.effectiveSenderAvatar.startsWith('http')
+                            ? TXANetworkImage(url: post.effectiveSenderAvatar, fit: BoxFit.cover)
                             : Center(
                                 child: Text(
-                                  post.senderAvatar,
+                                  post.effectiveSenderAvatar,
                                   style: const TextStyle(fontSize: 14),
                                 ),
                               ),

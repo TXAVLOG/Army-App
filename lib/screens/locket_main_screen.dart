@@ -70,6 +70,10 @@ class _LocketMainScreenState extends State<LocketMainScreen> with WidgetsBinding
 
   double _currentZoom = 1.0;
   double _baseZoom = 1.0;
+  double _minZoom = 1.0;
+  double _maxZoom = 8.0;
+  bool _isApplyingZoom = false;
+  double? _pendingZoom;
   List<double> _zoomLevels = [0.5, 1.0, 1.5, 2.0, 3.0];
   int _zoomIndex = 1;
   bool _isZoomPillOpen = false;
@@ -130,16 +134,25 @@ class _LocketMainScreenState extends State<LocketMainScreen> with WidgetsBinding
   }
 
   void _setZoomValue(double zoomValue) async {
-    final isRearCamera = _cameras.isNotEmpty &&
-        _selectedCameraIndex < _cameras.length &&
-        _cameras[_selectedCameraIndex].lensDirection == CameraLensDirection.back;
+    final targetZoom = zoomValue.clamp(_minZoom, _maxZoom);
 
-    if (!isRearCamera && _cameras.isNotEmpty) {
-      return;
+    int closestIdx = 0;
+    double minDiff = double.infinity;
+    for (int i = 0; i < _zoomLevels.length; i++) {
+      final diff = (targetZoom - _zoomLevels[i]).abs();
+      if (diff < minDiff) {
+        minDiff = diff;
+        closestIdx = i;
+      }
     }
 
-    // 1. Dùng camera góc rộng (ultra-wide) nếu người dùng chọn 0.5x
-    if (zoomValue == 0.5) {
+    setState(() {
+      _currentZoom = targetZoom;
+      _zoomIndex = closestIdx;
+    });
+
+    // 1. Dùng camera góc rộng (ultra-wide) nếu người dùng chọn <= 0.6x và có camera sau phụ
+    if (targetZoom <= 0.6) {
       int? wideCameraIndex;
       int backCount = 0;
       for (int i = 0; i < _cameras.length; i++) {
@@ -157,10 +170,6 @@ class _LocketMainScreenState extends State<LocketMainScreen> with WidgetsBinding
           _selectedCameraIndex = wideCameraIndex;
           await _setupCamera(wideCameraIndex);
         }
-        setState(() {
-          _currentZoom = 0.5;
-          _zoomIndex = 0;
-        });
         if (_cameraController != null && _isCameraInitialized) {
           try {
             await _cameraController!.setZoomLevel(1.0);
@@ -169,7 +178,7 @@ class _LocketMainScreenState extends State<LocketMainScreen> with WidgetsBinding
         return;
       }
     } else {
-      // Nếu zoomValue >= 1.0, đảm bảo dùng camera sau chính (first back camera)
+      // Nếu zoomValue > 0.6, đảm bảo dùng camera sau chính nếu đang dùng camera sau phụ
       int? primaryBackIndex;
       for (int i = 0; i < _cameras.length; i++) {
         if (_cameras[i].lensDirection == CameraLensDirection.back) {
@@ -177,54 +186,46 @@ class _LocketMainScreenState extends State<LocketMainScreen> with WidgetsBinding
           break;
         }
       }
-      if (primaryBackIndex != null && _selectedCameraIndex != primaryBackIndex && _selectedCameraIndex != 1) { // 1 là camera trước
+      if (primaryBackIndex != null &&
+          _selectedCameraIndex != primaryBackIndex &&
+          _cameras.isNotEmpty &&
+          _selectedCameraIndex < _cameras.length &&
+          _cameras[_selectedCameraIndex].lensDirection == CameraLensDirection.back) {
         _selectedCameraIndex = primaryBackIndex;
         await _setupCamera(primaryBackIndex);
       }
     }
 
-    double minZoom = 1.0;
-    double maxZoom = 8.0;
-    if (_cameraController != null && _isCameraInitialized) {
-      try {
-        minZoom = await _cameraController!.getMinZoomLevel();
-        maxZoom = await _cameraController!.getMaxZoomLevel();
-      } catch (_) {}
+    _applyZoomToNative(targetZoom);
+  }
+
+  Future<void> _applyZoomToNative(double zoom) async {
+    if (_cameraController == null || !_isCameraInitialized) return;
+    if (_isApplyingZoom) {
+      _pendingZoom = zoom;
+      return;
     }
-
-    final targetZoom = zoomValue.clamp(minZoom, maxZoom);
-
-    int closestIdx = 0;
-    double minDiff = double.infinity;
-    for (int i = 0; i < _zoomLevels.length; i++) {
-      final diff = (targetZoom - _zoomLevels[i]).abs();
-      if (diff < minDiff) {
-        minDiff = diff;
-        closestIdx = i;
-      }
-    }
-
-    setState(() {
-      _currentZoom = targetZoom;
-      _zoomIndex = closestIdx;
-    });
-
-    if (_cameraController != null && _isCameraInitialized) {
-      try {
-        final minZ = await _cameraController!.getMinZoomLevel();
-        final maxZ = await _cameraController!.getMaxZoomLevel();
-        final clampedZoom = targetZoom.clamp(minZ, maxZ);
-        await _cameraController!.setZoomLevel(clampedZoom);
-        TXALogger.log('Zoom applied: target=$targetZoom, clamped=$clampedZoom, range=[$minZ - $maxZ]', type: 'camera');
-      } catch (e) {
-        TXALogger.log('Lỗi zoom camera: $e', type: 'camera');
-        debugPrint('Zoom set level error: $e');
+    _isApplyingZoom = true;
+    try {
+      final minZ = _minZoom < 1.0 ? 1.0 : _minZoom;
+      final clampedZoom = zoom.clamp(minZ, _maxZoom);
+      await _cameraController!.setZoomLevel(clampedZoom);
+    } catch (e) {
+      debugPrint('Error applying zoom: $e');
+    } finally {
+      _isApplyingZoom = false;
+      if (_pendingZoom != null) {
+        final next = _pendingZoom!;
+        _pendingZoom = null;
+        _applyZoomToNative(next);
       }
     }
   }
 
   void _changeZoom(bool zoomIn) {
-    HapticFeedback.selectionClick();
+    if (!Platform.isWindows) {
+      try { HapticFeedback.selectionClick(); } catch (_) {}
+    }
     if (zoomIn) {
       _zoomIndex = (_zoomIndex + 1) % _zoomLevels.length;
     } else {
@@ -234,7 +235,9 @@ class _LocketMainScreenState extends State<LocketMainScreen> with WidgetsBinding
   }
 
   void _selectZoomPreset(int index) {
-    HapticFeedback.lightImpact();
+    if (!Platform.isWindows) {
+      try { HapticFeedback.lightImpact(); } catch (_) {}
+    }
     final txaLang = TXALanguage.instance;
     if (index >= 0 && index < _zoomLevels.length) {
       _setZoomValue(_zoomLevels[index]);
@@ -252,24 +255,35 @@ class _LocketMainScreenState extends State<LocketMainScreen> with WidgetsBinding
   }
 
   void _toggleZoomPill() {
-    final isRearCamera = _cameras.isNotEmpty &&
-        _selectedCameraIndex < _cameras.length &&
-        _cameras[_selectedCameraIndex].lensDirection == CameraLensDirection.back;
-
-    if (!isRearCamera && _cameras.isNotEmpty) {
-      TXAToast.show(context, TXALanguage.instance.getText('zoom_rear_only'), icon: Icons.camera_front_rounded);
-      return;
-    }
-
     setState(() {
       _isZoomPillOpen = !_isZoomPillOpen;
     });
   }
 
   void _goToFeed() {
+    final currentUser = TXAAuthService.instance.currentUser;
+    final username = currentUser?.username ?? '@user';
+    final visiblePosts = TXAFeedService.instance.getVisiblePostsForUser(username);
+
+    // Nếu có bài chưa xem từ bạn bè, ưu tiên mở ngay bài chưa xem đó
+    int targetIdx = 0;
+    String? targetPostId;
+
+    final unreadIdx = visiblePosts.indexWhere(
+      (p) => !p.readBy.contains(username) && p.senderUsername != username,
+    );
+
+    if (unreadIdx != -1) {
+      targetIdx = unreadIdx;
+      targetPostId = visiblePosts[unreadIdx].id;
+    }
+
     Navigator.of(context).push<String>(
       MaterialPageRoute(
-        builder: (_) => const LocketFeedScreen(initialIndex: 0),
+        builder: (_) => LocketFeedScreen(
+          initialIndex: targetIdx,
+          initialPostId: targetPostId,
+        ),
       ),
     ).then((result) {
       _focusNode.requestFocus();
@@ -504,16 +518,17 @@ class _LocketMainScreenState extends State<LocketMainScreen> with WidgetsBinding
     if (_cameraController != null) {
       final oldController = _cameraController;
       _cameraController = null;
-      // Chạy dispose bất đồng bộ để tránh treo native UI thread của Windows
-      oldController!.dispose().catchError((e) {
+      try {
+        await oldController?.dispose();
+      } catch (e) {
         debugPrint('Error disposing old camera controller: $e');
-      });
+      }
       await Future.delayed(const Duration(milliseconds: 300));
     }
 
     final controller = CameraController(
       _cameras[index],
-      ResolutionPreset.high,
+      Platform.isWindows ? ResolutionPreset.medium : ResolutionPreset.high,
       enableAudio: false,
     );
 
@@ -527,6 +542,9 @@ class _LocketMainScreenState extends State<LocketMainScreen> with WidgetsBinding
       } catch (e) {
         TXALogger.log('Lỗi đọc zoom camera API: $e', type: 'camera');
       }
+
+      if (minZoom <= 0) minZoom = 1.0;
+      if (maxZoom < minZoom) maxZoom = (minZoom > 1.0 ? minZoom : 8.0);
 
       final isRearCamera = _cameras[index].lensDirection == CameraLensDirection.back;
       final backCameras = _cameras.where((c) => c.lensDirection == CameraLensDirection.back).toList();
@@ -543,23 +561,40 @@ class _LocketMainScreenState extends State<LocketMainScreen> with WidgetsBinding
         type: 'camera',
       );
 
-      final List<double> newZoomLevels = hasUltraWide
-          ? [0.5, 1.0, 1.5, 2.0, 3.0]
-          : [1.0, 1.5, 2.0, 3.0];
+      final candidateLevels = [0.5, 1.0, 1.5, 2.0, 3.0, 5.0];
+      final List<double> newZoomLevels = [];
+      if (hasUltraWide) {
+        newZoomLevels.add(0.5);
+      }
+      for (final lvl in candidateLevels) {
+        if (lvl == 0.5) continue;
+        if (lvl >= minZoom && lvl <= maxZoom) {
+          newZoomLevels.add(lvl);
+        }
+      }
+      if (newZoomLevels.isEmpty) {
+        newZoomLevels.add(1.0);
+      }
+      if (!newZoomLevels.contains(1.0) && 1.0 >= minZoom && 1.0 <= maxZoom) {
+        newZoomLevels.add(1.0);
+        newZoomLevels.sort();
+      }
 
       if (mounted) {
         setState(() {
           _cameraController = controller;
           _isCameraInitialized = true;
           _cameraErrorMsg = null;
+          _minZoom = hasUltraWide ? 0.5 : minZoom;
+          _maxZoom = maxZoom < 1.0 ? 8.0 : maxZoom;
           _zoomLevels = newZoomLevels;
+          _currentZoom = 1.0.clamp(_minZoom, _maxZoom);
           _zoomIndex = newZoomLevels.contains(1.0) ? newZoomLevels.indexOf(1.0) : 0;
-          _currentZoom = 1.0;
         });
       }
 
-      // Khôi phục flash mode đã lưu cho camera sau
-      if (_cameras[index].lensDirection == CameraLensDirection.back) {
+      // Khôi phục flash mode đã lưu cho camera sau (chỉ trên thiết bị có hỗ trợ Flash)
+      if (!Platform.isWindows && _cameras[index].lensDirection == CameraLensDirection.back) {
         try {
           if (_flashModeIndex == 1) {
             await controller.setFlashMode(FlashMode.torch);
@@ -617,7 +652,7 @@ class _LocketMainScreenState extends State<LocketMainScreen> with WidgetsBinding
   Future<void> _loadCameraPreferences() async {
     try {
       final prefs = await SharedPreferences.getInstance();
-      final savedFlash = prefs.getInt('txa_camera_flash_mode') ?? 0;
+      final savedFlash = Platform.isWindows ? 0 : (prefs.getInt('txa_camera_flash_mode') ?? 0);
       final savedTimer = prefs.getInt('txa_camera_timer_seconds') ?? 0;
       if (mounted) {
         setState(() {
@@ -631,6 +666,7 @@ class _LocketMainScreenState extends State<LocketMainScreen> with WidgetsBinding
   }
 
   void _setFlashMode(int index, {bool showToast = false}) async {
+    if (Platform.isWindows) return; // Windows không có phần cứng đèn Flash
     final txaLang = TXALanguage.instance;
     final prefs = await SharedPreferences.getInstance();
     await prefs.setInt('txa_camera_flash_mode', index);
@@ -732,7 +768,9 @@ class _LocketMainScreenState extends State<LocketMainScreen> with WidgetsBinding
       _countdownRemaining = _timerSeconds;
     });
 
-    HapticFeedback.mediumImpact();
+    if (!Platform.isWindows) {
+      try { HapticFeedback.mediumImpact(); } catch (_) {}
+    }
 
     _countdownTimer = Timer.periodic(const Duration(seconds: 1), (timer) {
       if (!mounted) {
@@ -740,7 +778,9 @@ class _LocketMainScreenState extends State<LocketMainScreen> with WidgetsBinding
         return;
       }
       if (_countdownRemaining > 1) {
-        HapticFeedback.selectionClick();
+        if (!Platform.isWindows) {
+          try { HapticFeedback.selectionClick(); } catch (_) {}
+        }
         setState(() {
           _countdownRemaining--;
         });
@@ -1115,9 +1155,11 @@ class _LocketMainScreenState extends State<LocketMainScreen> with WidgetsBinding
                                   onPointerSignal: (pointerSignal) {
                                     if (pointerSignal is PointerScrollEvent) {
                                       if (pointerSignal.scrollDelta.dy < 0) {
-                                        _changeZoom(true);
+                                        final nextZoom = (_currentZoom + 0.2).clamp(_minZoom, _maxZoom);
+                                        _setZoomValue(nextZoom);
                                       } else if (pointerSignal.scrollDelta.dy > 0) {
-                                        _changeZoom(false);
+                                        final nextZoom = (_currentZoom - 0.2).clamp(_minZoom, _maxZoom);
+                                        _setZoomValue(nextZoom);
                                       }
                                     }
                                   },
@@ -1147,7 +1189,8 @@ class _LocketMainScreenState extends State<LocketMainScreen> with WidgetsBinding
                                     },
                                     onScaleUpdate: (details) {
                                       if (details.scale != 1.0) {
-                                        _setZoomValue(_baseZoom * details.scale);
+                                        final target = (_baseZoom * details.scale).clamp(_minZoom, _maxZoom);
+                                        _setZoomValue(target);
                                       }
                                     },
                                     child: Stack(
@@ -1278,7 +1321,7 @@ class _LocketMainScreenState extends State<LocketMainScreen> with WidgetsBinding
                                           camTheme.buildOverlay()!,
 
                                         // Top Left: Zoom Indicator & Animated Horizontal Pill Bar
-                                        if (isRearCamera)
+                                        if (_isCameraInitialized)
                                           Positioned(
                                             top: 14,
                                             left: 14,
@@ -1404,72 +1447,78 @@ class _LocketMainScreenState extends State<LocketMainScreen> with WidgetsBinding
                                             message: txaLang.getText('camera_settings_title'),
                                             child: GestureDetector(
                                               onTap: _showCameraSettingsModal,
-                                              child: AnimatedContainer(
-                                                duration: const Duration(milliseconds: 200),
-                                                padding: EdgeInsets.symmetric(
-                                                  horizontal: (_timerSeconds > 0 || _flashModeIndex > 0) ? 10 : 8,
-                                                  vertical: 7,
-                                                ),
-                                                decoration: BoxDecoration(
-                                                  color: (_timerSeconds > 0 || _flashModeIndex > 0)
-                                                      ? TXATheme.primaryYellow.withAlpha(45)
-                                                      : Colors.black.withAlpha(160),
-                                                  borderRadius: BorderRadius.circular(20),
-                                                  border: Border.all(
-                                                    color: (_timerSeconds > 0 || _flashModeIndex > 0)
-                                                        ? TXATheme.primaryYellow
-                                                        : themeAccent.withAlpha(160),
-                                                    width: 1.5,
-                                                  ),
-                                                  boxShadow: [
-                                                    BoxShadow(
-                                                      color: ((_timerSeconds > 0 || _flashModeIndex > 0)
+                                              child: Builder(
+                                                builder: (context) {
+                                                  final hasActiveFlash = !Platform.isWindows && _flashModeIndex > 0;
+                                                  final isHighlighted = _timerSeconds > 0 || hasActiveFlash;
+                                                  return AnimatedContainer(
+                                                    duration: const Duration(milliseconds: 200),
+                                                    padding: EdgeInsets.symmetric(
+                                                      horizontal: isHighlighted ? 10 : 8,
+                                                      vertical: 7,
+                                                    ),
+                                                    decoration: BoxDecoration(
+                                                      color: isHighlighted
+                                                          ? TXATheme.primaryYellow.withAlpha(45)
+                                                          : Colors.black.withAlpha(160),
+                                                      borderRadius: BorderRadius.circular(20),
+                                                      border: Border.all(
+                                                        color: isHighlighted
+                                                            ? TXATheme.primaryYellow
+                                                            : themeAccent.withAlpha(160),
+                                                        width: 1.5,
+                                                      ),
+                                                      boxShadow: [
+                                                        BoxShadow(
+                                                          color: (isHighlighted
+                                                                  ? TXATheme.primaryYellow
+                                                                  : themeAccent)
+                                                              .withAlpha(80),
+                                                          blurRadius: 8,
+                                                        ),
+                                                      ],
+                                                    ),
+                                                    child: Row(
+                                                      mainAxisSize: MainAxisSize.min,
+                                                      children: [
+                                                        Icon(
+                                                          _timerSeconds > 0
+                                                              ? Icons.timer_outlined
+                                                              : (hasActiveFlash
+                                                                  ? _flashIcons[_flashModeIndex]
+                                                                  : Icons.tune_rounded),
+                                                          color: isHighlighted
                                                               ? TXATheme.primaryYellow
-                                                              : themeAccent)
-                                                          .withAlpha(80),
-                                                      blurRadius: 8,
-                                                    ),
-                                                  ],
-                                                ),
-                                                child: Row(
-                                                  mainAxisSize: MainAxisSize.min,
-                                                  children: [
-                                                    Icon(
-                                                      _timerSeconds > 0
-                                                          ? Icons.timer_outlined
-                                                          : (_flashModeIndex > 0
-                                                              ? _flashIcons[_flashModeIndex]
-                                                              : Icons.tune_rounded),
-                                                      color: (_timerSeconds > 0 || _flashModeIndex > 0)
-                                                          ? TXATheme.primaryYellow
-                                                          : themeAccent,
-                                                      size: 18,
-                                                    ),
-                                                    if (_timerSeconds > 0) ...[
-                                                      const SizedBox(width: 4),
-                                                      Text(
-                                                        '${_timerSeconds}s',
-                                                        textScaler: TextScaler.noScaling,
-                                                        style: const TextStyle(
-                                                          color: TXATheme.primaryYellow,
-                                                          fontSize: 12,
-                                                          fontWeight: FontWeight.w900,
+                                                              : themeAccent,
+                                                          size: 18,
                                                         ),
-                                                      ),
-                                                    ] else if (_flashModeIndex > 0) ...[
-                                                      const SizedBox(width: 4),
-                                                      Text(
-                                                        _flashModeIndex == 1 ? 'ON' : 'AUTO',
-                                                        textScaler: TextScaler.noScaling,
-                                                        style: const TextStyle(
-                                                          color: TXATheme.primaryYellow,
-                                                          fontSize: 11,
-                                                          fontWeight: FontWeight.w900,
-                                                        ),
-                                                      ),
-                                                    ],
-                                                  ],
-                                                ),
+                                                        if (_timerSeconds > 0) ...[
+                                                          const SizedBox(width: 4),
+                                                          Text(
+                                                            '${_timerSeconds}s',
+                                                            textScaler: TextScaler.noScaling,
+                                                            style: const TextStyle(
+                                                              color: TXATheme.primaryYellow,
+                                                              fontSize: 12,
+                                                              fontWeight: FontWeight.w900,
+                                                            ),
+                                                          ),
+                                                        ] else if (hasActiveFlash) ...[
+                                                          const SizedBox(width: 4),
+                                                          Text(
+                                                            _flashModeIndex == 1 ? 'ON' : 'AUTO',
+                                                            textScaler: TextScaler.noScaling,
+                                                            style: const TextStyle(
+                                                              color: TXATheme.primaryYellow,
+                                                              fontSize: 11,
+                                                              fontWeight: FontWeight.w900,
+                                                            ),
+                                                          ),
+                                                        ],
+                                                      ],
+                                                    ),
+                                                  );
+                                                },
                                               ),
                                             ),
                                           ),
@@ -1634,7 +1683,9 @@ class _LocketMainScreenState extends State<LocketMainScreen> with WidgetsBinding
                               key: _shutterKey,
                               onTapDown: canCapture ? (_) {
                                 setState(() => _isShutterPressed = true);
-                                HapticFeedback.mediumImpact();
+                                if (!Platform.isWindows) {
+                                  try { HapticFeedback.mediumImpact(); } catch (_) {}
+                                }
                               } : null,
                               onTapUp: canCapture ? (_) {
                                 setState(() => _isShutterPressed = false);
@@ -1700,9 +1751,12 @@ class _LocketMainScreenState extends State<LocketMainScreen> with WidgetsBinding
                         }
                       ),
 
-                      // Flip Camera Button
+                      // Flip Camera Button (ẩn trên Windows nếu chỉ có 1 camera hoặc không có camera)
                       Builder(
                         builder: (ctx) {
+                          if (Platform.isWindows && _cameras.length <= 1) {
+                            return const SizedBox(width: 54);
+                          }
                           final activeTheme = TXACameraThemeService.instance.currentThemeData;
                           final accent = activeTheme.accentColor;
                           return Tooltip(
@@ -2527,7 +2581,11 @@ void _showFriendsModal(BuildContext context) {
               ListTile(
                 leading: CircleAvatar(
                   backgroundColor: avatarColor.withAlpha(180),
-                  child: Text(avatarEmoji, style: const TextStyle(fontSize: 20)),
+                  child: ClipOval(
+                    child: avatarEmoji.startsWith('http')
+                        ? SizedBox(width: 40, height: 40, child: TXANetworkImage(url: avatarEmoji, fit: BoxFit.cover))
+                        : Center(child: Text(avatarEmoji, style: const TextStyle(fontSize: 20))),
+                  ),
                 ),
                 title: Text(name, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 18)),
                 subtitle: Text(username, style: const TextStyle(color: Colors.white70, fontSize: 13)),
@@ -2725,19 +2783,6 @@ void _showFriendsModal(BuildContext context) {
   }
 
   void _showAddFriendBottomSheet(BuildContext context) {
-    final txaLang = TXALanguage.instance;
-    final txaAuth = TXAAuthService.instance;
-    final currentUser = txaAuth.currentUser;
-    if (currentUser == null) return;
-
-    final searchController = TextEditingController();
-    List<Map<String, dynamic>> searchResults = [];
-    bool isSearching = false;
-    
-    // Sets of usernames to track friend status
-    Set<String> sentUsernames = {};
-    Set<String> incomingUsernames = {};
-
     showModalBottomSheet(
       context: context,
       backgroundColor: TXATheme.cardBg,
@@ -2745,302 +2790,11 @@ void _showFriendsModal(BuildContext context) {
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(32)),
       ),
-      builder: (context) {
-        return StatefulBuilder(
-          builder: (context, setModalState) {
-            // Fetch sent/incoming requests initially
-            Future<void> fetchRequestStatus() async {
-              try {
-                final sentSnap = await TXASupabaseService.instance.client
-                    .from('txa_friend_requests')
-                    .select('to')
-                    .eq('from', currentUser.username)
-                    .eq('status', 'pending');
-                final incomingSnap = await TXASupabaseService.instance.client
-                    .from('txa_friend_requests')
-                    .select('from')
-                    .eq('to', currentUser.username)
-                    .eq('status', 'pending');
-
-                setModalState(() {
-                  sentUsernames = (sentSnap as List).map((d) => d['to'] as String).toSet();
-                  incomingUsernames = (incomingSnap as List).map((d) => d['from'] as String).toSet();
-                });
-              } catch (_) {}
-            }
-
-            // Call once when sheet loads
-            WidgetsBinding.instance.addPostFrameCallback((_) {
-              if (sentUsernames.isEmpty && incomingUsernames.isEmpty) {
-                fetchRequestStatus();
-              }
-            });
-
-            Timer? debounce;
-
-            return Padding(
-              padding: EdgeInsets.only(bottom: MediaQuery.of(context).viewInsets.bottom),
-              child: DraggableScrollableSheet(
-                initialChildSize: 0.85,
-                maxChildSize: 0.95,
-                minChildSize: 0.5,
-                expand: false,
-                builder: (context, scrollController) {
-                  return SafeArea(
-                    child: Container(
-                      padding: const EdgeInsets.all(20),
-                      child: Column(
-                    children: [
-                      Container(
-                        width: 40,
-                        height: 4,
-                        decoration: BoxDecoration(
-                          color: Colors.white24,
-                          borderRadius: BorderRadius.circular(2),
-                        ),
-                      ),
-                      const SizedBox(height: 20),
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: [
-                          Text(
-                            txaLang.getText('add_friend'),
-                            style: const TextStyle(color: Colors.white, fontSize: 22, fontWeight: FontWeight.bold),
-                          ),
-                          IconButton(
-                            onPressed: () => Navigator.pop(context),
-                            icon: const Icon(Icons.close_rounded, color: Colors.white),
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: 16),
-                      // Search box
-                      TextField(
-                        controller: searchController,
-                        autofocus: true,
-                        style: const TextStyle(color: Colors.white),
-                        onChanged: (val) {
-                          if (debounce?.isActive ?? false) debounce?.cancel();
-                          debounce = Timer(const Duration(milliseconds: 350), () async {
-                            final q = val.trim();
-                            if (q.isEmpty) {
-                              setModalState(() {
-                                searchResults = [];
-                                isSearching = false;
-                              });
-                              return;
-                            }
-                            setModalState(() {
-                              isSearching = true;
-                            });
-
-                            try {
-                              final querySnapshot = await TXASupabaseService.instance.client
-                                  .from('txa_users')
-                                  .select()
-                                  .limit(100);
-
-                              final cleanQ = q.toLowerCase().replaceAll('@', '');
-                              final matched = (querySnapshot as List).where((u) {
-                                final email = (u['email'] ?? '').toString().toLowerCase();
-                                final username = (u['username'] ?? u['user_name'] ?? '').toString().toLowerCase().replaceAll('@', '');
-                                return email.contains(cleanQ) || username.contains(cleanQ);
-                              }).take(10).toList().cast<Map<String, dynamic>>();
-
-                              setModalState(() {
-                                searchResults = matched;
-                                isSearching = false;
-                              });
-                            } catch (_) {
-                              setModalState(() {
-                                isSearching = false;
-                              });
-                            }
-                          });
-                        },
-                        decoration: InputDecoration(
-                          hintText: txaLang.getText('search_friend_placeholder'),
-                          hintStyle: TextStyle(color: TXATheme.textMuted, fontSize: 14),
-                          prefixIcon: Icon(Icons.search_rounded, color: TXATheme.textMuted),
-                          filled: true,
-                          fillColor: Colors.white.withAlpha(12),
-                          border: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(16),
-                            borderSide: BorderSide.none,
-                          ),
-                          suffixIcon: IconButton(
-                            icon: Icon(Icons.content_paste_rounded, color: TXATheme.textMuted, size: 20),
-                            onPressed: () async {
-                              final data = await Clipboard.getData(Clipboard.kTextPlain);
-                              if (data?.text != null) {
-                                searchController.text = data!.text!;
-                                searchController.selection = TextSelection.fromPosition(TextPosition(offset: searchController.text.length));
-                                final q = data.text!.trim();
-                                if (q.isEmpty) return;
-                                setModalState(() {
-                                  isSearching = true;
-                                });
-                                try {
-                                  final querySnapshot = await TXASupabaseService.instance.client
-                                      .from('txa_users')
-                                      .select()
-                                      .limit(100);
-
-                                  final cleanQ = q.toLowerCase().replaceAll('@', '');
-                                  final matched = (querySnapshot as List).where((u) {
-                                    final email = (u['email'] ?? '').toString().toLowerCase();
-                                    final username = (u['username'] ?? u['user_name'] ?? '').toString().toLowerCase().replaceAll('@', '');
-                                    return email.contains(cleanQ) || username.contains(cleanQ);
-                                  }).take(10).toList().cast<Map<String, dynamic>>();
-
-                                  setModalState(() {
-                                    searchResults = matched;
-                                    isSearching = false;
-                                  });
-                                } catch (_) {
-                                  setModalState(() {
-                                    isSearching = false;
-                                  });
-                                }
-                              }
-                            },
-                          ),
-                        ),
-                      ),
-                      const SizedBox(height: 20),
-                      Expanded(
-                        child: isSearching
-                            ? const Center(
-                                child: CircularProgressIndicator(color: TXATheme.primaryYellow),
-                              )
-                            : searchResults.isEmpty
-                                ? Center(
-                                    child: Column(
-                                      mainAxisAlignment: MainAxisAlignment.center,
-                                      children: [
-                                        Icon(Icons.person_search_rounded, color: Colors.white.withAlpha(20), size: 80),
-                                        const SizedBox(height: 12),
-                                        Text(
-                                          txaLang.getText('search_start_hint'),
-                                          style: TextStyle(color: Colors.white.withAlpha(60), fontSize: 14),
-                                        ),
-                                      ],
-                                    ),
-                                  )
-                                : ListView.builder(
-                                    controller: scrollController,
-                                    itemCount: searchResults.length,
-                                    itemBuilder: (context, index) {
-                                      final user = searchResults[index];
-                                      final uUsername = user['username'] as String;
-                                      final uAvatar = user['avatar'] as String? ?? '👤';
-                                      final uColorStr = user['avatarBgColor'] as String? ?? '0xFF607D8B';
-                                      final uColor = Color(int.tryParse(uColorStr) ?? 0xFF607D8B);
-
-                                      final isMe = uUsername == currentUser.username;
-                                      final isFriend = txaAuth.friendsList.any((f) => f['username'] == uUsername);
-                                      final isSent = sentUsernames.contains(uUsername);
-                                      final isIncoming = incomingUsernames.contains(uUsername);
-
-                                      Widget trailingWidget;
-                                      if (isMe) {
-                                        trailingWidget = Text(txaLang.getText('friendship_me'), style: const TextStyle(color: Colors.white30));
-                                      } else if (isFriend) {
-                                        trailingWidget = Text(txaLang.getText('friendship_friends'), style: const TextStyle(color: Colors.white30));
-                                      } else if (isSent || isIncoming) {
-                                        trailingWidget = Text(txaLang.getText('friendship_pending'), style: const TextStyle(color: TXATheme.primaryYellow, fontWeight: FontWeight.bold, fontSize: 13));
-                                      } else {
-                                        trailingWidget = ElevatedButton(
-                                          onPressed: () async {
-                                            final res = await txaAuth.sendFriendRequest(uUsername);
-                                            final success = res['success'] == true;
-                                            if (context.mounted) {
-                                              TXAToast.show(
-                                                context,
-                                                res['message'] ?? '',
-                                                icon: success ? Icons.check_circle_rounded : Icons.error_outline_rounded,
-                                                backgroundColor: success ? null : TXATheme.statusRed,
-                                              );
-                                            }
-                                            if (success) {
-                                              setModalState(() {
-                                                sentUsernames.add(uUsername);
-                                              });
-                                            }
-                                          },
-                                          style: ElevatedButton.styleFrom(
-                                            backgroundColor: TXATheme.primaryYellow,
-                                            foregroundColor: Colors.black,
-                                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-                                            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
-                                          ),
-                                          child: Text(txaLang.getText('friendship_add'), style: const TextStyle(fontWeight: FontWeight.bold)),
-                                        );
-                                      }
-
-                                      return ListTile(
-                                        leading: CircleAvatar(
-                                          backgroundColor: uColor.withAlpha(180),
-                                          child: Text(uAvatar, style: const TextStyle(fontSize: 20)),
-                                        ),
-                                        title: _buildHighlightedText(uUsername, searchController.text),
-                                        subtitle: _buildHighlightedText(user['email'] ?? '', searchController.text, isSubtitle: true),
-                                        trailing: trailingWidget,
-                                      );
-                                    },
-                                  ),
-                      ),
-                      Container(
-                        padding: const EdgeInsets.symmetric(vertical: 16),
-                        decoration: BoxDecoration(
-                          color: Colors.white.withAlpha(5),
-                          borderRadius: BorderRadius.circular(20),
-                        ),
-                        child: Column(
-                          children: [
-                            Text(txaLang.getText('my_username_label'), style: const TextStyle(color: Colors.white54, fontSize: 12)),
-                            const SizedBox(height: 8),
-                            GestureDetector(
-                              onTap: () {
-                                Clipboard.setData(ClipboardData(text: currentUser.username));
-                                HapticFeedback.mediumImpact();
-                                TXAToast.show(context, txaLang.getText('username_copied').replaceAll('%user%', currentUser.username));
-                              },
-                              child: Container(
-                                padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
-                                decoration: BoxDecoration(
-                                  color: Colors.white.withAlpha(10),
-                                  borderRadius: BorderRadius.circular(16),
-                                  border: Border.all(color: TXATheme.primaryYellow.withAlpha(50)),
-                                ),
-                                child: Row(
-                                  mainAxisSize: MainAxisSize.min,
-                                  children: [
-                                    Text(
-                                      currentUser.username,
-                                      style: const TextStyle(color: TXATheme.primaryYellow, fontSize: 16, fontWeight: FontWeight.bold, letterSpacing: 0.5),
-                                    ),
-                                    const SizedBox(width: 10),
-                                    const Icon(Icons.copy_rounded, color: TXATheme.primaryYellow, size: 16),
-                                  ],
-                                ),
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              );
-            },
-          ),
-        );
-      },
+      builder: (ctx) => _TXAAddFriendModalContent(
+        highlightBuilder: _buildHighlightedText,
+      ),
     );
-  },
-);
-}
+  }
 
   Widget _buildInviteTile(
     String requestId,
@@ -3083,7 +2837,11 @@ void _showFriendsModal(BuildContext context) {
         children: [
           CircleAvatar(
             backgroundColor: avatarColor.withAlpha(180),
-            child: Text(avatarEmoji, style: TextStyle(fontSize: 20)),
+            child: ClipOval(
+              child: avatarEmoji.startsWith('http')
+                  ? SizedBox(width: 40, height: 40, child: TXANetworkImage(url: avatarEmoji, fit: BoxFit.cover))
+                  : Center(child: Text(avatarEmoji, style: const TextStyle(fontSize: 20))),
+            ),
           ),
           const SizedBox(width: 12),
           Expanded(
@@ -3195,9 +2953,11 @@ void _showFriendsModal(BuildContext context) {
                   : (isBestFriend ? TXAFriendTier.bestFriend : TXAFriendTier.normal),
               child: Container(
                 color: avatarColor.withAlpha(180),
-                child: Center(
-                  child: Text(avatarEmoji, style: const TextStyle(fontSize: 18)),
-                ),
+                child: avatarEmoji.startsWith('http')
+                    ? SizedBox.expand(child: TXANetworkImage(url: avatarEmoji, fit: BoxFit.cover))
+                    : Center(
+                        child: Text(avatarEmoji, style: const TextStyle(fontSize: 18)),
+                      ),
               ),
             ),
             Positioned(
@@ -3335,7 +3095,11 @@ void _showFriendsModal(BuildContext context) {
         children: [
           CircleAvatar(
             backgroundColor: TXATheme.cardBorder,
-            child: Text(avatarEmoji, style: TextStyle(fontSize: 20)),
+            child: ClipOval(
+              child: avatarEmoji.startsWith('http')
+                  ? SizedBox(width: 40, height: 40, child: TXANetworkImage(url: avatarEmoji, fit: BoxFit.cover))
+                  : Center(child: Text(avatarEmoji, style: const TextStyle(fontSize: 20))),
+            ),
           ),
           const SizedBox(width: 12),
           Expanded(
@@ -3377,6 +3141,398 @@ void _showFriendsModal(BuildContext context) {
             child: Text(txaLang.getText('cancel_request'), style: const TextStyle(fontSize: 13)),
           ),
         ],
+      ),
+    );
+  }
+}
+
+class _TXAAddFriendModalContent extends StatefulWidget {
+  final Widget Function(String text, String highlight, {bool isSubtitle}) highlightBuilder;
+
+  const _TXAAddFriendModalContent({
+    required this.highlightBuilder,
+  });
+
+  @override
+  State<_TXAAddFriendModalContent> createState() => _TXAAddFriendModalContentState();
+}
+
+class _TXAAddFriendModalContentState extends State<_TXAAddFriendModalContent> {
+  final TextEditingController _searchController = TextEditingController();
+  List<Map<String, dynamic>> _searchResults = [];
+  bool _isSearching = false;
+  Timer? _debounce;
+
+  Set<String> _sentUsernames = {};
+  Set<String> _incomingUsernames = {};
+  StreamSubscription<List<Map<String, dynamic>>>? _friendReqSub;
+
+  @override
+  void initState() {
+    super.initState();
+    _fetchRequestStatus();
+    TXAAuthService.instance.addListener(_onAuthChanged);
+    _initRealtimeStream();
+  }
+
+  void _onAuthChanged() {
+    if (!mounted) return;
+    final friendsList = TXAAuthService.instance.friendsList;
+    setState(() {
+      _sentUsernames.removeWhere((u) => friendsList.any((f) => f['username'] == u));
+      _incomingUsernames.removeWhere((u) => friendsList.any((f) => f['username'] == u));
+    });
+  }
+
+  void _initRealtimeStream() {
+    final myUsername = TXAAuthService.instance.currentUser?.username ?? '';
+    if (myUsername.isEmpty) return;
+
+    _friendReqSub = TXASupabaseService.instance.client
+        .from('txa_friend_requests')
+        .stream(primaryKey: ['id'])
+        .listen((rows) {
+          if (!mounted) return;
+          final newSent = <String>{};
+          final newIncoming = <String>{};
+          for (final r in rows) {
+            final status = r['status']?.toString();
+            final from = r['from']?.toString();
+            final to = r['to']?.toString();
+            if (status == 'pending') {
+              if (from == myUsername && to != null) {
+                newSent.add(to);
+              } else if (to == myUsername && from != null) {
+                newIncoming.add(from);
+              }
+            }
+          }
+          final friendsList = TXAAuthService.instance.friendsList;
+          setState(() {
+            _sentUsernames = newSent;
+            _incomingUsernames = newIncoming;
+            _sentUsernames.removeWhere((u) => friendsList.any((f) => f['username'] == u));
+            _incomingUsernames.removeWhere((u) => friendsList.any((f) => f['username'] == u));
+          });
+        }, onError: (e) {
+          debugPrint('Modal friendReqSub error: $e');
+        });
+  }
+
+  Future<void> _fetchRequestStatus() async {
+    final currentUser = TXAAuthService.instance.currentUser;
+    if (currentUser == null) return;
+    try {
+      final sentSnap = await TXASupabaseService.instance.client
+          .from('txa_friend_requests')
+          .select('to')
+          .eq('from', currentUser.username)
+          .eq('status', 'pending');
+      final incomingSnap = await TXASupabaseService.instance.client
+          .from('txa_friend_requests')
+          .select('from')
+          .eq('to', currentUser.username)
+          .eq('status', 'pending');
+
+      if (!mounted) return;
+      final friendsList = TXAAuthService.instance.friendsList;
+      setState(() {
+        _sentUsernames = (sentSnap as List).map((d) => d['to'] as String).toSet();
+        _incomingUsernames = (incomingSnap as List).map((d) => d['from'] as String).toSet();
+        _sentUsernames.removeWhere((u) => friendsList.any((f) => f['username'] == u));
+        _incomingUsernames.removeWhere((u) => friendsList.any((f) => f['username'] == u));
+      });
+    } catch (_) {}
+  }
+
+  @override
+  void dispose() {
+    _friendReqSub?.cancel();
+    TXAAuthService.instance.removeListener(_onAuthChanged);
+    _searchController.dispose();
+    _debounce?.cancel();
+    super.dispose();
+  }
+
+  Future<void> _performSearch(String q) async {
+    final cleanQ = q.toLowerCase().replaceAll('@', '');
+    if (cleanQ.isEmpty) {
+      setState(() {
+        _searchResults = [];
+        _isSearching = false;
+      });
+      return;
+    }
+    setState(() {
+      _isSearching = true;
+    });
+
+    try {
+      final querySnapshot = await TXASupabaseService.instance.client
+          .from('txa_users')
+          .select()
+          .limit(100);
+
+      final matched = (querySnapshot as List).where((u) {
+        final email = (u['email'] ?? '').toString().toLowerCase();
+        final username = (u['username'] ?? u['user_name'] ?? '').toString().toLowerCase().replaceAll('@', '');
+        return email.contains(cleanQ) || username.contains(cleanQ);
+      }).take(10).toList().cast<Map<String, dynamic>>();
+
+      if (mounted) {
+        setState(() {
+          _searchResults = matched;
+          _isSearching = false;
+        });
+      }
+    } catch (_) {
+      if (mounted) {
+        setState(() {
+          _isSearching = false;
+        });
+      }
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final txaLang = TXALanguage.instance;
+    final txaAuth = TXAAuthService.instance;
+    final currentUser = txaAuth.currentUser;
+    if (currentUser == null) return const SizedBox.shrink();
+
+    return Padding(
+      padding: EdgeInsets.only(bottom: MediaQuery.of(context).viewInsets.bottom),
+      child: DraggableScrollableSheet(
+        initialChildSize: 0.85,
+        maxChildSize: 0.95,
+        minChildSize: 0.5,
+        expand: false,
+        builder: (context, scrollController) {
+          return SafeArea(
+            child: Container(
+              padding: const EdgeInsets.all(20),
+              child: Column(
+                children: [
+                  Container(
+                    width: 40,
+                    height: 4,
+                    decoration: BoxDecoration(
+                      color: Colors.white24,
+                      borderRadius: BorderRadius.circular(2),
+                    ),
+                  ),
+                  const SizedBox(height: 20),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Text(
+                        txaLang.getText('add_friend'),
+                        style: const TextStyle(color: Colors.white, fontSize: 22, fontWeight: FontWeight.bold),
+                      ),
+                      IconButton(
+                        onPressed: () => Navigator.pop(context),
+                        icon: const Icon(Icons.close_rounded, color: Colors.white),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 16),
+                  // Search box
+                  TextField(
+                    controller: _searchController,
+                    autofocus: true,
+                    style: const TextStyle(color: Colors.white),
+                    onChanged: (val) {
+                      if (_debounce?.isActive ?? false) _debounce?.cancel();
+                      _debounce = Timer(const Duration(milliseconds: 350), () {
+                        _performSearch(val.trim());
+                      });
+                    },
+                    decoration: InputDecoration(
+                      hintText: txaLang.getText('search_friend_placeholder'),
+                      hintStyle: TextStyle(color: TXATheme.textMuted, fontSize: 14),
+                      prefixIcon: Icon(Icons.search_rounded, color: TXATheme.textMuted),
+                      filled: true,
+                      fillColor: Colors.white.withAlpha(12),
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(16),
+                        borderSide: BorderSide.none,
+                      ),
+                      suffixIcon: IconButton(
+                        icon: Icon(Icons.content_paste_rounded, color: TXATheme.textMuted, size: 20),
+                        onPressed: () async {
+                          final data = await Clipboard.getData(Clipboard.kTextPlain);
+                          if (data?.text != null) {
+                            _searchController.text = data!.text!;
+                            _searchController.selection = TextSelection.fromPosition(TextPosition(offset: _searchController.text.length));
+                            _performSearch(data.text!.trim());
+                          }
+                        },
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 20),
+                  Expanded(
+                    child: _isSearching
+                        ? const Center(
+                            child: CircularProgressIndicator(color: TXATheme.primaryYellow),
+                          )
+                        : _searchResults.isEmpty
+                            ? Center(
+                                child: Column(
+                                  mainAxisAlignment: MainAxisAlignment.center,
+                                  children: [
+                                    Icon(Icons.person_search_rounded, color: Colors.white.withAlpha(20), size: 80),
+                                    const SizedBox(height: 12),
+                                    Text(
+                                      txaLang.getText('search_start_hint'),
+                                      style: TextStyle(color: Colors.white.withAlpha(60), fontSize: 14),
+                                    ),
+                                  ],
+                                ),
+                              )
+                            : ListView.builder(
+                                controller: scrollController,
+                                itemCount: _searchResults.length,
+                                itemBuilder: (context, index) {
+                                  final user = _searchResults[index];
+                                  final uUsername = user['username'] as String;
+                                  final uAvatar = user['avatar'] as String? ?? '👤';
+                                  final uColorStr = user['avatarBgColor'] as String? ?? '0xFF607D8B';
+                                  final uColor = Color(int.tryParse(uColorStr) ?? 0xFF607D8B);
+
+                                  final isMe = uUsername == currentUser.username;
+                                  final isFriend = txaAuth.friendsList.any((f) => f['username'] == uUsername);
+                                  final isSent = _sentUsernames.contains(uUsername);
+                                  final isIncoming = _incomingUsernames.contains(uUsername);
+
+                                  Widget trailingWidget;
+                                  if (isMe) {
+                                    trailingWidget = Text(txaLang.getText('friendship_me'), style: const TextStyle(color: Colors.white30));
+                                  } else if (isFriend) {
+                                    trailingWidget = Container(
+                                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                                      decoration: BoxDecoration(
+                                        color: Colors.green.withAlpha(30),
+                                        borderRadius: BorderRadius.circular(10),
+                                        border: Border.all(color: Colors.greenAccent.withAlpha(90)),
+                                      ),
+                                      child: Row(
+                                        mainAxisSize: MainAxisSize.min,
+                                        children: [
+                                          const Icon(Icons.check_circle_rounded, color: Colors.greenAccent, size: 14),
+                                          const SizedBox(width: 4),
+                                          Text(
+                                            txaLang.getText('friendship_friends'),
+                                            style: const TextStyle(color: Colors.greenAccent, fontSize: 13, fontWeight: FontWeight.bold),
+                                          ),
+                                        ],
+                                      ),
+                                    );
+                                  } else if (isSent || isIncoming) {
+                                    trailingWidget = Container(
+                                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                                      decoration: BoxDecoration(
+                                        color: TXATheme.primaryYellow.withAlpha(20),
+                                        borderRadius: BorderRadius.circular(10),
+                                        border: Border.all(color: TXATheme.primaryYellow.withAlpha(60)),
+                                      ),
+                                      child: Text(
+                                        txaLang.getText('friendship_pending'),
+                                        style: const TextStyle(color: TXATheme.primaryYellow, fontWeight: FontWeight.bold, fontSize: 13),
+                                      ),
+                                    );
+                                  } else {
+                                    trailingWidget = ElevatedButton(
+                                      onPressed: () async {
+                                        final res = await txaAuth.sendFriendRequest(uUsername);
+                                        final success = res['success'] == true;
+                                        if (context.mounted) {
+                                          TXAToast.show(
+                                            context,
+                                            res['message'] ?? '',
+                                            icon: success ? Icons.check_circle_rounded : Icons.error_outline_rounded,
+                                            backgroundColor: success ? null : TXATheme.statusRed,
+                                          );
+                                        }
+                                        if (success && mounted) {
+                                          setState(() {
+                                            _sentUsernames.add(uUsername);
+                                          });
+                                        }
+                                      },
+                                      style: ElevatedButton.styleFrom(
+                                        backgroundColor: TXATheme.primaryYellow,
+                                        foregroundColor: Colors.black,
+                                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                                        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+                                      ),
+                                      child: Text(txaLang.getText('friendship_add'), style: const TextStyle(fontWeight: FontWeight.bold)),
+                                    );
+                                  }
+
+                                  return ListTile(
+                                    leading: CircleAvatar(
+                                      backgroundColor: uColor.withAlpha(180),
+                                      child: ClipOval(
+                                        child: uAvatar.startsWith('http')
+                                            ? SizedBox(width: 40, height: 40, child: TXANetworkImage(url: uAvatar, fit: BoxFit.cover))
+                                            : Center(child: Text(uAvatar, style: const TextStyle(fontSize: 20))),
+                                      ),
+                                    ),
+                                    title: widget.highlightBuilder(uUsername, _searchController.text),
+                                    subtitle: widget.highlightBuilder(user['email'] ?? '', _searchController.text, isSubtitle: true),
+                                    trailing: trailingWidget,
+                                  );
+                                },
+                              ),
+                  ),
+                  Container(
+                    padding: const EdgeInsets.symmetric(vertical: 16),
+                    decoration: BoxDecoration(
+                      color: Colors.white.withAlpha(5),
+                      borderRadius: BorderRadius.circular(20),
+                    ),
+                    child: Column(
+                      children: [
+                        Text(txaLang.getText('my_username_label'), style: const TextStyle(color: Colors.white54, fontSize: 12)),
+                        const SizedBox(height: 8),
+                        GestureDetector(
+                          onTap: () {
+                            Clipboard.setData(ClipboardData(text: currentUser.username));
+                            if (!Platform.isWindows) {
+                              try { HapticFeedback.mediumImpact(); } catch (_) {}
+                            }
+                            TXAToast.show(context, txaLang.getText('username_copied').replaceAll('%user%', currentUser.username));
+                          },
+                          child: Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+                            decoration: BoxDecoration(
+                              color: Colors.white.withAlpha(10),
+                              borderRadius: BorderRadius.circular(16),
+                              border: Border.all(color: TXATheme.primaryYellow.withAlpha(50)),
+                            ),
+                            child: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Text(
+                                  currentUser.username,
+                                  style: const TextStyle(color: TXATheme.primaryYellow, fontSize: 16, fontWeight: FontWeight.bold, letterSpacing: 0.5),
+                                ),
+                                const SizedBox(width: 10),
+                                const Icon(Icons.copy_rounded, color: TXATheme.primaryYellow, size: 16),
+                              ],
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          );
+        },
       ),
     );
   }

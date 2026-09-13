@@ -220,6 +220,116 @@ class TXALogger {
     }
   }
 
+  /// Get effective user session with fallback to stored local preferences
+  static Future<Map<String, dynamic>> _getEffectiveUserSession() async {
+    final installId = await TXADeviceInfo.getInstallationId();
+    final currentUser = TXAAuthService.instance.currentUser;
+    if (currentUser != null && currentUser.username.isNotEmpty && currentUser.username != 'anonymous') {
+      return {
+        'id': currentUser.id,
+        'username': currentUser.username,
+        'email': currentUser.email,
+        'avatar': currentUser.avatar,
+        'dob': currentUser.dob,
+        'createdTime': currentUser.createdTime,
+        'status': 'Logged In',
+        'installId': installId,
+      };
+    }
+
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final userJsonStr = prefs.getString('txa_active_user_session');
+      if (userJsonStr != null && userJsonStr.isNotEmpty) {
+        final decoded = jsonDecode(userJsonStr);
+        if (decoded is Map && decoded['username'] != null && decoded['username'].toString().isNotEmpty) {
+          final uName = decoded['username'].toString();
+          if (uName != 'anonymous') {
+            return {
+              'id': decoded['id']?.toString() ?? 'cached_user',
+              'username': uName,
+              'email': decoded['email']?.toString() ?? '',
+              'avatar': decoded['avatar']?.toString() ?? '🦊',
+              'dob': decoded['dob']?.toString() ?? '',
+              'createdTime': decoded['createdTime']?.toString() ?? '',
+              'status': 'Restored from Cached Session',
+              'installId': installId,
+            };
+          }
+        }
+      }
+    } catch (_) {}
+
+    return {
+      'status': 'Anonymous / Not Logged In',
+      'username': 'anonymous',
+      'installId': installId,
+    };
+  }
+
+  /// Helper to generate rich formatted diagnostic caption for admin reports
+  static String _buildStructuredReportCaption(Map<String, dynamic> payload) {
+    final errorType = payload['errorType'] ?? 'Error';
+    final errorMsg = payload['errorMessage'] ?? 'Unknown Error';
+    final contextDesc = payload['contextDescription'] ?? 'General Application Execution';
+    final time = payload['timestamp'] ?? DateTime.now().toIso8601String();
+
+    // User session details
+    final userSession = payload['userSession'] is Map ? payload['userSession'] : {};
+    final username = userSession['username']?.toString() ?? 'anonymous';
+    final installId = userSession['installId']?.toString() ?? 'N/A';
+    final userStatus = userSession['status']?.toString() ?? 'Chưa đăng nhập';
+    final userDisplay = username == 'anonymous'
+        ? 'anonymous (Mã cài đặt: $installId)'
+        : '$username (ID: ${userSession['id'] ?? 'N/A'}) [$userStatus]';
+
+    // App details
+    final appInfo = payload['app'] is Map ? payload['app'] : {};
+    final appVer = appInfo['fullVersionString'] ?? TXAVersion.fullVersionString;
+    final activeLang = appInfo['activeLanguage'] ?? 'vi';
+
+    // Device & Hardware details
+    final deviceInfo = payload['deviceInfo'] is Map ? payload['deviceInfo'] : {};
+    final deviceModel = deviceInfo['device'] ?? deviceInfo['model'] ?? 'Unknown Device';
+    final brand = deviceInfo['brand']?.toString() ?? '';
+    final fullDevice = (brand.isNotEmpty && !deviceModel.toString().toUpperCase().contains(brand.toUpperCase()))
+        ? '$brand $deviceModel'
+        : deviceModel.toString();
+    final os = deviceInfo['osVersion'] ?? deviceInfo['platform'] ?? Platform.operatingSystem;
+    final screen = deviceInfo['screen']?.toString() ?? 'N/A';
+    final ram = deviceInfo['ram']?.toString() ?? 'N/A';
+    final cpu = deviceInfo['cpuCores']?.toString() ?? 'N/A';
+    final battery = deviceInfo['batteryLevel']?.toString() ?? 'N/A';
+    final isPhysical = deviceInfo['isPhysicalDevice'];
+    final deviceTypeStr = isPhysical == null
+        ? 'N/A'
+        : (isPhysical == true ? 'Thiết bị thật (Physical Device) 📱' : 'Máy ảo / Giả lập (Emulator) ⚠️');
+    final isRooted = deviceInfo['isRootedOrJailbroken'];
+    final rootStatus = isRooted == true ? 'Rooted / Jailbroken ⚠️' : 'An toàn / Chưa Root 🛡️';
+    final timezone = deviceInfo['timezone']?.toString() ?? 'N/A';
+    final locale = deviceInfo['locale']?.toString() ?? 'N/A';
+    final stack = payload['stackTrace']?.toString() ?? 'No StackTrace Available';
+
+    return '''💥 [HỆ THỐNG / BÁO LỖI TỰ ĐỘNG - TXALogger]
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+👤 Người dùng: $userDisplay
+📱 Thiết bị: $fullDevice
+⚙️ Hệ điều hành: $os
+💻 Phần cứng: CPU: $cpu | RAM: $ram | Màn hình: $screen
+🔋 Mức Pin: $battery
+🛡️ Bảo mật: $rootStatus | $deviceTypeStr
+🌍 Khu vực: $timezone (Locale: $locale)
+🚀 Phiên bản App: $appVer (Ngôn ngữ: $activeLang)
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+⚠️ Loại lỗi: [$errorType]
+📝 Nội dung: $errorMsg
+📍 Ngữ cảnh: $contextDesc
+⏰ Thời gian: $time
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+📋 Chi tiết StackTrace:
+$stack''';
+  }
+
   /// Check and submit pending Native Android crashes saved by MainApplication.kt
   static Future<Map<String, dynamic>?> checkAndSubmitNativeCrash() async {
     try {
@@ -245,6 +355,8 @@ class TXALogger {
       await prefs.remove('pending_native_crash_trace');
       await prefs.remove('pending_native_crash_time');
 
+      final userSession = await _getEffectiveUserSession();
+
       final logPayload = {
         'id': 'native_crash_$timestampMs',
         'level': 'CRASH',
@@ -262,7 +374,8 @@ class TXALogger {
           'fullVersionString': TXAVersion.fullVersionString,
           'releaseDate': TXAVersion.releaseDate,
         },
-        'deviceInfo': await TXADeviceInfo.getDiagnosticMetadata(),
+        'userSession': userSession,
+        'deviceInfo': await TXADeviceInfo.getRawDiagnosticData(),
         'timestamp': timeStr,
       };
 
@@ -343,8 +456,8 @@ class TXALogger {
     _errorRepeatCounts[fingerprint] = 1;
 
     // Collect metadata
-    final deviceInfo = await TXADeviceInfo.getDiagnosticMetadata();
-    final currentUser = TXAAuthService.instance.currentUser;
+    final deviceInfo = await TXADeviceInfo.getRawDiagnosticData();
+    final userSession = await _getEffectiveUserSession();
     final activeLang = TXALanguage.instance.currentLanguage;
     final activeFormat = TXAFormat.instance.aspectRatio;
 
@@ -366,16 +479,7 @@ class TXALogger {
         'activeLanguage': activeLang,
         'activeAspectRatio': activeFormat,
       },
-      'userSession': currentUser != null
-          ? {
-              'id': currentUser.id,
-              'username': currentUser.username,
-              'email': currentUser.email,
-              'avatar': currentUser.avatar,
-              'dob': currentUser.dob,
-              'createdTime': currentUser.createdTime,
-            }
-          : {'status': 'Anonymous / Not Logged In'},
+      'userSession': userSession,
       'deviceInfo': deviceInfo,
       'timestamp': now.toIso8601String(),
     };
@@ -397,31 +501,43 @@ class TXALogger {
   /// Submit Crash/Error Log directly to Supabase txa_reports
   static Future<void> _submitToSupabase(Map<String, dynamic> logPayload) async {
     try {
+      if (!TXASupabaseService.instance.isInitialized) {
+        throw Exception('Supabase is not initialized');
+      }
       final docId =
           logPayload['id'] as String? ??
           'crash_${DateTime.now().millisecondsSinceEpoch}';
-      final username = logPayload['userSession'] is Map
-          ? (logPayload['userSession']['username'] ?? 'anonymous')
-          : 'anonymous';
+      final userSession = logPayload['userSession'] is Map
+          ? (logPayload['userSession'] as Map<String, dynamic>)
+          : <String, dynamic>{};
+      var username = userSession['username']?.toString() ?? 'anonymous';
+      if (username == 'anonymous' || username.isEmpty) {
+        final fallback = await _getEffectiveUserSession();
+        username = fallback['username']?.toString() ?? 'anonymous';
+      }
+      final installId = userSession['installId']?.toString() ?? await TXADeviceInfo.getInstallationId();
+      final postSender = username == 'anonymous' ? 'anonymous ($installId)' : username;
+
+      final formattedCaption = _buildStructuredReportCaption(logPayload);
+
       await TXASupabaseService.instance.client.from('txa_reports').insert({
         'id': docId,
         'postId': null,
         'postid': null,
-        'postSender': username,
-        'postsender': username,
+        'postSender': postSender,
+        'postsender': postSender,
         'reporter': 'TXALogger',
         'status': 'pending',
         'photoPath': '',
         'photopath': '',
-        'caption':
-            'Type: ${logPayload['errorType']}\nMessage: ${logPayload['errorMessage']}\nStack: ${logPayload['stackTrace']}',
+        'caption': formattedCaption,
         'createdTime':
             logPayload['timestamp'] ?? DateTime.now().toIso8601String(),
         'createdtime':
             logPayload['timestamp'] ?? DateTime.now().toIso8601String(),
       });
       debugPrint(
-        '🔥 [TXALogger] Successfully submitted Crash log to Supabase!',
+        '🔥 [TXALogger] Successfully submitted Crash log to Supabase! User: $postSender',
       );
     } catch (e) {
       debugPrint('❌ [TXALogger] Error submitting crash log to Supabase: $e');
@@ -437,6 +553,7 @@ class TXALogger {
   /// Synchronize all pending offline logs to Supabase
   static Future<void> syncPendingLogs() async {
     try {
+      if (!TXASupabaseService.instance.isInitialized) return;
       final prefs = await SharedPreferences.getInstance();
       final list = prefs.getStringList(_keyCrashLogs) ?? [];
       if (list.isEmpty) return;
@@ -448,21 +565,30 @@ class TXALogger {
           final docId =
               payload['id'] as String? ??
               'crash_${DateTime.now().millisecondsSinceEpoch}';
-          final username = payload['userSession'] is Map
-              ? (payload['userSession']['username'] ?? 'anonymous')
-              : 'anonymous';
+          final userSession = payload['userSession'] is Map
+              ? (payload['userSession'] as Map<String, dynamic>)
+              : <String, dynamic>{};
+          var username = userSession['username']?.toString() ?? 'anonymous';
+          if (username == 'anonymous' || username.isEmpty) {
+            final fallback = await _getEffectiveUserSession();
+            username = fallback['username']?.toString() ?? 'anonymous';
+          }
+          final installId = userSession['installId']?.toString() ?? await TXADeviceInfo.getInstallationId();
+          final postSender = username == 'anonymous' ? 'anonymous ($installId)' : username;
+
+          final formattedCaption = _buildStructuredReportCaption(payload);
+
           await TXASupabaseService.instance.client.from('txa_reports').insert({
             'id': docId,
             'postId': null,
             'postid': null,
-            'postSender': username,
-            'postsender': username,
+            'postSender': postSender,
+            'postsender': postSender,
             'reporter': 'TXALogger',
             'status': 'pending',
             'photoPath': '',
             'photopath': '',
-            'caption':
-                'Type: ${payload['errorType']}\nMessage: ${payload['errorMessage']}\nStack: ${payload['stackTrace']}',
+            'caption': formattedCaption,
             'createdTime':
                 payload['timestamp'] ?? DateTime.now().toIso8601String(),
             'createdtime':

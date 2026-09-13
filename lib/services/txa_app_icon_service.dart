@@ -1,3 +1,5 @@
+import 'dart:io';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'txa_auth_service.dart';
@@ -466,6 +468,13 @@ class TXAAppIconService extends ChangeNotifier {
     TXAAchievementService.instance.checkAndEvaluate();
 
     // Invoke Native launcher icon change on Android / iOS
+    if (kIsWeb || (!Platform.isAndroid && !Platform.isIOS)) {
+      return TXAIconChangeResult(
+        success: true,
+        iconId: iconId,
+      );
+    }
+
     try {
       TXALogger.logApp('🔄 [AppIcon] Đang yêu cầu hệ thống đổi Launcher Icon sang: $iconId (${target.nameVi})...');
       final result = await _channel.invokeMethod('changeAppIcon', {'iconName': iconId});

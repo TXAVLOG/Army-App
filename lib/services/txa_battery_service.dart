@@ -31,6 +31,13 @@ class TXABatteryService extends ChangeNotifier {
   }
 
   Future<void> init() async {
+    // Windows, Web, Desktop không cần theo dõi pin di động (tránh crash plugin / timer)
+    if (kIsWeb || (!Platform.isAndroid && !Platform.isIOS)) {
+      _batteryLevel = 100;
+      _batteryState = BatteryState.charging;
+      return;
+    }
+
     try {
       _batteryLevel = await _battery.batteryLevel;
       _batteryState = await _battery.batteryState;
@@ -42,10 +49,10 @@ class TXABatteryService extends ChangeNotifier {
     _stateSubscription = _battery.onBatteryStateChanged.listen((state) {
       _batteryState = state;
       _updateStatus();
-    });
+    }, onError: (_) {});
 
     _timer?.cancel();
-    _timer = Timer.periodic(const Duration(seconds: 5), (_) async {
+    _timer = Timer.periodic(const Duration(seconds: 15), (_) async {
       await _checkLevel();
     });
 
@@ -53,6 +60,7 @@ class TXABatteryService extends ChangeNotifier {
   }
 
   Future<void> _checkLevel() async {
+    if (kIsWeb || (!Platform.isAndroid && !Platform.isIOS)) return;
     try {
       final level = await _battery.batteryLevel;
       final state = await _battery.batteryState;

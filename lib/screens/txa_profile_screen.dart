@@ -523,11 +523,14 @@ class _TXAProfileScreenState extends State<TXAProfileScreen>
     );
   }
 
-  void _showAppIconBottomSheet(BuildContext context) {
+  void _showAppIconBottomSheet(BuildContext context, [VoidCallback? onBack]) {
     Navigator.push(
       context,
       MaterialPageRoute(builder: (_) => const TXAAppIconGalleryScreen()),
-    );
+    ).then((_) {
+      if (onBack != null) onBack();
+      if (mounted) setState(() {});
+    });
   }
 
 
@@ -858,7 +861,9 @@ class _TXAProfileScreenState extends State<TXAProfileScreen>
                     GestureDetector(
                       onTap: () {
                         Clipboard.setData(ClipboardData(text: currentUsername));
-                        HapticFeedback.mediumImpact();
+                        if (!Platform.isWindows) {
+                          try { HapticFeedback.mediumImpact(); } catch (_) {}
+                        }
                         TXAToast.show(
                           context,
                           txaLang.getText('username_copied').replaceAll('%user%', currentUsername),
@@ -1914,11 +1919,9 @@ class _TXAProfileScreenState extends State<TXAProfileScreen>
           onPostTap: (post) {
             Navigator.pop(context);
             final idx = allPosts.indexOf(post);
-            if (idx >= 0) {
-              Navigator.of(context).push(
-                MaterialPageRoute(builder: (_) => LocketFeedScreen(initialIndex: idx)),
-              );
-            }
+            Navigator.of(context).push(
+              MaterialPageRoute(builder: (_) => LocketFeedScreen(initialIndex: idx >= 0 ? idx : 0, initialPostId: post.id)),
+            );
           },
         );
       },
@@ -2049,18 +2052,25 @@ class _TXAProfileScreenState extends State<TXAProfileScreen>
                         onTap: () => _showCameraThemeBottomSheet(context),
                       ),
 
-                      // ─── 3.1. Đổi icon app ────────────────────────────────
-                      ListTile(
-                        contentPadding: EdgeInsets.zero,
-                        leading: const Icon(Icons.crop_original_rounded, color: Colors.white70),
-                        title: Text(txaLang.getText('change_app_icon'), style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
-                        subtitle: Text(
-                          '${TXAAppIconService.instance.currentIcon.emoji} ${TXAAppIconService.instance.currentIcon.getName(txaLang.currentLanguage == 'vi')}',
-                          style: TextStyle(color: TXATheme.textMuted, fontSize: 12),
+                      // ─── 3.1. Đổi icon app (chỉ hỗ trợ trên thiết bị di động Android & iOS) ────
+                      if (!kIsWeb && (Platform.isAndroid || Platform.isIOS))
+                        ListenableBuilder(
+                          listenable: TXAAppIconService.instance,
+                          builder: (context, _) {
+                            final currentIcon = TXAAppIconService.instance.currentIcon;
+                            return ListTile(
+                              contentPadding: EdgeInsets.zero,
+                              leading: const Icon(Icons.crop_original_rounded, color: Colors.white70),
+                              title: Text(txaLang.getText('change_app_icon'), style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+                              subtitle: Text(
+                                '${currentIcon.emoji} ${currentIcon.getName(txaLang.currentLanguage == 'vi')}',
+                                style: TextStyle(color: TXATheme.textMuted, fontSize: 12),
+                              ),
+                              trailing: const Icon(Icons.arrow_forward_ios_rounded, color: Colors.white24, size: 16),
+                              onTap: () => _showAppIconBottomSheet(context, () => setModalState(() {})),
+                            );
+                          },
                         ),
-                        trailing: const Icon(Icons.arrow_forward_ios_rounded, color: Colors.white24, size: 16),
-                        onTap: () => _showAppIconBottomSheet(context),
-                      ),
 
                       // ─── 4. Chế độ hiển thị Feed ─────────────────────────
                       ListTile(
@@ -2439,20 +2449,54 @@ class _TXAProfileScreenState extends State<TXAProfileScreen>
 
   Widget _buildSubscriptionCard(BuildContext context, UserModel? user, StateSetter setModalState) {
     final txaLang = TXALanguage.instance;
-    final isVip = TXAIAPService.instance.isVipActive;
+    final effectiveUser = user ?? TXAAuthService.instance.currentUser;
+    final isVip = TXAIAPService.instance.isVipActive ||
+        effectiveUser?.isVipCurrentlyActive == true ||
+        effectiveUser?.isAdmin == true;
 
-    if (isVip && user != null) {
+    if (isVip && effectiveUser != null) {
+      final bool isLifetime = effectiveUser.isAdmin ||
+          effectiveUser.vipProductId == 'lifetime' ||
+          effectiveUser.vipExpiryDate == null ||
+          effectiveUser.vipExpiryDate!.trim().isEmpty ||
+          effectiveUser.vipExpiryDate!.toLowerCase() == 'lifetime' ||
+          effectiveUser.vipExpiryDate!.toLowerCase() == 'null';
+
       String expiryText = '';
-      if (user.vipExpiryDate != null) {
-        try {
-          final dt = DateTime.parse(user.vipExpiryDate!).toLocal();
-          expiryText = '${dt.day.toString().padLeft(2, '0')}/${dt.month.toString().padLeft(2, '0')}/${dt.year}';
-        } catch (_) {}
+      if (!isLifetime && effectiveUser.vipExpiryDate != null) {
+        final raw = effectiveUser.vipExpiryDate!.trim();
+        DateTime? dt = DateTime.tryParse(raw);
+        if (dt == null) {
+          final ms = int.tryParse(raw);
+          if (ms != null) {
+            dt = DateTime.fromMillisecondsSinceEpoch(ms);
+          }
+        }
+        if (dt != null) {
+          final localDt = dt.toLocal();
+          expiryText = '${localDt.day.toString().padLeft(2, '0')}/${localDt.month.toString().padLeft(2, '0')}/${localDt.year}';
+        }
       }
 
-      final planType = user.vipProductId == TXAIAPService.yearlyProductId
-          ? txaLang.getText('vip_plan_yearly')
-          : txaLang.getText('vip_plan_monthly');
+      final String planType;
+      if (effectiveUser.isAdmin) {
+        planType = 'Admin Lifetime 👑';
+      } else if (effectiveUser.vipProductId == 'lifetime' || isLifetime) {
+        planType = txaLang.currentLanguage == 'vi' ? 'Vĩnh Viễn 👑' : 'Lifetime 👑';
+      } else if (effectiveUser.vipProductId == TXAIAPService.yearlyProductId) {
+        planType = txaLang.getText('vip_plan_yearly');
+      } else {
+        planType = txaLang.getText('vip_plan_monthly');
+      }
+
+      final String statusSubtext;
+      if (isLifetime) {
+        statusSubtext = '${txaLang.getText('vip_status_active')} • ${txaLang.currentLanguage == 'vi' ? 'Vĩnh viễn 👑' : 'Lifetime 👑'}';
+      } else if (expiryText.trim().isNotEmpty) {
+        statusSubtext = '${txaLang.getText('vip_status_active')} • ${txaLang.getText('vip_expiry_date').replaceAll('%date%', expiryText)}';
+      } else {
+        statusSubtext = txaLang.getText('vip_status_active');
+      }
 
       return Container(
         width: double.infinity,
@@ -2507,7 +2551,7 @@ class _TXAProfileScreenState extends State<TXAProfileScreen>
             ),
             const SizedBox(height: 12),
             Text(
-              '${txaLang.getText('vip_status_active')} • ${txaLang.getText('vip_expiry_date').replaceAll('%date%', expiryText)}',
+              statusSubtext,
               style: const TextStyle(
                 color: Color(0xFF5C4033),
                 fontSize: 13,
@@ -2520,19 +2564,20 @@ class _TXAProfileScreenState extends State<TXAProfileScreen>
               spacing: 8,
               runSpacing: 6,
               children: [
-                TextButton(
-                  onPressed: () async {
-                    await TXAIAPService.instance.openCancelSubscription();
-                  },
-                  style: TextButton.styleFrom(
-                    foregroundColor: const Color(0xFF5C4033),
-                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                if (!isLifetime)
+                  TextButton(
+                    onPressed: () async {
+                      await TXAIAPService.instance.openCancelSubscription();
+                    },
+                    style: TextButton.styleFrom(
+                      foregroundColor: const Color(0xFF5C4033),
+                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                    ),
+                    child: Text(
+                      txaLang.getText('vip_cancel_renewal'),
+                      style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 12.5),
+                    ),
                   ),
-                  child: Text(
-                    txaLang.getText('vip_cancel_renewal'),
-                    style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 12.5),
-                  ),
-                ),
                 ElevatedButton(
                   onPressed: () {
                     Navigator.push(
@@ -2550,7 +2595,7 @@ class _TXAProfileScreenState extends State<TXAProfileScreen>
                     elevation: 0,
                   ),
                   child: Text(
-                    txaLang.getText('vip_upgrade_btn'),
+                    isLifetime ? (txaLang.currentLanguage == 'vi' ? 'Xem Đặc Quyền 👑' : 'View Privileges 👑') : txaLang.getText('vip_upgrade_btn'),
                     style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 12.5),
                   ),
                 ),

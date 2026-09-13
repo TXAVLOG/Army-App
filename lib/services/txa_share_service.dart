@@ -137,7 +137,7 @@ class _ShareCardDialogState extends State<_ShareCardDialog> {
     final formattedTime = parsedTime != null ? TXAFormat.formatTime(parsedTime) : post.createdTime;
 
     // Parse avatar color
-    final avatarColorVal = int.tryParse(post.senderAvatarColor) ?? 0xFFF57C00;
+    final avatarColorVal = int.tryParse(post.effectiveSenderAvatarColor) ?? 0xFFF57C00;
 
     return Dialog(
       backgroundColor: Colors.transparent,
@@ -243,12 +243,14 @@ class _ShareCardDialogState extends State<_ShareCardDialog> {
                                     overrideStreak: 0,
                                     child: Container(
                                       color: Color(avatarColorVal),
-                                      child: Center(
-                                        child: Text(
-                                          post.senderAvatar,
-                                          style: const TextStyle(fontSize: 16),
-                                        ),
-                                      ),
+                                      child: post.effectiveSenderAvatar.startsWith('http')
+                                          ? TXANetworkImage(url: post.effectiveSenderAvatar, fit: BoxFit.cover)
+                                          : Center(
+                                              child: Text(
+                                                post.effectiveSenderAvatar,
+                                                style: const TextStyle(fontSize: 16),
+                                              ),
+                                            ),
                                     ),
                                   ),
                                   const SizedBox(width: 10),

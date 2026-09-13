@@ -13,7 +13,6 @@ class TXAInAppUpdateService {
 
   Future<void> checkForUpdates() async {
     if (kIsWeb || !Platform.isAndroid) {
-      TXALogger.logInfo('In-App Update only supported on Android.', extraInfo: {'service': 'TXAInAppUpdateService'});
       return;
     }
 
@@ -40,6 +39,12 @@ class TXAInAppUpdateService {
         }
       }
     } catch (e, stack) {
+      final errStr = e.toString();
+      // Bỏ qua lỗi không cài từ Play Store (-10: ERROR_APP_NOT_OWNED)
+      if (errStr.contains('ERROR_APP_NOT_OWNED') || errStr.contains('-10')) {
+        TXALogger.logInfo('In-App Update skipped: App is not installed via Play Store.');
+        return;
+      }
       TXALogger.logError(e, stackTrace: stack, extraInfo: {'service': 'TXAInAppUpdateService'});
     }
   }
