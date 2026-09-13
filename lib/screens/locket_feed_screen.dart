@@ -794,7 +794,7 @@ class _LocketFeedScreenState extends State<LocketFeedScreen> {
                           icon: Icons.delete_forever_rounded,
                         );
                         if (TXAFeedService.instance.getVisiblePostsForUser(currentUser?.username ?? '').isEmpty) {
-                          nav.pop();
+                          Navigator.of(context).pop();
                         }
                       }
                     },
@@ -809,7 +809,7 @@ class _LocketFeedScreenState extends State<LocketFeedScreen> {
                       style: const TextStyle(color: TXATheme.statusRed, fontWeight: FontWeight.bold),
                     ),
                     onTap: () {
-                      Navigator.pop(context);
+                      Navigator.pop(sheetCtx);
                       TXAToast.show(
                         context,
                         'Đã chặn ${post.senderUsername}!',
@@ -825,6 +825,9 @@ class _LocketFeedScreenState extends State<LocketFeedScreen> {
           ),
         );
       },
+    );
+  }
+
   void _showReportDialog(BuildContext context, LocketPostModel post) {
     final txaLang = TXALanguage.instance;
     final currentUser = TXAAuthService.instance.currentUser;

@@ -911,9 +911,6 @@ class _LocketMainScreenState extends State<LocketMainScreen> with WidgetsBinding
       animation: Listenable.merge([txaLang, txaFormat, txaAuth, txaFeed, TXACameraThemeService.instance, TXABatteryService.instance, TXAChatService.instance]),
       builder: (context, _) {
         _setupRealtimeNotificationListeners();
-        final isRearCamera = _cameras.isNotEmpty &&
-            _selectedCameraIndex < _cameras.length &&
-            _cameras[_selectedCameraIndex].lensDirection == CameraLensDirection.back;
         final currentUser = txaAuth.currentUser;
         final loveId = currentUser?.loveId;
         final loverUsername = currentUser?.loverUsername;

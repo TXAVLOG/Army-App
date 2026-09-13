@@ -9,6 +9,7 @@ class TXAToast {
     String message, {
     IconData icon = Icons.info_outline,
     Color? backgroundColor,
+    Duration duration = const Duration(seconds: 2),
   }) {
     final overlay = Overlay.maybeOf(context) ?? navigatorKey.currentState?.overlay;
     if (overlay == null) return;
@@ -19,6 +20,7 @@ class TXAToast {
         message: message,
         icon: icon,
         backgroundColor: backgroundColor,
+        duration: duration,
         onDismiss: () {
           try {
             entry.remove();
@@ -461,12 +463,14 @@ class _ToastWidget extends StatefulWidget {
   final String message;
   final IconData icon;
   final Color? backgroundColor;
+  final Duration duration;
   final VoidCallback onDismiss;
 
   const _ToastWidget({
     required this.message,
     required this.icon,
     this.backgroundColor,
+    this.duration = const Duration(seconds: 2),
     required this.onDismiss,
   });
 
@@ -500,7 +504,7 @@ class _ToastWidgetState extends State<_ToastWidget> with SingleTickerProviderSta
 
     _controller.forward();
 
-    Future.delayed(const Duration(seconds: 2), () async {
+    Future.delayed(widget.duration, () async {
       if (mounted) {
         await _controller.reverse();
         widget.onDismiss();

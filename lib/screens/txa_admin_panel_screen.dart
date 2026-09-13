@@ -135,7 +135,6 @@ $caption
 
   void _showReportDetailModal(Map<String, dynamic> report) {
     final txaLang = TXALanguage.instance;
-    final id = (report['id'] ?? 'N/A').toString();
     final reporter = (report['reporter'] ?? 'N/A').toString();
     final target = ((report['postSender'] ?? report['postsender']) ?? 'N/A').toString();
     final isResolved = report['status'] == 'resolved';
@@ -289,7 +288,7 @@ $caption
                         border: Border.all(color: TXATheme.cardBorder),
                       ),
                       child: TXANetworkImage(
-                        imageUrl: photo,
+                        url: photo ?? '',
                         fit: BoxFit.cover,
                       ),
                     ),
@@ -703,7 +702,7 @@ $caption
                         border: Border.all(color: Colors.white10),
                       ),
                       child: TXANetworkImage(
-                        imageUrl: photo,
+                        url: photo ?? '',
                         fit: BoxFit.cover,
                       ),
                     ),

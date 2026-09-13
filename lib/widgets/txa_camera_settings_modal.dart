@@ -282,7 +282,8 @@ class _TXACameraSettingsModalState extends State<TXACameraSettingsModal> {
                 padding: const EdgeInsets.symmetric(horizontal: 16),
                 child: Row(
                   crossAxisAlignment: CrossAxisAlignment.start,
-                                    // ─── CỘT 1: ĐÈN FLASH (chỉ hiển thị trên thiết bị có hỗ trợ Flash) ───
+                  children: [
+                    // ─── CỘT 1: ĐÈN FLASH (chỉ hiển thị trên thiết bị có hỗ trợ Flash) ───
                     if (kIsWeb || !Platform.isWindows) ...[
                       Expanded(
                         child: Container(
@@ -379,7 +380,6 @@ class _TXACameraSettingsModalState extends State<TXACameraSettingsModal> {
                     ],
 
                     // ─── CỘT 2: HẸN GIỜ CHỤP ───
-                    Expanded(Ờ CHỤP ───
                     Expanded(
                       child: Container(
                         padding: const EdgeInsets.all(12),

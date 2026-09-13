@@ -1329,9 +1329,11 @@ class TXAAuthService extends ChangeNotifier {
   /// Chấp nhận lời mời kết bạn
   Future<void> acceptFriendRequest(String requestId, Map<String, dynamic> requestData) async {
     final supabase = TXASupabaseService.instance.client;
+    final txaLang = TXALanguage.instance;
     final fromUsername = requestData['from'] as String;
     final fromAvatar = requestData['fromAvatar'] as String? ?? '👤';
     final fromAvatarColor = requestData['fromAvatarColor'] as String? ?? '0xFF607D8B';
+    final toUsername = _currentUser?.username ?? (requestData['to']?.toString() ?? '@user');
 
     // Thêm vào danh sách bạn bè local
     final newFriend = {
