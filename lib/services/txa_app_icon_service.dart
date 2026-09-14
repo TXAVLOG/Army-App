@@ -459,26 +459,35 @@ class TXAAppIconService extends ChangeNotifier {
       return TXAIconChangeResult(success: false, iconId: iconId, errorMessage: msg);
     }
 
-    _selectedIconId = iconId;
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.setString(_keySelectedIcon, iconId);
-    notifyListeners();
-
-    // Trigger achievement check
-    TXAAchievementService.instance.checkAndEvaluate();
-
-    // Invoke Native launcher icon change on Android / iOS
+    // 1. Nếu trên Web hoặc Desktop (Windows/macOS/Linux)
+    // Hệ điều hành máy tính không hỗ trợ đổi icon launcher runtime như mobile,
+    // ta cập nhật giao diện trong app và lưu cấu hình bình thường.
     if (kIsWeb || (!Platform.isAndroid && !Platform.isIOS)) {
+      _selectedIconId = iconId;
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setString(_keySelectedIcon, iconId);
+      notifyListeners();
+      TXAAchievementService.instance.checkAndEvaluate();
       return TXAIconChangeResult(
         success: true,
         iconId: iconId,
       );
     }
 
+    // 2. Trên Mobile (Android / iOS): Gọi native method channel đổi launcher icon
     try {
       TXALogger.logApp('🔄 [AppIcon] Đang yêu cầu hệ thống đổi Launcher Icon sang: $iconId (${target.nameVi})...');
       final result = await _channel.invokeMethod('changeAppIcon', {'iconName': iconId});
       final appliedAlias = result is Map ? result['appliedAlias']?.toString() : null;
+
+      _selectedIconId = iconId;
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setString(_keySelectedIcon, iconId);
+      notifyListeners();
+
+      // Trigger achievement check
+      TXAAchievementService.instance.checkAndEvaluate();
+
       TXALogger.logApp('✅ [AppIcon] Đổi icon launcher thành công sang: $iconId (${target.nameVi}) [Alias: $appliedAlias]');
       return TXAIconChangeResult(
         success: true,

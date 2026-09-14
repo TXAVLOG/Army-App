@@ -155,40 +155,33 @@ class MainActivity: FlutterFragmentActivity() {
                         android.util.Log.d("TXAAppIcon", "Đang chuyển đổi launcher alias sang: $targetAlias (Yêu cầu icon: $iconName)")
                         val targetComp = android.content.ComponentName(packageName, targetAlias)
 
-                        // 1. Nếu icon này đã đang được bật rồi thì không làm gì để tránh tạo shortcut trùng
-                        val currentTargetState = pm.getComponentEnabledSetting(targetComp)
-                        if (currentTargetState == android.content.pm.PackageManager.COMPONENT_ENABLED_STATE_ENABLED) {
-                            android.util.Log.d("TXAAppIcon", "Alias $targetAlias đã đang kích hoạt, bỏ qua không gửi intent mới.")
-                            result.success(mapOf(
-                                "success" to true,
-                                "appliedAlias" to targetAlias,
-                                "iconName" to iconName
-                            ))
-                            return@setMethodCallHandler
-                        }
-
-                        // 2. Tìm và tắt duy nhất alias đang hoạt động trước (tránh 2 launcher cùng active gây sinh thêm app mới)
-                        for ((_, aliasComponent) in aliasMap) {
-                            if (aliasComponent != targetAlias) {
-                                val comp = android.content.ComponentName(packageName, aliasComponent)
-                                if (pm.getComponentEnabledSetting(comp) == android.content.pm.PackageManager.COMPONENT_ENABLED_STATE_ENABLED) {
-                                    pm.setComponentEnabledSetting(
-                                        comp,
-                                        android.content.pm.PackageManager.COMPONENT_ENABLED_STATE_DISABLED,
-                                        android.content.pm.PackageManager.DONT_KILL_APP
-                                    )
-                                    android.util.Log.d("TXAAppIcon", "Đã tắt alias cũ: $aliasComponent")
-                                }
-                            }
-                        }
-
-                        // 3. Kích hoạt alias mới
+                        // 1. Luôn kích hoạt alias đích TRƯỚC để tránh launcher bị mất toàn bộ launcher activity (gây mất icon trên màn hình)
                         pm.setComponentEnabledSetting(
                             targetComp,
                             android.content.pm.PackageManager.COMPONENT_ENABLED_STATE_ENABLED,
                             android.content.pm.PackageManager.DONT_KILL_APP
                         )
-                        android.util.Log.d("TXAAppIcon", "Đã kích hoạt alias mới $targetAlias thành công!")
+                        android.util.Log.d("TXAAppIcon", "Đã kích hoạt alias mới: $targetAlias")
+
+                        // 2. Vô hiệu hóa TẤT CẢ các alias còn lại
+                        // Cực kỳ quan trọng: Kiểm tra state != COMPONENT_ENABLED_STATE_DISABLED (thay vì == ENABLED)
+                        // để xử lý cả MainActivityDefault khi ở trạng thái mặc định COMPONENT_ENABLED_STATE_DEFAULT (0)
+                        for ((_, aliasComponent) in aliasMap) {
+                            if (aliasComponent != targetAlias) {
+                                val comp = android.content.ComponentName(packageName, aliasComponent)
+                                val state = pm.getComponentEnabledSetting(comp)
+                                if (state != android.content.pm.PackageManager.COMPONENT_ENABLED_STATE_DISABLED) {
+                                    pm.setComponentEnabledSetting(
+                                        comp,
+                                        android.content.pm.PackageManager.COMPONENT_ENABLED_STATE_DISABLED,
+                                        android.content.pm.PackageManager.DONT_KILL_APP
+                                    )
+                                    android.util.Log.d("TXAAppIcon", "Đã tắt alias cũ: $aliasComponent (trạng thái trước: $state)")
+                                }
+                            }
+                        }
+
+                        android.util.Log.d("TXAAppIcon", "Chuyển đổi launcher icon sang $targetAlias thành công!")
                         result.success(mapOf(
                             "success" to true,
                             "appliedAlias" to targetAlias,

@@ -1,3 +1,5 @@
+import 'dart:io';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import '../services/txa_admob_service.dart';
 import '../services/txa_analytics.dart';
@@ -554,10 +556,12 @@ class _TXAAppIconGalleryScreenState extends State<TXAAppIconGalleryScreen> {
                   final result = await iconService.selectIcon(item.id);
                   if (context.mounted) {
                     if (result.success) {
+                      final isMobile = !kIsWeb && (Platform.isAndroid || Platform.isIOS);
+                      final toastKey = isMobile ? 'app_icon_applied_toast' : 'app_icon_applied_toast_desktop';
                       ScaffoldMessenger.of(context).showSnackBar(
                         SnackBar(
                           content: Text(
-                            lang.getText('app_icon_applied_toast').replaceAll('%name%', item.getName(isVi)),
+                            lang.getText(toastKey).replaceAll('%name%', item.getName(isVi)),
                           ),
                           backgroundColor: const Color(0xFFFFD700),
                           behavior: SnackBarBehavior.floating,

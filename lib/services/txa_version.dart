@@ -5,12 +5,36 @@ class TXAVersion extends ChangeNotifier {
   TXAVersion._internal();
 
   static const String appName = 'Army';
-  static const String currentVersion = '1.8.1';
-  static const int buildNumber = 15;
-  static const String releaseDate = '13/09/2026';
-  static const String fullVersionString = 'Bản 1.8.1+15';
+  static const String currentVersion = '1.8.2';
+  static const int buildNumber = 16;
+  static const String releaseDate = '14/09/2026';
+  static const String fullVersionString = 'Bản 1.8.2+16';
 
   static const List<Map<String, dynamic>> changelogData = [
+    {
+      'version': '1.8.2+16',
+      'date': '14/09/2026',
+      'title': 'Sửa Triệt Để Đổi Icon App Android 📱 & Tối Ưu Launcher Multi-Alias ⚡',
+      'subtitle': 'Khắc phục triệt để lỗi không đổi được biểu tượng ngoài màn hình chính Android (Samsung One UI, Xiaomi, Pixel), loại bỏ kẹt alias mặc định và đồng bộ trạng thái chính xác.',
+      'badge': 'BẢN SỬA LỖI & TỐI ƯU',
+      'features': [
+        {
+          'icon': '📱',
+          'title': 'Khắc Phục Lỗi Đổi Icon Màn Hình Chính Android',
+          'description': 'Tự động kích hoạt alias mới trước và quét tắt dứt điểm toàn bộ alias cũ/mặc định, tương thích mượt mà với launcher Samsung One UI, Xiaomi HyperOS và Pixel.',
+        },
+        {
+          'icon': '⚡',
+          'title': 'Đồng Bộ Trạng Thái Icon Chuẩn Xác',
+          'description': 'Chỉ ghi nhận thành công và hiển thị icon đang dùng khi hệ thống Android/iOS đã thực sự hoàn tất chuyển đổi biểu tượng.',
+        },
+        {
+          'icon': '🖥️',
+          'title': 'Thông Báo Rõ Ràng Cho Windows & Web',
+          'description': 'Bổ sung thông báo phân biệt thông minh khi người dùng thử nghiệm đổi icon trên Desktop/Web so với điện thoại di động.',
+        },
+      ],
+    },
     {
       'version': '1.8.1+15',
       'date': '13/09/2026',
